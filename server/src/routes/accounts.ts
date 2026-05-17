@@ -4,7 +4,7 @@ import prisma from '../lib/prisma';
 const router = Router();
 
 // TODO: Replace with real user authentication and management
-const TEMP_USER_ID = 'faddc2a0-cd66-4fc5-87ea-5be134c91f55';
+const TEMP_USER_ID = process.env.TEMP_USER_ID || '';
 
 // GET all accounts
 router.get('/', async (req: Request, res: Response) => {
