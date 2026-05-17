@@ -13,7 +13,7 @@ router.get('/', async (req: Request, res: Response) => {
         });
         res.json(categories);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch categories' });
+        res.status(500).json({ error: 'Failed to fetch categories', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
 
@@ -29,7 +29,7 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
         }
         res.json(category);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch category' });
+        res.status(500).json({ error: 'Failed to fetch category', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
 
@@ -56,7 +56,7 @@ router.put('/:id', async (req: Request<{id: string}>, res: Response) => {
         });
         res.json(category);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update category' });
+        res.status(500).json({ error: 'Failed to update category', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
 
@@ -68,7 +68,7 @@ router.delete('/:id', async (req: Request<{id: string}>, res: Response) => {
         });
         res.status(204).send();
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete category' });
+        res.status(500).json({ error: 'Failed to delete category', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 }); 
 
