@@ -76,7 +76,7 @@ router.post('/', async (req: Request, res: Response) => {
                 status,
                 notes,
                 tags: tagIds?.length ? {
-                    connect: tagIds.map((id: string) => ({ id }))
+                    create: tagIds.map((tagId: string) => ({ tagId }))
                 } : undefined
             },
             include: {
