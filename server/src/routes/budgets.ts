@@ -56,6 +56,7 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
         if (!budget) {
             return res.status(404).json({ error: 'Budget not found' });
         }
+        
         res.json(budget);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch budget', details: error instanceof Error ? error.message : 'Unknown error' });
