@@ -60,7 +60,7 @@ const menuItems = [
     { label: 'Transactions', path: '/transactions', icon: '💸' },
     { label: 'Budgets', path: '/budgets', icon: '📋' },
     { label: 'Goals', path: '/goals', icon: '🎯' },
-    { label: 'Settings', path: '/settings', icon: '⚙️' },
+    // { label: 'Settings', path: '/settings', icon: '⚙️' },
 ];
 
 const currentPage = computed(() => {
