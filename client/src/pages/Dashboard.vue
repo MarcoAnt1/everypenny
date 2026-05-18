@@ -6,12 +6,12 @@
             <div
                 v-for="card in summaryCards"
                 :key="card.label"
-                class="bg-white rounded-x1 shadow-sm p-6 flex items-center gap-4"
+                class="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4"
             >
-                <div class="text-4x1">{{ card.icon }}</div>
+                <div class="text-4xl">{{ card.icon }}</div>
                 <div>
                     <p class="text-sm text-gray-400">{{ card.label }}</p>
-                    <p class="text-2x1 font-bold" :class="card.color">
+                    <p class="text-2xl font-bold" :class="card.color">
                         {{ card.value }}
                     </p>
                 </div>
@@ -22,7 +22,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             <!-- Recent Transactions -->
-            <div class="bg-white rounded-x1 shadow-sm p-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-700">Recent Transactions</h3>
                     <RouterLink to="/transactions" class="text-sm text-indigo-500 houver:underline">
@@ -59,7 +59,7 @@
             </div>
 
             <!-- Budget Overview -->
-            <div class="bg-white rounded-x1 shadow-sm p-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-700">Budget Overview</h3>
                     <RouterLink to="/budgets" class="text-sm text-indigo-500 hover:underline">
@@ -99,7 +99,7 @@
         </div>
 
         <!-- Goals -->
-        <div class="bg-white rounded-x1 shadow-sm p-6">
+        <div class="bg-white rounded-xl shadow-sm p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-700">Goals</h3>
                 <RouterLink to="/goals" class="text-sm text-indigo-500 hover:underline">
