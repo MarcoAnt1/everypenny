@@ -45,14 +45,14 @@
                         <div>
                             <p class="text-sm font-medium text-gray-700">{{ tx.description }}</p>
                             <p class="text-xs text-gray-400">
-                                {{ tx.category?.name ?? 'Uncategorized' }} . {{  formatDate(tx.date) }}
+                                {{ tx.category?.name ?? 'Uncategorized' }} · {{  formatDate(tx.date) }}
                             </p>
                         </div>
                         <span
                             class="text-sm font-semibold"
                             :class="tx.type === 'income' ? 'text-green-500' : 'text-red-500'"
                         >
-                            {{ tx.type === 'income' ? '+' : '-' }}${{ formatCurrency(tx.amount) }}
+                            {{ tx.type === 'income' ? '+' : '-' }}{{ formatCurrency(tx.amount) }}
                         </span>
                     </li>
                 </ul>
@@ -60,7 +60,7 @@
 
             <!-- Budget Overview -->
             <div class="bg-white rounded-x1 shadow-sm p-6">
-                <div class="flex items-cener justify-between mb-4">
+                <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-700">Budget Overview</h3>
                     <RouterLink to="/budgets" class="text-sm text-indigo-500 hover:underline">
                         View All
@@ -89,7 +89,7 @@
                                     : budget.percentage >= 75
                                         ? 'bg-yellow-400'
                                         : 'bg-green-500'"
-                                :style="{ width: '${Math.min(budget.percentage, 100)}%'}"    
+                                :style="{ width: `${Math.min(budget.percentage, 100)}%` }"    
                             />
                         </div>
                         <p class="text-xs text-gray-400 mt-1">{{ budget.percentage }}% used</p>
@@ -133,10 +133,10 @@
                     <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
                         <div
                             class="h-2 rounded-full bg-indigo-500 transition-all"
-                            :style="{ width: '${Math.min(goal.percentage, 100)}%' }"
+                            :style="{ width: `${Math.min(goal.percentage, 100)}%` }"
                         />
                     </div>
-                    <div class="flex jutify-between text-x text-gray-400">
+                    <div class="flex justify-between text-xs text-gray-400">
                         <span>{{ formatCurrency(goal.currentAmount) }} </span>
                         <span>{{ formatCurrency(goal.targetAmount) }} </span>
                     </div>
@@ -187,7 +187,7 @@ const summaryCards = computed(() => {
     const expenses = transactions.value
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
-    const goalsCount = goals.value.filter(g => g.status !== 'active').length;
+    const goalsCount = goals.value.filter(g => g.status === 'active').length;
 
     return [
         { label: 'Total Balance',   value: formatCurrency(totalBalance),  icon: '💰', color: 'text-indigo-600' },
@@ -202,11 +202,11 @@ const recentTransactions = computed(() => transactions.value.slice(0, 5));
 
 // Helpers
 const formatCurrency = (amount: number) => {
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
 };
 
 const formatDate = (date: string) => {
-    new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 </script>
