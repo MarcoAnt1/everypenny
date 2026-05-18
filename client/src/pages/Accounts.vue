@@ -95,7 +95,7 @@
             class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
             @click.self="closeModal"
         >
-            <div class="bg-white rounded-xl opacity-100 p-8 w-full max-w-md">
+            <div class="bg-white rounded-xl p-8 w-full max-w-md">
                 <h3 class="text-lg font-semibold text-gray-800 mb-6">
                     {{ editingAccount ? 'Edit Account' : 'Add Account' }}
                 </h3>
