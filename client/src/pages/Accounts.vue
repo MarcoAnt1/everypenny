@@ -180,7 +180,7 @@
                             Cancel
                         </button>
                         <button
-                            @click="saveAccount()"
+                            @click="saveAccount"
                             class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
                         >
                             {{ saving ? 'Saving...' : editingAccount ? 'Save Changes' : 'Add Account' }}
@@ -209,7 +209,7 @@
                         Cancel                        
                     </button>
                     <button
-                        @click="deleteAccountConfirmed()"
+                        @click="deleteAccountConfirmed"
                         class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
                      >
                         Delete
