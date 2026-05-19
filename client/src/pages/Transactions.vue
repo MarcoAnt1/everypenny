@@ -40,6 +40,20 @@
                 </option>
             </select>
 
+            <select name="" id=""
+                v-model="filters.categoryId"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+                 <option value="">All Categories</option>
+                <option 
+                    v-for="cat in categories"
+                    :key="cat.id"
+                    :value="cat.id"
+                >
+                    {{ cat.name }}
+                </option>
+            </select>
+
             <input 
                 v-model="filters.startDate"
                 type="date"
@@ -422,6 +436,8 @@ const loadTransactions = async () => {
             params.endDate = filters.value.endDate;
         }
 
+        console.log(params);
+
         const res = await getTransactions(params);
         transactions.value = res.data;
     } catch (error) {
@@ -467,8 +483,6 @@ const openModal = (tx?: any) => {
         notes: tx.notes || '',
         status: tx.status,
     } : { ...defaultForm, tagIds: []};
-
-    console.log(form.value);
     showModal.value = true;
 }
 
