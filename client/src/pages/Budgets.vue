@@ -5,7 +5,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Budgets</h2>
-                <p class="text-sm text-gray-400">Monitor your spending limitis</p>
+                <p class="text-sm text-gray-400">Monitor your spending limits</p>
             </div>
             <button
                 @click="openModal()"
@@ -51,7 +51,7 @@
             <div
                 v-for="budget in budgets"
                 :key="budget.id"
-                class="bg-white rounded-xl shadow-sm p-6 spacey-y-4"
+                class="bg-white rounded-xl shadow-sm p-6 space-y-4"
             >
 
                 <!-- Budget Header -->
@@ -83,7 +83,7 @@
                                 ? 'bg-red-500'
                                 : budget.percentage >= 75
                                     ? 'bg-yellow-400'
-                                    : 'bg-green-500'"
+                                    : 'bg-indigo-500'"
                             :style="{ width: `${Math.min(budget.percentage, 100)}%`}"
                         />
                     </div>
@@ -92,15 +92,15 @@
                 <!-- Amounts -->
                 <div class="grid grid-cols-3 text-center text-sm">
                     <div>
-                        <p class="text-sx text-gray-400">Spent</p>
+                        <p class="text-xs text-gray-400">Spent</p>
                         <p class="font-semibold text-red-500">{{ formatCurrency(budget.spent) }}</p>
                     </div>
                     <div>
-                        <p class="text-sx text-gray-400">Limit</p>
+                        <p class="text-xs text-gray-400">Limit</p>
                         <p class="font-semibold text-gray-700">{{ formatCurrency(budget.limitAmount) }}</p>
                     </div>
                     <div>
-                        <p class="text-sx text-gray-400">Remaining</p>
+                        <p class="text-xs text-gray-400">Remaining</p>
                         <p 
                             class="font-semibold"
                             :class="budget.remaining >= 0 ? 'text-green-500' : 'text-red-500'"
@@ -138,7 +138,6 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-6">
                     {{ editingBudget ? 'Edit Budget' : 'Add Budget' }}
                 </h3>
-            </div>
 
             <div class="space-y-4">
                 <!-- Name -->
@@ -242,6 +241,7 @@
             </div>
         </div>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
