@@ -125,9 +125,121 @@
                         Delete
                     </button>
                 </div>
-
             </div>
-            
+        </div>
+
+        <!-- Add/Edit Modal -->
+        <div
+            v-if="showModal"
+            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+            @click.self="closeModal"
+        >
+            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+                <h3 class="text-lg font-semibold text-gray-800 mb-6">
+                    {{ editingBudget ? 'Edit Budget' : 'Add Budget' }}
+                </h3>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Name -->
+                <div>
+                    <label class="text-sm text-gray-600 font-medium">Budget Name</label>
+                    <input
+                        v-model="form.name"
+                        type="text"
+                        placeholder="e.g. Food Budget"
+                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
+                    />
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label class="text-sm text-gray-600 font-medium">Category</label>
+                    <select
+                        v-model="form.categoryId"
+                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    >
+                        <option value="">Select category</option>
+                        <option 
+                            v-for="cat in categories"
+                            :key="cat.id"
+                            :value="cat.id"
+                        >
+                            {{ cat.name }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label class="text-sm text-gray-600 font-medium">Limit Amount</label>
+                    <input
+                        v-model.number="form.limitAmount"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                </div>
+
+                <!-- Period -->
+                <div>
+                    <label class="text-sm text-gray-600 font-medium">Period</label>
+                    <select 
+                        v-model="form.period"
+                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    >
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-3 mt-6">
+                    <button
+                        @click="closeModal"
+                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        @click="saveBudget"
+                        :disabled="!form.name || !form.categoryId || !form.limitAmount || saving"
+                        class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                    >
+                        {{ saving ? 'Saving...' : editingBudget ? 'Save Changes' : 'Add Budget' }}
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Delete Confirmation -->
+        <div 
+            v-if="showDeleteConfirm"
+            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        >
+            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
+                <p class="text-4xl mb-4">⚠️</p>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Budget?</h3>
+                <p class="text-sm text-gray-400 mb-6">
+                    This will permanently delete <strong>{{ deletingBudget?.name }}</strong>.
+                </p>
+                <div class="flex gap-3">
+                    <button
+                        @click="showDeleteConfirm = false"
+                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                    >
+                        Cancel                        
+                    </button>
+                    <button
+                        @click="deleteBudgetConfirmed"
+                        class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
