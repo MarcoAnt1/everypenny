@@ -339,9 +339,9 @@
         >
             <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
                 <p class="text-4xl mb-4">⚠️</p>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Account?</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Transaction?</h3>
                 <p class="text-sm text-gray-400 mb-6">
-                    This will permanently delete <strong>{{ deleteTransaction?.name }}</strong> and all its transactions.
+                    This will permanently delete <strong>{{ deletingTransaction?.description }}</strong> and all its transactions.
                 </p>
                 <div class="flex gap-3">
                     <button
