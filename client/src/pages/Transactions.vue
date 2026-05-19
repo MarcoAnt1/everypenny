@@ -269,7 +269,7 @@
 
                     <!-- Category -->
                     <div>
-                        <label class="text-sm text-gray-600 font-medium">Date</label>
+                        <label class="text-sm text-gray-600 font-medium">Category</label>
                         <select
                             v-model="form.categoryId"
                             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
