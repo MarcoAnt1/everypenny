@@ -173,6 +173,8 @@ onMounted(async () => {
         transactions.value = txRes.data;
         budgets.value = budgetRes.data;
         goals.value = goalRes.data;
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
     } finally {
         loading.value = false;
     }
