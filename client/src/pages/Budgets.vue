@@ -297,7 +297,7 @@ const totalRemaining = computed(() => totalBudgeted.value - totalSpent.value);
 const openModal = (budget?: any) => {
     editingBudget.value = budget || null;
     form.value = budget ? {
-        name: budget.description,
+        name: budget.name,
         categoryId: budget.categoryId || '',
         limitAmount: budget.limitAmount,
         period: budget.period,
