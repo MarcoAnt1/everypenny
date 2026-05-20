@@ -5,13 +5,15 @@ import Accounts from '../pages/Accounts.vue';
 import Transactions from '../pages/Transactions.vue';
 import Budgets from '../pages/Budgets.vue';
 import Goals from '../pages/Goals.vue';
+import Categories from '../pages/Categories.vue';
 
 const routes = [
     { path: '/',              component: Dashboard },
     { path: '/accounts',      component: Accounts },
     { path: '/transactions',  component: Transactions },
     { path: '/budgets',       component: Budgets },
-    { path: '/goals',         component: Goals }
+    { path: '/goals',         component: Goals },
+    { path: '/categories',    component: Categories }
 ];
 
 const router = createRouter({
