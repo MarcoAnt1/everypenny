@@ -134,96 +134,96 @@
                     {{ editingGoal ? 'Edit Goal' : 'Add Goal' }}
                 </h3>
 
-            <div class="space-y-4">
-                <!-- Name -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Goal Name</label>
-                    <input
-                        v-model="form.name"
-                        type="text"
-                        placeholder="e.g. Emergency Fund"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
-                    />
-                </div>
+                <div class="space-y-4">
+                    <!-- Name -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Goal Name</label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            placeholder="e.g. Emergency Fund"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
+                        />
+                    </div>
 
-                <!-- Description -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Description (optional)</label>
-                    <textarea
-                        v-model="form.description"
-                        placeholder="What is this goal for?"
-                        row="2"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
-                    />
-                </div>
+                    <!-- Description -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Description (optional)</label>
+                        <textarea
+                            v-model="form.description"
+                            placeholder="What is this goal for?"
+                            row="2"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
+                        />
+                    </div>
 
-                <!-- Target Amount -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Target Amount</label>
-                    <input
-                        v-model.number="form.targetAmount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                </div>
+                    <!-- Target Amount -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Target Amount</label>
+                        <input
+                            v-model.number="form.targetAmount"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
 
-                <!-- Target Amount -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Current Amount</label>
-                    <input
-                        v-model.number="form.currentAmount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                </div>
+                    <!-- Target Amount -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Current Amount</label>
+                        <input
+                            v-model.number="form.currentAmount"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
 
-                <!-- Target Date -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Target Date</label>
-                    <input
-                        v-model="form.targetDate"
-                        type="date"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                </div>
+                    <!-- Target Date -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Target Date</label>
+                        <input
+                            v-model="form.targetDate"
+                            type="date"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
 
-                <!-- Period -->
-                <div>
-                    <div v-if="editingGoal">
-                        <label class="text-sm text-gray-600 font-medium">Status</label>
-                            <select 
-                                v-model="form.status"
-                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                            >
-                                <option value="active">Active</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                        </select>
+                    <!-- Period -->
+                    <div>
+                        <div v-if="editingGoal">
+                            <label class="text-sm text-gray-600 font-medium">Status</label>
+                                <select 
+                                    v-model="form.status"
+                                    class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex gap-3 mt-6">
+                        <button
+                            @click="closeModal"
+                            class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            @click="saveGoal"
+                            :disabled="!form.name || !form.targetAmount || saving"
+                            class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        >
+                            {{ saving ? 'Saving...' : editingGoal ? 'Save Changes' : 'Add Goal' }}
+                        </button>
                     </div>
                 </div>
-
-                <!-- Actions -->
-                <div class="flex gap-3 mt-6">
-                    <button
-                        @click="closeModal"
-                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        @click="saveGoal"
-                        :disabled="!form.name || !form.targetAmount || saving"
-                        class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
-                    >
-                        {{ saving ? 'Saving...' : editingGoal ? 'Save Changes' : 'Add Goal' }}
-                    </button>
-                </div>
             </div>
-        </div>
         </div>
 
         <!-- Add Funds Modal -->
