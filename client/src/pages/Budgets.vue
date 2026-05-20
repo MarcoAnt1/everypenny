@@ -210,7 +210,6 @@
                     </button>
                 </div>
             </div>
-
         </div>
 
         <!-- Delete Confirmation -->
