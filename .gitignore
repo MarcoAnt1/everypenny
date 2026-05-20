@@ -6,12 +6,15 @@ node_modules/
 **/.env
 
 # Database
-backend/prisma/dev.db
-backend/prisma/*.db-journal
+server/prisma/dev.db
+server/prisma/*.db-journal
+
 
 # Build outputs
-frontend/dist/
-backend/dist/
+client/dist/
+server/dist/
 
 # Logs
 *.log
+
+uploads/
