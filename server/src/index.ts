@@ -8,6 +8,7 @@ import categoryRoutes from "./routes/categories";
 import budgetRoutes from "./routes/budgets";
 import goalRoutes from "./routes/goals";
 import tagRoutes from "./routes/tags";
+import importRoutes from "./routes/imports";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/tags', tagRoutes);
+app.use('/api/import', importRoutes)
 
 // Health check
 app.get('/health', (req, res) => {
