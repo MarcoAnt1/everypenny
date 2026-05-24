@@ -30,6 +30,7 @@ router.get('/', async (req: Request, res: Response) => {
             },
             include: {
                 account: true,
+                toAccount: true,
                 category: true,
                 tags: { include: { tag: true } }
             },
@@ -48,6 +49,7 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
             where: { id: req.params.id },
             include: {
                 account: true,
+                toAccount: true,
                 category: true,
                 tags: { include: { tag: true } }
             }
