@@ -30,6 +30,7 @@ router.get('/', async (req: Request, res: Response) => {
             },
             include: {
                 account: true,
+                toAccount: true,
                 category: true,
                 tags: { include: { tag: true } }
             },
@@ -48,6 +49,7 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
             where: { id: req.params.id },
             include: {
                 account: true,
+                toAccount: true,
                 category: true,
                 tags: { include: { tag: true } }
             }
@@ -64,11 +66,17 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
 // POST create a new transaction
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const { accountId, categoryId, amount, date, description, type, status, notes, tagIds } = req.body;
+        const { accountId, categoryId, toAccountId, amount, date, description, type, status, notes, tagIds } = req.body;
+
+        if (type === 'transfer' && !toAccountId) {
+            res.status(400).json({ error: 'Transfer requieres a destination account'});
+            return;
+        }
         const transaction = await prisma.transaction.create({
             data: {
                 accountId,
-                categoryId,
+                categoryId: categoryId || null,
+                toAccountId: toAccountId || null,
                 description,
                 amount,
                 date: new Date(date),
@@ -81,18 +89,34 @@ router.post('/', async (req: Request, res: Response) => {
             },
             include: {
                 account: true,
+                toAccount: true,
                 category: true,
                 tags: { include: { tag: true } }
             }
         });
 
-        // Update account balance based on transaction type
-        const balanceChange = type === 'income' ? amount : -amount;
-        await prisma.account.update({
-            where: { id: accountId },
-            data: { balance: { increment: balanceChange } 
-            }
-        });
+        if (type === 'income') {
+            await prisma.account.update({
+                where: { id: accountId },
+                data: { balance: { increment: amount } }
+            });
+        } else if (type === 'expense') {
+            await prisma.account.update({
+                where: { id: accountId },
+                data: { balance: { decrement: amount } }
+            });
+        } else if (type === 'transfer' && toAccountId) {
+            await prisma.$transaction([
+                prisma.account.update({
+                    where: { id: accountId },
+                    data: { balance: { decrement: amount } }
+                }),
+                prisma.account.update({
+                    where: { id: toAccountId },
+                    data: { balance: { increment: amount } }
+                }),
+            ]);
+        }
         
         res.status(201).json(transaction);
     } catch (error) {
@@ -112,11 +136,12 @@ router.put('/:id', async (req: Request<{id: string}>, res: Response) => {
             return res.status(404).json({ error: 'Transaction not found' });
         }
 
-        const { categoryId, description, amount, date, type, status, notes } = req.body;
+        const { categoryId, toAccountId, description, amount, date, type, status, notes } = req.body;
         const transaction = await prisma.transaction.update({
             where: { id: req.params.id },
             data: { 
-                categoryId, 
+                categoryId: categoryId || null,
+                toAccountId: toAccountId || null,
                 description, 
                 amount, date: new Date(date), 
                 type, 
@@ -125,6 +150,7 @@ router.put('/:id', async (req: Request<{id: string}>, res: Response) => {
             },
             include: {
                 account: true,
+                toAccount: true,
                 category: true,
                 tags: { include: { tag: true } }
             }
