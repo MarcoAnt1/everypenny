@@ -20,24 +20,28 @@ model User {
 }
 
 model Account {
-  id            String         @id @default(uuid())
-  userId        String
-  name          String
-  type          String         // "checking", "savings", "credit_card", "cash", etc.
-  institution   String?
-  balance       Float          @default(0)
-  currency      String         @default("CAD")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                 String         @id @default(uuid())
+  userId             String
+  name               String
+  type               String         // "checking", "savings", "credit_card", "cash", etc.
+  institution        String?
+  balance            Float          @default(0)
+  currency           String         @default("CAD")
+  creditLimit        Float?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
-  user          User           @relation(fields: [userId], references: [id])
-  transactions  Transaction[]
+  user               User           @relation(fields: [userId], references: [id])
+  transactions       Transaction[]  @relation("FromAccount")
+  incomingTransfers  Transaction[]  @relation("ToAccount")
+
 }
 
 model Transaction {
   id           String            @id @default(uuid())
   accountId    String
   categoryId   String?
+  toAccountId  String?
   description  String
   amount       Float
   date         DateTime
@@ -47,7 +51,8 @@ model Transaction {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
-  account      Account           @relation(fields: [accountId], references: [id])
+  account      Account           @relation("FromAccount", fields: [accountId], references: [id])
+  toAccount    Account?          @relation("ToAccount", fields: [toAccountId], references: [id])
   category     Category?         @relation(fields: [categoryId], references: [id])
   tags         TransactionTag[]
 }
