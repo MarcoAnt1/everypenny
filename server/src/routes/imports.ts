@@ -34,7 +34,7 @@ const upload = multer({
 // POST /api/import/excel/preview
 // Parses the file and returns row without saving
 router.post(
-  "/excel/preview",
+  "/preview",
   upload.single("file"),
   async (req: Request, res: Response) => {
     if (!req.file) {
