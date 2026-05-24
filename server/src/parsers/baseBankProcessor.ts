@@ -1,29 +1,44 @@
 import * as XLSX from "xlsx";
-import * as fs from "fs";
-
-export interface ParsedTransaction {
-    date: string | null;
-    description: string;
-    amount: number;
-    type: "expense" | "income";
-    valid: boolean;
-}
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
+import fs from 'fs';
+import { ParsedTransaction, ParseResult } from "./parsedTransactions";
 
 export abstract class BaseBankProcessor {
     protected abstract dateHeaders: string[];
     protected abstract descHeaders: string[];
     protected abstract amountHeaders: string[];
 
-    protected statementYear: string = new Date().getFullYear().toString();
+    protected abstract parsePdfText(text: string): ParseResult;
+    protected abstract parseXlsxRow(row: any[], indexes: { date: number; desc: number; amount: number }): ParsedTransaction | null;
 
-    protected abstract parseRow(row: any[], indexes: { date: number; desc: number; amount: number}): ParsedTransaction | null;
-
-    public processXlsx(filePath: string): ParsedTransaction[] {
+    public processXlsx(filePath: string): ParseResult {
         const workbook = XLSX.readFile(filePath);
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const matrix: any[][] = XLSX.utils.sheet_to_json(sheet, { header:1 , defval: ""});
 
-        return this.processMatrix(matrix);
+        const rows = this.processMatrix(matrix);
+        return {
+            total: rows.length,
+            valid: rows.filter(r => r.valid).length,
+            invalid: rows.filter(r => !r.valid).length,
+            rows
+        }
+    }
+
+    public async processPdf(filePath: string): Promise<ParseResult> {
+        const buffer   = fs.readFileSync(filePath)
+        const uint8    = new Uint8Array(buffer)
+        const doc      = await pdfjsLib.getDocument({ data: uint8 }).promise
+        const numPages = doc.numPages
+        let text = ''
+
+        for (let i = 1; i <= numPages; i++) {
+            const page    = await doc.getPage(i)
+            const content = await page.getTextContent()
+            text += content.items.map((item: any) => item.str).join(' ') + '\n'
+        }
+
+        return this.parsePdfText(text);
     }
 
     private processMatrix(matrix: any[][]): ParsedTransaction[] {
@@ -56,18 +71,17 @@ export abstract class BaseBankProcessor {
             throw new Error("Could not find a valid transaction header row");
         }
 
-        const transactionsRows = matrix.slice(headerRowIndex + 1);
         const indexes = { date: dateColIndex, desc: descColIndex, amount: amountColIndex };
 
-        return transactionsRows
-            .map(row => this.parseRow(row, indexes))
+        return matrix
+            .slice(headerRowIndex + 1)
+            .map(row => this.parseXlsxRow(row, indexes))
             .filter((row): row is ParsedTransaction => row !== null);
     }
 
     protected parseDateString(raw: any): string | null {
         if (!raw) return null;
 
-        // Handle Excel serial number dates
         const num = Number(raw);
         if (!isNaN(num) && num > 10000) {
             const excelEpoch = new Date(1899, 11, 30);
@@ -77,7 +91,6 @@ export abstract class BaseBankProcessor {
             }
         }
 
-        // Try direct parse
         const direct = new Date(raw);
         if (!isNaN(direct.getTime())) {
             return direct.toISOString();
@@ -87,14 +100,12 @@ export abstract class BaseBankProcessor {
         const parts = raw.split(/[\/\-\.]/);
         if (parts.length === 3) {
             const [a, b, c] = parts;
-            // Try DD/MM/YYYY
             const attempt1 = new Date(
                 `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`,
             );
             if (!isNaN(attempt1.getTime())) {
                 return attempt1.toISOString();
             }
-            // Try MM/DD/YYYY
             const attempt2 = new Date(
                 `${c}-${a.padStart(2, "0")}-${b.padStart(2, "0")}`,
             );
@@ -105,4 +116,37 @@ export abstract class BaseBankProcessor {
 
         return null;
     };
+
+    protected parseAmount(raw: any): number {
+        return parseFloat(String(raw).replace(/[^\d.-]/g, ''));
+    }
+
+    protected extractPeriod(text: string): { period: string, year: string; startMonth: number | null } {
+        const match = text.match(/([A-Za-z]+ \d+, \d{4})\s*-\s*([A-Za-z]+ \d+, \d{4})/);
+        const start = match?.[1] || null;
+        const end = match?.[2] || null;
+        const year = end?.match(/\d{4}/)?.[0] || new Date().getFullYear().toString();
+        const startMonth = start ? new Date(start).getMonth() : null;
+
+        return {
+            period: match ? `${start} - ${end}` : 'Unknow period',
+            year,
+            startMonth
+        }
+    }
+
+    protected resolveMonthDate(txDateRaw: string, year: string, startMonth: number | null): string | null {
+        const parsed = new Date(`${txDateRaw} ${year}`);
+        if (isNaN(parsed.getTime())) {
+            return null;
+        }
+
+        const txMonth = parsed.getMonth();
+        const resolvedYear = startMonth !== null && txMonth < startMonth
+            ? String(Number(year) + 1)
+            : year;
+        const fullDate = new Date(`${txDateRaw} ${resolvedYear}`);
+
+        return isNaN(fullDate.getTime()) ? null : fullDate.toISOString();
+    }
 }

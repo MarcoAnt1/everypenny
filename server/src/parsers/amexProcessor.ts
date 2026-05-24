@@ -1,11 +1,12 @@
-import { BaseBankProcessor, ParsedTransaction } from "./baseBankProcessor";
+import { BaseBankProcessor } from "./baseBankProcessor";
+import { ParsedTransaction, ParseResult } from "./parsedTransactions";
 
 export class AmexProcessor extends BaseBankProcessor {
     protected dateHeaders = ["date", "transaction date", "data"];
     protected descHeaders = [ "description", "appearance description", "details", "descricao"];
     protected amountHeaders = ["amount", "charge", "valor", "value"];
 
-    protected parseRow(row: any[], indexes: { date: number; desc: number; amount: number; }): ParsedTransaction | null {
+    protected parseXlsxRow(row: any[], indexes: { date: number; desc: number; amount: number; }): ParsedTransaction | null {
         const rawDate = row[indexes.date];
         const rawDesc = row[indexes.desc];
         const rawAmount = row[indexes.amount];
@@ -34,5 +35,9 @@ export class AmexProcessor extends BaseBankProcessor {
             type: amount > 0 ? "expense" : "income",
             valid: !!parsedDate,
         };
+    }
+
+    protected parsePdfText(text: string): ParseResult {
+      throw new Error("Not implemented");
     }
 }
