@@ -7,12 +7,20 @@
                 <h2 class="text-2xl font-bold text-gray-800">Transactions</h2>
                 <p class="text-sm text-gray-400">Track your income and expenses</p>
             </div>
-            <button
-                @click="openModal()"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-                + Add Transaction
-            </button>
+            <div class="flex gap-3">
+                <button
+                    @click="showImportModal = true"
+                    class="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition"
+                >
+                    📂 Import Statement
+                </button>
+                <button
+                    @click="openModal()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                >
+                    + Add Transaction
+                </button>
+            </div>
         </div>
 
         <!-- Filters -->
@@ -44,7 +52,7 @@
                 v-model="filters.categoryId"
                 class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-                 <option value="">All Categories</option>
+                <option value="">All Categories</option>
                 <option 
                     v-for="cat in categories"
                     :key="cat.id"
@@ -353,14 +361,20 @@
                     <button
                         @click="deleteTransactionConfirmed"
                         class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
-                     >
+                    >
                         Delete
                     </button>
                 </div>
             </div>
         </div>
-
     </div>
+
+    <ImportStatementModal
+        v-if="showImportModal"
+        :accounts="accounts"
+        @close="showImportModal = false"
+        @imported="onImported"
+    />
 </template>
 
 <script setup lang="ts">
@@ -369,6 +383,7 @@ import { getTransactions, createTransaction, updateTransaction, deleteTransactio
 import { getAccounts } from '../api/accounts';
 import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
+import ImportStatementModal from '../components/ImportStatementModal.vue';
 
 const loading = ref(true);
 const saving = ref(false);
@@ -377,6 +392,7 @@ const accounts = ref<any[]>([]);
 const categories = ref<any[]>([]);
 const tags = ref<any[]>([]);
 const showModal = ref(false);
+const showImportModal = ref(false);
 const showDeleteConfirm = ref(false);
 const editingTransaction = ref<any>(null);
 const deletingTransaction = ref<any>(null);
@@ -499,6 +515,11 @@ const toggleTag = (tagId: string) => {
     } else {
         form.value.tagIds.splice(idx, 1);
     }
+}
+
+const onImported = async () => {
+    showImportModal.value = false;
+    await loadTransactions();
 }
 
 // Save
