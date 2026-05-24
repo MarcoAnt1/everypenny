@@ -13,7 +13,20 @@ router.get('/', async (req: Request, res: Response) => {
             where: { userId: TEMP_USER_ID },
             orderBy: { createdAt: 'asc' }
         });
-        res.json(goals);
+
+        const goalsWithProgress = await Promise.all(
+            goals.map(async (goal) => {
+                const current = Number(goal.currentAmount)
+                const target  = Number(goal.targetAmount)
+
+                return {
+                    ...goal,
+                    percentage: target > 0 ? Math.round((current / target) * 100) : 0,
+                    remainingAmount: target - current
+                };
+            })
+        );
+        res.json(goalsWithProgress);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch goals', details: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -28,10 +41,11 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
         if (!goal) {
             return res.status(404).json({ error: 'Goal not found' });
         }
+
         res.json({
             ...goal,
             percentage: Math.round((goal.currentAmount / goal.targetAmount) * 100),
-            remaningAmount: goal.targetAmount - goal.currentAmount
+            remainingAmount: goal.targetAmount - goal.currentAmount
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch goal', details: error instanceof Error ? error.message : 'Unknown error' });
@@ -83,7 +97,7 @@ router.put('/:id', async (req: Request<{id: string}>, res: Response) => {
         res.json({
             ...goal,
             percentage: Math.round((goal.currentAmount / goal.targetAmount) * 100),
-            remaningAmount: goal.targetAmount - goal.currentAmount
+            remainingAmount: goal.targetAmount - goal.currentAmount
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update goal', details: error instanceof Error ? error.message : 'Unknown error' });

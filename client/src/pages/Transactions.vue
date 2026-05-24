@@ -1,0 +1,568 @@
+<template>
+    <div class="space-y-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Transactions</h2>
+                <p class="text-sm text-gray-400">Track your income and expenses</p>
+            </div>
+            <div class="flex gap-3">
+                <button
+                    @click="showImportModal = true"
+                    class="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition"
+                >
+                    📂 Import Statement
+                </button>
+                <button
+                    @click="openModal()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                >
+                    + Add Transaction
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-4">
+            <select
+                v-model="filters.type"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+                <option value="">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+            </select>
+
+            <select
+                v-model="filters.accountId"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+                <option value="">All Accounts</option>
+                <option 
+                    v-for="account in accounts"
+                    :key="account.id"
+                    :value="account.id"
+                >
+                    {{ account.name }}
+                </option>
+            </select>
+
+            <select name="" id=""
+                v-model="filters.categoryId"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+                <option value="">All Categories</option>
+                <option 
+                    v-for="cat in categories"
+                    :key="cat.id"
+                    :value="cat.id"
+                >
+                    {{ cat.name }}
+                </option>
+            </select>
+
+            <input 
+                v-model="filters.startDate"
+                type="date"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+
+            <input 
+                v-model="filters.endDate"
+                type="date"
+                class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+
+            <button
+                @click="applyFilters"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm"
+            >
+                Apply
+            </button>
+
+            <button
+                @click="clearFilters"
+                class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+            >
+                Clear
+            </button>
+        </div>
+
+        <!-- Summary Strip -->
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <p class="text-xs text-gray-400">Income</p>
+                <p class="text-xl font-bold text-green-500">{{ formatCurrency(totalIncome) }}</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <p class="text-xs text-gray-400">Expenses</p>
+                <p class="text-xl font-bold text-red-500">{{ formatCurrency(totalExpenses) }}</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <p class="text-xs text-gray-400">Net</p>
+                <p 
+                    class="text-xl font-bold"
+                    :class="net >= 0 ? 'text-indigo-600' : 'text-red-500'"    
+                >
+                    {{ formatCurrency(net) }}
+                </p>
+            </div>
+        </div>
+
+        <!--Loading -->
+        <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+
+        <!-- Empty -->
+        <div v-else-if="transactions.length === 0" class="text-center text-gray-400 py-16">
+            <p class="text-4xl mb-4">💸</p>
+            <p class="text-lg font-medium">No transactions found</p>
+            <p class="text-sm">Add your first transaction or adujst your filters</p>
+        </div>
+
+        <!-- Transactions Table -->
+        <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+                    <tr>
+                        <th class="px-6 py-3 text-left">Date</th>
+                        <th class="px-6 py-3 text-left">Description</th>
+                        <th class="px-6 py-3 text-left">Category</th>
+                        <th class="px-6 py-3 text-left">Account</th>
+                        <th class="px-6 py-3 text-left">Tags</th>
+                        <th class="px-6 py-3 text-right">Amount</th>
+                        <th class="px-6 py-3 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr
+                        v-for="tx in transactions"
+                        :key="tx.id"
+                        class="hover:bg-gray-50 transition"
+                    >
+                        <td class="px-6 py-4 text-gray-400 whitespace-nowrap">
+                            {{ formatDate(tx.date) }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-800">{{ tx.description }}</p>
+                            <p v-if="tx.notes" class="text-xs text-gray-400">{{ tx.notes }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-gray-500">
+                            {{ tx.category?.name || '-' }}
+                        </td>
+                        <td class="px-6 py-4 text-gray-500">
+                            {{ tx.account?.name || '-' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-wrap gap-1">
+                                <span
+                                    v-for="t in tx.tags"
+                                    :key="t.tagId"
+                                    class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full"
+                                >
+                                    {{ t.tag.name }}
+                                </span>
+                            </div>
+                        </td>
+                        <td 
+                            class="px-6 py-4 text-right font-semibold whitespace-nowrap"
+                            :class="tx.type === 'income' ? 'text-green-500' : 'text-red-500'"
+                        >
+                            {{ tx.type === 'income' ? '+' : '-'}}{{ formatCurrency(tx.amount) }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center gap-2">
+                                <button
+                                    @click="openModal(tx)"
+                                    class="text-indigo-500 hover:text-indigo-700 text-xs"
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    @click="confirmDelete(tx)"
+                                    class="text-red-400 hover:text-red-600 text-xs"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add/Edit Modal -->
+        <div
+            v-if="showModal"
+            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+            @click.self="closeModal"
+        >
+            <div class="bg-white rounded-xl shodow-xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <h3 class="text-lg-font-semibold text-gray-800 mb-6">
+                    {{  editingTransaction ? 'Edit Transaction' : 'Add Transaction' }}
+                </h3>
+
+                <div class="space-y-4">
+                    <!-- Type -->
+                    <div class="flex gap-3">
+                        <button
+                            @click="form.type = 'expense'"
+                            :class="form.type === 'expense'
+                                ? 'flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium'
+                                : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
+                        >
+                            💸 Expense
+                        </button>
+                        <button
+                            @click="form.type = 'income'"
+                            :class="form.type === 'income'
+                                ? 'flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium'
+                                : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
+                        >
+                            💰 Income
+                        </button>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Description</label>
+                        <input
+                            v-model="form.description"
+                            type="text"
+                            placeholder="e.g Grocery Shopping"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
+
+                    <!-- Amount -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Amount</label>
+                        <input
+                            v-model.number="form.amount"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
+
+                    <!-- Date -->
+                    <div>
+                        <label for="date" class="text-sm text-gray-600 font-medium">Date</label>
+                        <input
+                            id="date"
+                            v-model="form.date"
+                            type="date"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
+
+                    <!-- Account -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Date</label>
+                        <select
+                            v-model="form.accountId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="">Select account</option>
+                            <option 
+                                v-for="account in accounts"
+                                :key="account.id"
+                                :value="account.id"
+                            >
+                                {{ account.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Category</label>
+                        <select
+                            v-model="form.categoryId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="">Select category</option>
+                            <option 
+                                v-for="cat in categories"
+                                :key="cat.id"
+                                :value="cat.id"
+                            >
+                                {{ cat.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Tags -->
+                    <div>
+                        <label for="Tags" class="text-sm text-gray-600 font-medium">Tags</label>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <button
+                                v-for="tag in tags"
+                                :key="tag.id"
+                                @click="toggleTag(tag.id)"
+                                :class="form.tagIds.includes(tag.id)
+                                    ? 'bg-indigo-600 text-white text-xs px-3 py-1 rounded-full'
+                                    : 'bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full hover:bg-gray-200'"
+                            >
+                                {{ tag.name }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label for="Tags" class="text-sm text-gray-600 font-medium">Notes (optional)</label>
+                        <textarea name="notes" id="notes"
+                            v-model="form.notes"
+                            placeholder="Any extra details..."
+                            role="2"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex gap-3 mt-6">
+                        <button
+                            @click="closeModal"
+                            class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            @click="saveTransaction"
+                            class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        >
+                            {{ saving ? 'Saving...' : editingTransaction ? 'Save Changes' : 'Add Transaction' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation -->
+        <div 
+            v-if="showDeleteConfirm"
+            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        >
+            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
+                <p class="text-4xl mb-4">⚠️</p>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Transaction?</h3>
+                <p class="text-sm text-gray-400 mb-6">
+                    This will permanently delete <strong>{{ deletingTransaction?.description }}</strong> and all its transactions.
+                </p>
+                <div class="flex gap-3">
+                    <button
+                        @click="showDeleteConfirm = false"
+                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                    >
+                        Cancel                        
+                    </button>
+                    <button
+                        @click="deleteTransactionConfirmed"
+                        class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ImportStatementModal
+        v-if="showImportModal"
+        :accounts="accounts"
+        @close="showImportModal = false"
+        @imported="onImported"
+    />
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { getTransactions, createTransaction, updateTransaction, deleteTransaction } from '../api/transactions';
+import { getAccounts } from '../api/accounts';
+import { getCategories } from '../api/categories';
+import { getTags } from '../api/tags';
+import ImportStatementModal from '../components/ImportStatementModal.vue';
+
+const loading = ref(true);
+const saving = ref(false);
+const transactions = ref<any[]>([]);
+const accounts = ref<any[]>([]);
+const categories = ref<any[]>([]);
+const tags = ref<any[]>([]);
+const showModal = ref(false);
+const showImportModal = ref(false);
+const showDeleteConfirm = ref(false);
+const editingTransaction = ref<any>(null);
+const deletingTransaction = ref<any>(null);
+
+const filters = ref({
+    type: '',
+    accountId: '',
+    categoryId: '',
+    startDate: '',
+    endDate: '',
+});
+
+const defaultForm = {
+    description: '',
+    amount: 0,
+    date: new Date().toISOString().split('T')[0],
+    type: 'expense',
+    accountId: '',
+    categoryId: '',
+    tagIds: [] as string[],
+    notes: '',
+    status: 'cleared'
+}
+
+const form = ref({ ...defaultForm, tagIds: [] as string[] });
+
+onMounted(async () => {
+    await Promise.all([
+        loadTransactions(),
+        loadAccounts(),
+        loadCategories(),
+        loadTags(),
+    ]);
+});
+
+const loadTransactions = async () => {
+    loading.value = true;
+    try {
+        const params: any = {};
+        if (filters.value.type) {
+            params.type = filters.value.type;
+        }
+
+        if (filters.value.accountId) {
+            params.accountId = filters.value.accountId;
+        }
+
+        if (filters.value.categoryId) {
+            params.categoryId = filters.value.categoryId;
+        }
+
+        if (filters.value.startDate) {
+            params.startDate = filters.value.startDate;
+        }
+
+        if (filters.value.endDate) {
+            params.endDate = filters.value.endDate;
+        }
+
+        console.log(params);
+
+        const res = await getTransactions(params);
+        transactions.value = res.data;
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+    } finally {
+        loading.value = false;
+    }
+}
+
+const loadAccounts = async () => { const res = await getAccounts(); accounts.value = res.data };
+const loadCategories = async () => { const res = await getCategories(); categories.value = res.data };
+const loadTags = async () => { const res = await getTags(); tags.value = res.data };
+
+// Filters
+const applyFilters = () => loadTransactions();
+const clearFilters = () => {
+    filters.value = {
+        type: '',
+        accountId: '',
+        categoryId: '',
+        startDate: '',
+        endDate: '',
+    };
+    loadTransactions();
+}
+
+// Summary
+const totalIncome = computed(() => transactions.value.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0));
+const totalExpenses = computed(() => transactions.value.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))
+const net = computed(() => totalIncome.value - totalExpenses.value);
+
+// Modal
+const openModal = (tx?: any) => {
+    editingTransaction.value = tx || null;
+    form.value = tx ? {
+        description: tx.description,
+        amount: tx.amount,
+        date: tx.date.split('T')[0],
+        type: tx.type,
+        accountId: tx.accountId,
+        categoryId: tx.categoryId || '',
+        tagIds: tx.tags?.map((t: any) => t.tagId) || [],
+        notes: tx.notes || '',
+        status: tx.status,
+    } : { ...defaultForm, tagIds: []};
+    showModal.value = true;
+}
+
+const closeModal = () => {
+    showModal.value = false;
+    editingTransaction.value = null;
+    form.value = { ...defaultForm, tagIds: [] };
+}
+
+const toggleTag = (tagId: string) => {
+    const idx = form.value.tagIds.indexOf(tagId);
+    if (idx === -1) {
+        form.value.tagIds.push(tagId);
+    } else {
+        form.value.tagIds.splice(idx, 1);
+    }
+}
+
+const onImported = async () => {
+    showImportModal.value = false;
+    await loadTransactions();
+}
+
+// Save
+const saveTransaction = async () => {
+    saving.value = true;
+    try {
+        if (editingTransaction.value) {
+            await updateTransaction(editingTransaction.value.id, form.value);
+        } else {
+            await createTransaction(form.value);
+        }
+        await loadTransactions();
+        closeModal()
+    } catch (error) {
+        console.error('Error saving transaction:', error);
+    } finally {
+        saving.value = false;
+    }
+}
+
+// Delete
+const confirmDelete = (tx: any) => {
+    deletingTransaction.value = tx;
+    showDeleteConfirm.value = true;
+}
+
+const deleteTransactionConfirmed = async () => {
+    if (!deletingTransaction.value) {
+        return;
+    }
+    await deleteTransaction(deletingTransaction.value.id);
+    await loadTransactions();
+    showDeleteConfirm.value = false;
+    deletingTransaction.value = null;
+}
+
+// Helpers
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
+};
+
+const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+</script>

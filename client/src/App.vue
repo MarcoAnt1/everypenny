@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+
 </script>
 
 <template>
-  <HelloWorld />
+  <AppLayout />
 </template>
+
+<script setup lang="ts">
+
+import AppLayout from './components/AppLayout.vue';
+
+</script>
