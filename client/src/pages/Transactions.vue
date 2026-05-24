@@ -151,7 +151,13 @@
                             {{ tx.category?.name || '-' }}
                         </td>
                         <td class="px-6 py-4 text-gray-500">
-                            {{ tx.account?.name || '-' }}
+                            <span>{{ tx.account?.name || '-' }}</span>
+                            <span
+                                v-if="tx.type === 'transfer' && tx.toAccount" 
+                                class="text-xs text-indigo-500"
+                            >
+                                → {{ tx.toAccount.name }}
+                            </span>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex flex-wrap gap-1">
@@ -166,9 +172,13 @@
                         </td>
                         <td 
                             class="px-6 py-4 text-right font-semibold whitespace-nowrap"
-                            :class="tx.type === 'income' ? 'text-green-500' : 'text-red-500'"
+                            :class="tx.type === 'income'
+                                ? 'text-green-500' 
+                                : tx.type === 'transfer'
+                                    ? 'text-indigo-500'
+                                    : 'text-red-500'"
                         >
-                            {{ tx.type === 'income' ? '+' : '-'}}{{ formatCurrency(tx.amount) }}
+                            {{ tx.type === 'income' ? '+' : tx.type === 'transfer' ? '🔁' : '-'}}{{ formatCurrency(tx.amount) }}
                         </td>
                         <td class="px-6 py-4 text-center">
                             <div class="flex justify-center gap-2">
@@ -204,23 +214,53 @@
 
                 <div class="space-y-4">
                     <!-- Type -->
-                    <div class="flex gap-3">
-                        <button
-                            @click="form.type = 'expense'"
-                            :class="form.type === 'expense'
-                                ? 'flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium'
-                                : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
-                        >
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Type</label>
+                        <div class="flex gap-3 mt-1">
+                            <button
+                                @click="form.type = 'expense'"
+                                :class="form.type === 'expense'
+                                    ? 'flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium'
+                                    : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
+                            >
                             💸 Expense
-                        </button>
-                        <button
+                            </button>
+                            <button
                             @click="form.type = 'income'"
                             :class="form.type === 'income'
-                                ? 'flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium'
-                                : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
+                                        ? 'flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium'
+                                        : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
+                                >
+                                💰 Income
+                            </button>
+                            <button
+                            @click="form.type = 'transfer'"
+                            :class="form.type === 'transfer'
+                                        ? 'flex-1 bg-indigo-500 text-white py-2 rounded-lg text-sm font-medium'
+                                        : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'"
+                                >
+                                🔁 Transfer
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Destinatioin Account (only for transfers)-->
+                    <div v-if="form.type === 'transfer'">
+                        <label class="text-sm text-gray-600 font-medium">To Account</label>
+                        <select
+                            v-model="form.toAccountId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 frocus:ring-indigo-400"
                         >
-                            💰 Income
-                        </button>
+                            <option value="">Select destinatioin account</option>
+                            <option
+                                v-for="account in accounts.filter(a => a.id !== form.accountId)"
+                                :key="account.id"
+                                :value="account.id"
+                            >
+                                {{ account.name }}
+                            </option>
+                        </select>
+
                     </div>
 
                     <!-- Description -->
@@ -259,7 +299,7 @@
 
                     <!-- Account -->
                     <div>
-                        <label class="text-sm text-gray-600 font-medium">Date</label>
+                        <label class="text-sm text-gray-600 font-medium">Account</label>
                         <select
                             v-model="form.accountId"
                             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
@@ -412,6 +452,7 @@ const defaultForm = {
     type: 'expense',
     accountId: '',
     categoryId: '',
+    toAccountId: '',
     tagIds: [] as string[],
     notes: '',
     status: 'cleared'
@@ -495,6 +536,7 @@ const openModal = (tx?: any) => {
         type: tx.type,
         accountId: tx.accountId,
         categoryId: tx.categoryId || '',
+        toAccountId: tx.toAccountId || '',
         tagIds: tx.tags?.map((t: any) => t.tagId) || [],
         notes: tx.notes || '',
         status: tx.status,
