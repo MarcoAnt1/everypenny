@@ -90,17 +90,43 @@ router.post("/confirm", async (req: Request, res: Response) => {
             return prisma.transaction.create({
             data: {
                 accountId,
-                categoryId:  tx.categoryId  ?? null,
-                description: tx.description ?? 'Imported transaction',
+                categoryId:  tx.categoryId  || null,
+                toAccount:   tx.toAccountId || null,
+                description: tx.description || 'Imported transaction',
                 amount:      Number(tx.amount),
                 date:        tx.date,
-                type:        tx.type     ?? 'expense',
+                type:        tx.type     || 'expense',
                 status:      'cleared',
                 notes:       'Imported from Excel'
             }
             })
         })
     );
+
+    for (const tx of transactions) {
+        if (tx.type === 'income') {
+            await prisma.account.update({
+                where: { id: accountId },
+                data: { balance: { increment: tx.amount } }
+            });
+        } else if (tx.type === 'expense') {
+            await prisma.account.update({
+                where: { id: accountId },
+                data: { balance: { decrement: tx.amount } }
+            });
+        } else if (tx.type === 'transfer' && tx.toAccountId) {
+            await prisma.$transaction([
+                prisma.account.update({
+                    where: { id: accountId },
+                    data: { balance: { decrement: tx.amount } }
+                }),
+                prisma.account.update({
+                    where: { id: tx.toAccountId },
+                    data: { balance: { increment: tx.amount } }
+                }),
+            ]);
+        }
+    }
 
     // Update account balance
     const balanceDelta = transactions.reduce((sum: number, tx: any) => {
