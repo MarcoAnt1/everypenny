@@ -2,7 +2,8 @@ import { Router, Request, Response } from "express";
 import multer from "multer";
 import * as fs from "fs";
 import prisma from "../lib/prisma";
-import { AmexProcessor } from "../processors/amexProcessor";
+import { AmexProcessor } from "../parsers/amexProcessor";
+import { NeoProcessor } from "../parsers/neoProcessor";
 
 const router = Router();
 
@@ -49,18 +50,16 @@ router.post(
       if (bankType == "AMEX") {
         const processor = new AmexProcessor();
         preview = processor.processXlsx(req.file.path);
+      } else if (bankType == "NEO") {
+        const processor = new NeoProcessor();
+        preview = await processor.processPdf(req.file.path);
       }
 
       if (!preview) {
         return null;
       }
 
-      res.json({
-        total: preview.length,
-        valid: preview.filter((r) => r.valid).length,
-        invalid: preview.filter((r) => !r.valid).length,
-        rows: preview,
-      });
+      res.json(preview);
     } catch (error: any) {
       console.error("Import error:", error);
       res.status(500).json({ error: "Failed to parse file sctructure" });
