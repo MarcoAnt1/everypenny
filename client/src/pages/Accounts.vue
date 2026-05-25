@@ -43,13 +43,43 @@
 
                 <!-- Balance -->
                 <div>
-                    <p class="text-xs text-gray-400">Current Balance</p>
+                    <p class="text-xs text-gray-400">
+                        {{ account.type === 'credit' ? 'Amount Owing' : 'Current Balance' }}
+                    </p>
                     <p 
                         class="text-2xl font-bold"
-                        :class="account.balance >= 0 ? 'text-indigo-600' : 'text-red-500'"
+                        :class="account.type === 'credit'
+                            ? account.balance > 0 ? 'text-red-600' : 'text-green-500'
+                            : account.balance >= 0 ? 'text-indigo-600' : 'text-red-500'"
                     >
                         {{  formatCurrency(account.balance) }}
                     </p>
+                </div>
+
+                <!-- Credit card extra info -->
+                <div v-if="account.type === 'credit' && account.creditLimit" class="spacy-y-1">
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Available Credit</span>
+                        <span class="font-medium text-green-500">
+                            {{ formatCurrency(account.availableCredit) }}
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5">
+                        <div 
+                            class="h-1.5 rounded-full transition-all"
+                            :class="account.utilization >= 80
+                                ? 'bg-red-500'
+                                : account.utilization >= 50
+                                    ? 'bg-yellow-400'
+                                    : 'bg-green-500'"
+                            :style="{ width: `${Math.min(account.utilization, 100)}%` }"
+                        />
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>{{ account.utilization }}% used</span>
+                        <span>Limit: {{ formatCurrency(account.creditLimit) }}</span>
+                    </div>
+
                 </div>
 
                 <!-- Institution -->
@@ -128,6 +158,18 @@
                             <option value="investment">Investment</option>
                             <option value="other">Cash</option>
                         </select>
+                    </div>
+
+                    <!-- Credit Limit (only for credit cards) -->
+                    <div v-if="form.type === 'credit'">
+                        <label class="text-sm text-gray-600 font-medium">Credit Limit</label>
+                        <input 
+                            v-model="form.creditLimit"
+                            type="number"
+                            step="0.01"
+                            placeholder="e.g. 5000"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
                     </div>
 
                     <!-- Institution -->
@@ -211,7 +253,7 @@
                     <button
                         @click="deleteAccountConfirmed"
                         class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
-                     >
+                    >
                         Delete
                     </button>
                 </div>
@@ -238,7 +280,8 @@ const defaultForm = {
     type: 'checking',
     institution: '',
     balance: 0,
-    currency: 'CAD'
+    currency: 'CAD',
+    creditLimit: 0
 }
 
 const form = ref({ ...defaultForm });
@@ -274,7 +317,8 @@ const openModal = (account?: any) => {
             type: account.type, 
             institution: account.institution || '', 
             balance: account.balance, 
-            currency: account.currency || 'CAD' 
+            currency: account.currency || 'CAD',
+            creditLimit: account.creditLimit
         }
         : { ...defaultForm };
     showModal.value = true;
@@ -293,7 +337,10 @@ const saveAccount = async () => {
         if (editingAccount.value) {
             await updateAccount(editingAccount.value.id, form.value);
         } else {
-            await createAccount(form.value);
+            await createAccount({
+                ...form.value,
+                creditLimit: form.value.type === 'credit' ? form.value.creditLimit : null
+            });
         }
         await loadAccounts();
         closeModal();
