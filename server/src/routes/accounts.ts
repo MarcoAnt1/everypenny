@@ -12,7 +12,20 @@ router.get('/', async (req: Request, res: Response) => {
         const accounts = await prisma.account.findMany({
             where: { userId: TEMP_USER_ID }
         });
-        res.json(accounts);
+
+        const enriched = accounts.map(account => {
+            if (account.type === 'credit' && account.creditLimit) {
+                const creditLimit = Number(account.creditLimit);
+                const balance = Number(account.balance);
+                const availableCredit = creditLimit - balance;
+                const utilization = Math.round((balance / creditLimit) * 100);
+
+                return { ...account, availableCredit, utilization }
+            }
+
+            return account;
+        })
+        res.json(enriched);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch accounts', details: error instanceof Error ? error.message : 'Unknown error' });
     }

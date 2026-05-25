@@ -5,6 +5,44 @@ import prisma from '../lib/prisma';
 
 const router = Router();
 
+const updateBalances = async (
+    type: string,
+    accountId: string,
+    toAccountId: string | null,
+    amount: number,
+    accountType: string,
+    toAccountType?: string
+) => {
+    if (type === 'income') {
+        await prisma.account.update({
+            where: { id: accountId },
+            data: { balance: { increment: amount } }
+        });
+    } else if (type === 'expense') {
+        await prisma.account.update({
+            where: { id: accountId },
+            data: { 
+                balance: accountType === 'credit'
+                    ? { increment: amount }
+                    : { decrement: amount } }
+        });
+    } else if (type === 'transfer' && toAccountId) {
+        await prisma.$transaction([
+            prisma.account.update({
+                where: { id: accountId },
+                data: { balance: { decrement: amount } }
+            }),
+            prisma.account.update({
+                where: { id: toAccountId },
+                data: { 
+                    balance: toAccountType === 'credit' 
+                        ? { decrement: amount }
+                        : { increment: amount} }
+            }),
+        ]);
+    }
+}
+
 function balanceChange(oldType: string, oldAmount: number, newType: string, newAmount: number): number {
     const oldBalanceChange = oldType === 'income' ? oldAmount : -oldAmount;
     const newBalanceChange = newType === 'income' ? newAmount : -newAmount;
@@ -72,6 +110,17 @@ router.post('/', async (req: Request, res: Response) => {
             res.status(400).json({ error: 'Transfer requieres a destination account'});
             return;
         }
+
+        const account = await prisma.account.findUnique({ where: { id: accountId }});
+        const toAccount = toAccountId
+            ? await prisma.account.findUnique({ where: { id: toAccountId }})
+            : null;
+
+        if (!account) {
+            res.status(400).json({ error: 'Account not found'});
+            return;
+        }
+
         const transaction = await prisma.transaction.create({
             data: {
                 accountId,
@@ -95,28 +144,14 @@ router.post('/', async (req: Request, res: Response) => {
             }
         });
 
-        if (type === 'income') {
-            await prisma.account.update({
-                where: { id: accountId },
-                data: { balance: { increment: amount } }
-            });
-        } else if (type === 'expense') {
-            await prisma.account.update({
-                where: { id: accountId },
-                data: { balance: { decrement: amount } }
-            });
-        } else if (type === 'transfer' && toAccountId) {
-            await prisma.$transaction([
-                prisma.account.update({
-                    where: { id: accountId },
-                    data: { balance: { decrement: amount } }
-                }),
-                prisma.account.update({
-                    where: { id: toAccountId },
-                    data: { balance: { increment: amount } }
-                }),
-            ]);
-        }
+        await updateBalances(
+            type,
+            accountId,
+            toAccountId || null,
+            amount,
+            account.type,
+            toAccount?.type
+        )
         
         res.status(201).json(transaction);
     } catch (error) {
@@ -201,6 +236,8 @@ router.delete('/:id', async (req: Request<{id: string}>, res: Response) => {
         res.status(500).json({ error: 'Failed to delete transaction', details: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
+
+
 
 
 export default router;
