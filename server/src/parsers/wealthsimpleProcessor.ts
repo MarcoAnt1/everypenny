@@ -51,7 +51,7 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
         const activitySubType = String(row.activity_sub_type || '').trim();
         const rawAmount = row.net_cash_amount;
         const rawDate = row.transaction_date;
-        const accontType = String(row.accont_Type || '').trim();
+        const accountType = String(row.account_type || '').trim();
 
         if (SKIP_TYPES.includes(activityType)) return null;
         if (!rawAmount || !rawDate) return null;
@@ -60,7 +60,7 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
         if (isNaN(amount) || amount === 0) return null;
 
         const type = this.resolveType(activityType, activitySubType, amount);
-        const description = this.buildDescription(activityType, activitySubType, accontType);
+        const description = this.buildDescription(activityType, activitySubType, accountType);
         const date = this.parseDateString(rawDate);
 
         return {
@@ -85,7 +85,7 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
         return amount >= 0 ? 'income' : 'expense';
     }
 
-    private buildDescription(activityType: string, activitySubType: string, accontType: string): string {
+    private buildDescription(activityType: string, activitySubType: string, accountType: string): string {
         const map: Record<string, string> = {
             'AFT_IN': 'Direct Deposit',
             'AFT_OUT': 'Bill Payment',
@@ -94,8 +94,8 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
             'TRANSFER': 'Transfer',
         };
 
-        if (activityType === 'Interest') return `Interest -${accontType}`;
+        if (activityType  === 'Interest') return `Interest -${accountType}`;
 
-        return map[activitySubType] ?? `${accontType} ${activitySubType}`.trim();
+        return map[activitySubType] ?? `${accountType} ${activitySubType}`.trim();
     }
 }
