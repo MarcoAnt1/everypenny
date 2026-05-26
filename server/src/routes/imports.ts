@@ -48,13 +48,13 @@ router.post(
     try {
       let preview;
 
-      if (bankType == "AMEX") {
+      if (bankType.includes("AMEX")) {
         const processor = new AmexProcessor();
         preview = processor.processXlsx(req.file.path);
-      } else if (bankType == "NEO") {
+      } else if (bankType.includes("NEO")) {
         const processor = new NeoProcessor();
         preview = await processor.processPdf(req.file.path);
-      } else if (bankType === "WEALTHSIMPLE") {
+      } else if (bankType.includes("WEALTHSIMPLE")) {
         const processor = new WealthSimpleProcessor();
         preview = processor.processCsv(req.file.path);
       }
