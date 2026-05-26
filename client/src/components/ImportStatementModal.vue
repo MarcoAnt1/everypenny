@@ -149,6 +149,7 @@
                                         <th class="px-6 py-3 text-left">Description</th>
                                         <th class="px-6 py-3 text-left">Type</th>
                                         <th class="px-6 py-3 text-left">Category</th>
+                                        <th class="px-6 py-3 text-left">To Account</th>
                                         <th class="px-6 py-3 text-right">Amount</th>
                                         <th class="px-6 py-3 text-center">Remove</th>
                                     </tr>
@@ -205,6 +206,25 @@
                                                     {{  cat.name }}
                                                 </option>
                                             </select>
+                                        </td>
+
+                                        <!-- To Account (Only relevant for transfers)-->
+                                        <td class="px-3 py-2">
+                                            <select
+                                                v-if="row.type === 'transfer'"
+                                                v-model="row.toAccountId"
+                                                class="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                            >
+                                                <option value="">- Save as expense -</option>
+                                                <option
+                                                    v-for="acc in props.accounts.filter(a => a.id !== form.accountId)"
+                                                    :key="acc.id"
+                                                    :value="acc.id"
+                                                >
+                                                    {{ acc.name }}
+                                                </option>
+                                            </select>
+                                            <span v-else class="text-gray-300">-</span>
                                         </td>
 
                                         <!-- Amount -->
@@ -368,9 +388,15 @@ const parseFile = async () => {
         previewRows.value = res.data.rows
             .filter((r: any) => r.valid)
             .map((r: any) => ({
-                ...r,
+                rowIndex: r.rowIndex,
+                date: r.date,
+                description: r.description,
+                amount: r.amount,
+                type: r.type,
+                valid: r.valid,
                 selected: true,
-                categoryId: r.categoryId || ''
+                categoryId: r.categoryId || '',
+                toAccountId: r.toAccountId || ''
             }));
     } catch (error: any) {
         console.error('Parse error:', error);
@@ -401,6 +427,7 @@ const confirmImport = async () => {
                 amount: r.amount,
                 type: r.type,
                 categoryId: r.categoryId || null,
+                toAccountId: r.toAccountId || null,
                 valid: r.valid
             }))
         );
