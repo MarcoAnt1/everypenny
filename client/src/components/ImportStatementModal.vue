@@ -118,16 +118,16 @@
                     <div v-else>
 
                         <!-- Summary -->
-                        <div class="grid grid-cols-4 gap-4 mb-6">
-                            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                        <div class="grid grid-cols-3 gap-3 mb-6">
+                            <div class="bg-gray-100 rounded-lg p-3 text-center">
                                 <p class="text-xs text-gray-400">Total</p>
                                 <p class="text-xl font-bold text-gray-700">{{ previewRows.length }}</p>
                             </div>
-                            <div class="bg-green-50 rounded-lg p-3 text-center">
+                            <div class="bg-green-100 rounded-lg p-3 text-center">
                                 <p class="text-xs text-gray-400">Income</p>
                                 <p class="text-xl font-bold text-green-600">{{ incomeCount }}</p>
                             </div>
-                            <div class="bg-red-50 rounded-lg p-3 text-center">
+                            <div class="bg-red-100 rounded-lg p-3 text-center">
                                 <p class="text-xs text-gray-400">Expenses</p>
                                 <p class="text-xl font-bold text-red-500">{{ expenseCount }}</p>
                             </div>

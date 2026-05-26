@@ -251,6 +251,24 @@
                         </div>
                     </div>
 
+                    <!-- Account -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Account</label>
+                        <select
+                            v-model="form.accountId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="">Select account</option>
+                            <option 
+                                v-for="account in accounts"
+                                :key="account.id"
+                                :value="account.id"
+                            >
+                                {{ account.name }}
+                            </option>
+                        </select>
+                    </div>
+
                     <!-- Destinatioin Account (only for transfers)-->
                     <div v-if="form.type === 'transfer'">
                         <label class="text-sm text-gray-600 font-medium">To Account</label>
@@ -267,7 +285,6 @@
                                 {{ account.name }}
                             </option>
                         </select>
-
                     </div>
 
                     <!-- Description -->
@@ -302,24 +319,6 @@
                             type="date"
                             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         />
-                    </div>
-
-                    <!-- Account -->
-                    <div>
-                        <label class="text-sm text-gray-600 font-medium">Account</label>
-                        <select
-                            v-model="form.accountId"
-                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                        >
-                            <option value="">Select account</option>
-                            <option 
-                                v-for="account in accounts"
-                                :key="account.id"
-                                :value="account.id"
-                            >
-                                {{ account.name }}
-                            </option>
-                        </select>
                     </div>
 
                     <!-- Category -->
