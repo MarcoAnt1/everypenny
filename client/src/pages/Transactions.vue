@@ -190,6 +190,12 @@
                                     Edit
                                 </button>
                                 <button
+                                    @click="duplicateTransaction(tx)"
+                                    class="text-gray-400 hover:text-gray-600 text-xs"
+                                >
+                                    Copy
+                                </button>
+                                <button
                                     @click="confirmDelete(tx)"
                                     class="text-red-400 hover:text-red-600 text-xs"
                                 >
@@ -245,6 +251,24 @@
                         </div>
                     </div>
 
+                    <!-- Account -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Account</label>
+                        <select
+                            v-model="form.accountId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="">Select account</option>
+                            <option 
+                                v-for="account in accounts"
+                                :key="account.id"
+                                :value="account.id"
+                            >
+                                {{ account.name }}
+                            </option>
+                        </select>
+                    </div>
+
                     <!-- Destinatioin Account (only for transfers)-->
                     <div v-if="form.type === 'transfer'">
                         <label class="text-sm text-gray-600 font-medium">To Account</label>
@@ -261,7 +285,6 @@
                                 {{ account.name }}
                             </option>
                         </select>
-
                     </div>
 
                     <!-- Description -->
@@ -296,24 +319,6 @@
                             type="date"
                             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         />
-                    </div>
-
-                    <!-- Account -->
-                    <div>
-                        <label class="text-sm text-gray-600 font-medium">Account</label>
-                        <select
-                            v-model="form.accountId"
-                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                        >
-                            <option value="">Select account</option>
-                            <option 
-                                v-for="account in accounts"
-                                :key="account.id"
-                                :value="account.id"
-                            >
-                                {{ account.name }}
-                            </option>
-                        </select>
                     </div>
 
                     <!-- Category -->
@@ -597,6 +602,24 @@ const deleteTransactionConfirmed = async () => {
     await loadTransactions();
     showDeleteConfirm.value = false;
     deletingTransaction.value = null;
+}
+
+const duplicateTransaction = (tx: any) => {
+    editingTransaction.value = null;
+    form.value = {
+        description: `${tx.description} (copy)`,
+        amount: tx.amount,
+        date: new Date().toISOString().split('T')[0],
+        type: tx.type,
+        accountId: tx.accountId || '',
+        categoryId: tx.categoryId || '',
+        toAccountId: tx.toAccountId || '',
+        tagIds: tx.tags?.map((t: any) => t.tagId) || [],
+        notes: tx.notes || '',
+        status: tx.status
+    }
+
+    showModal.value = true;
 }
 
 // Helpers

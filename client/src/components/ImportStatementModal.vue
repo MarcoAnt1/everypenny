@@ -118,22 +118,18 @@
                     <div v-else>
 
                         <!-- Summary -->
-                        <div class="grid grid-cols-4 gap-4 mb-6">
-                            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                        <div class="grid grid-cols-3 gap-3 mb-6">
+                            <div class="bg-gray-100 rounded-lg p-3 text-center">
                                 <p class="text-xs text-gray-400">Total</p>
                                 <p class="text-xl font-bold text-gray-700">{{ previewRows.length }}</p>
                             </div>
-                            <div class="bg-green-50 rounded-lg p-3 text-center">
+                            <div class="bg-green-100 rounded-lg p-3 text-center">
                                 <p class="text-xs text-gray-400">Income</p>
                                 <p class="text-xl font-bold text-green-600">{{ incomeCount }}</p>
                             </div>
-                            <div class="bg-red-50 rounded-lg p-3 text-center">
+                            <div class="bg-red-100 rounded-lg p-3 text-center">
                                 <p class="text-xs text-gray-400">Expenses</p>
                                 <p class="text-xl font-bold text-red-500">{{ expenseCount }}</p>
-                            </div>
-                            <div class="bg-indigo-50 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Matched</p>
-                                <p class="text-xl font-bold text-indigo-600">{{ matchedCount }}</p>
                             </div>
                         </div>
 
@@ -151,7 +147,6 @@
                                         <th class="px-6 py-3 text-left">Category</th>
                                         <th class="px-6 py-3 text-left">To Account</th>
                                         <th class="px-6 py-3 text-right">Amount</th>
-                                        <th class="px-6 py-3 text-center">Remove</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
@@ -233,16 +228,6 @@
                                             :class="row.type === 'income' ? 'text-green-500' : 'text-red-500'"    
                                         >
                                             {{ row.type === 'income' ? '+' : '-' }}{{ formatCurrency(row.amount) }}
-                                        </td>
-
-                                        <!-- Remove -->
-                                        <td class="px-3 py-2 text-center">
-                                            <button
-                                                @click="removeRow(i)"
-                                                class="text-red-400 hover:text-red-600 text-xs"
-                                            >
-                                                ✕
-                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -359,7 +344,6 @@ const stepLabel = computed(() => {
 const selectedRows = computed(() => previewRows.value.filter(r => r.selected));
 const incomeCount = computed(() => previewRows.value.filter(r => r.type === 'income').length);
 const expenseCount = computed(() => previewRows.value.filter(r => r.type === 'expense').length);
-const matchedCount = computed(() => previewRows.value.filter(r => r.categoryId).length);
 const allSelected = computed(() => previewRows.value.every(r => r.selected));
 
 const onFileChange = (e: Event) => {
