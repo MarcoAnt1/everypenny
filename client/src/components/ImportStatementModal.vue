@@ -178,13 +178,15 @@
                                         <!-- Type toggle -->
                                         <td class="px-3 py-2">
                                             <button
-                                                @click="row.type = row.type === 'expense' ? 'income' : 'expense'"
-                                                class="text-xs px-2 py-1 rounded-full font-medium"
+                                                @click="cycleType(row)"
+                                                class="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap"
                                                 :class="row.type === 'income'
                                                     ? 'bg-green-100 text-green-600'
-                                                    : 'bg-red-100 text-red-500'"
+                                                    : row.type === 'transfer'
+                                                        ? 'bg-indigo-100 text-indigo-600'
+                                                        : 'bg-red-100 text-red-500'"
                                             >
-                                                {{  row.type === 'income' ? '💰 Income' : '💸 Expense' }}
+                                                {{  row.type === 'income' ? '💰 Income' : row.type === 'transfer' ? '🔁 Transfer' : '💸 Expense' }}
                                             </button>
                                         </td>
 
@@ -429,5 +431,10 @@ const formatFileSize = (bytes: number) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const cycleType = (row: any) => {
+    if (row.type === 'expense') row.type = 'income'
+    else if (row.type === 'income') row.type = 'transfer'
+    else row.type = 'expense'
+}
 
 </script>
