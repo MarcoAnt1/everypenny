@@ -79,7 +79,6 @@ router.post(
 router.post("/confirm", async (req: Request, res: Response) => {
   try {
     const { accountId, transactions } = req.body;
-    console.log("it got here");
 
     if (!accountId || !transactions?.length) {
       res

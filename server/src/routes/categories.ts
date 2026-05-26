@@ -37,8 +37,17 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
     try {
         const { name, type, icon, parentId } = req.body;
+
+        if (parentId) {
+            const parentExists = await prisma.category.findUnique({
+                where: { id: parentId }
+            });
+            if (!parentExists) {
+                return res.status(400).json({ error: 'Parent category not found'});
+            }
+        }
         const category = await prisma.category.create({
-            data: { name, type, icon, parentId }
+            data: { name, type, icon, parentId: parentId || null }
         });
         res.status(201).json(category);
     } catch (error) {
