@@ -4,6 +4,7 @@ import * as fs from "fs";
 import prisma from "../lib/prisma";
 import { AmexProcessor } from "../parsers/amexProcessor";
 import { NeoProcessor } from "../parsers/neoProcessor";
+import { WealthSimpleProcessor } from "../parsers/wealthsimpleProcessor";
 
 const router = Router();
 
@@ -53,6 +54,9 @@ router.post(
       } else if (bankType == "NEO") {
         const processor = new NeoProcessor();
         preview = await processor.processPdf(req.file.path);
+      } else if (bankType === "WEALTHSIMPLE") {
+        const processor = new WealthSimpleProcessor();
+        preview = processor.processCsv(req.file.path);
       }
 
       if (!preview) {

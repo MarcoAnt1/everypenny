@@ -56,7 +56,7 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
         if (SKIP_TYPES.includes(activityType)) return null;
         if (!rawAmount || !rawDate) return null;
 
-        const amount = parseFloat(String(rawAmount).replace(/[^d.-]/g, ''));
+        const amount = parseFloat(String(rawAmount).replace(/[^\d.-]/g, ''));
         if (isNaN(amount) || amount === 0) return null;
 
         const type = this.resolveType(activityType, activitySubType, amount);
@@ -94,7 +94,7 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
             'TRANSFER': 'Transfer',
         };
 
-        if (accontType === 'Interest') return `Interest -${accontType}`;
+        if (activityType === 'Interest') return `Interest -${accontType}`;
 
         return map[activitySubType] ?? `${accontType} ${activitySubType}`.trim();
     }
