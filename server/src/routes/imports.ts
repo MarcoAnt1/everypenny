@@ -91,19 +91,20 @@ router.post("/confirm", async (req: Request, res: Response) => {
     // Save all transactions
     const created = await prisma.$transaction(
         transactions.map((tx: any) => {
-            return prisma.transaction.create({
+          const isTransferWithoutDestination = tx.type === 'transfer' && !tx.toAccountId;
+          return prisma.transaction.create({
             data: {
                 accountId,
                 categoryId:  tx.categoryId  || null,
-                toAccount:   tx.toAccountId || null,
+                toAccountId:   tx.toAccountId || null,
                 description: tx.description || 'Imported transaction',
                 amount:      Number(tx.amount),
                 date:        tx.date,
-                type:        tx.type     || 'expense',
+                type:        isTransferWithoutDestination ? 'expense' : tx.type,
                 status:      'cleared',
                 notes:       'Imported from Excel'
             }
-            })
+          })
         })
     );
 

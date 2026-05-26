@@ -4,6 +4,7 @@ export interface ParsedTransaction {
     description: string;
     amount: number;
     type: "expense" | "income" | "transfer";
+    toAccountId?: string | null,
     valid: boolean;
 }
 
