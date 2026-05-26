@@ -32,6 +32,7 @@
                 <option value="">All Types</option>
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
+                <option value="transfer">Transfer</option>
             </select>
 
             <select
@@ -455,7 +456,7 @@ const defaultForm = {
     description: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
-    type: 'expense',
+    type: 'transfer',
     accountId: '',
     categoryId: '',
     toAccountId: '',

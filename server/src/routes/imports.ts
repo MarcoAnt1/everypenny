@@ -4,6 +4,7 @@ import * as fs from "fs";
 import prisma from "../lib/prisma";
 import { AmexProcessor } from "../parsers/amexProcessor";
 import { NeoProcessor } from "../parsers/neoProcessor";
+import { WealthSimpleProcessor } from "../parsers/wealthsimpleProcessor";
 
 const router = Router();
 
@@ -47,12 +48,15 @@ router.post(
     try {
       let preview;
 
-      if (bankType == "AMEX") {
+      if (bankType.includes("AMEX")) {
         const processor = new AmexProcessor();
         preview = processor.processXlsx(req.file.path);
-      } else if (bankType == "NEO") {
+      } else if (bankType.includes("NEO")) {
         const processor = new NeoProcessor();
         preview = await processor.processPdf(req.file.path);
+      } else if (bankType.includes("WEALTHSIMPLE")) {
+        const processor = new WealthSimpleProcessor();
+        preview = processor.processCsv(req.file.path);
       }
 
       if (!preview) {
@@ -87,19 +91,20 @@ router.post("/confirm", async (req: Request, res: Response) => {
     // Save all transactions
     const created = await prisma.$transaction(
         transactions.map((tx: any) => {
-            return prisma.transaction.create({
+          const isTransferWithoutDestination = tx.type === 'transfer' && !tx.toAccountId;
+          return prisma.transaction.create({
             data: {
                 accountId,
                 categoryId:  tx.categoryId  || null,
-                toAccount:   tx.toAccountId || null,
+                toAccountId:   tx.toAccountId || null,
                 description: tx.description || 'Imported transaction',
                 amount:      Number(tx.amount),
                 date:        tx.date,
-                type:        tx.type     || 'expense',
+                type:        isTransferWithoutDestination ? 'expense' : tx.type,
                 status:      'cleared',
                 notes:       'Imported from Excel'
             }
-            })
+          })
         })
     );
 

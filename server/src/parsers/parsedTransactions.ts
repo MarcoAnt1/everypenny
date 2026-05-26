@@ -3,7 +3,8 @@ export interface ParsedTransaction {
     date: string | null;
     description: string;
     amount: number;
-    type: "expense" | "income";
+    type: "expense" | "income" | "transfer";
+    toAccountId?: string | null,
     valid: boolean;
 }
 
