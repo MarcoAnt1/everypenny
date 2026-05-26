@@ -189,6 +189,12 @@
                                     Edit
                                 </button>
                                 <button
+                                    @click="duplicateTransaction(tx)"
+                                    class="text-gray-400 hover:text-gray-600 text-xs"
+                                >
+                                    Copy
+                                </button>
+                                <button
                                     @click="confirmDelete(tx)"
                                     class="text-red-400 hover:text-red-600 text-xs"
                                 >
@@ -596,6 +602,24 @@ const deleteTransactionConfirmed = async () => {
     await loadTransactions();
     showDeleteConfirm.value = false;
     deletingTransaction.value = null;
+}
+
+const duplicateTransaction = (tx: any) => {
+    editingTransaction.value = null;
+    form.value = {
+        description: `${tx.description} (copy)`,
+        amount: tx.amount,
+        date: new Date().toISOString().split('T')[0],
+        type: tx.type,
+        accountId: tx.accountId || '',
+        categoryId: tx.categoryId || '',
+        toAccountId: tx.toAccountId || '',
+        tagIds: tx.tags?.map((t: any) => t.tagId) || [],
+        notes: tx.notes || '',
+        status: tx.status
+    }
+
+    showModal.value = true;
 }
 
 // Helpers
