@@ -482,8 +482,6 @@ const loadTransactions = async () => {
             params.endDate = filters.value.endDate;
         }
 
-        console.log(params);
-
         const res = await getTransactions(params);
         transactions.value = res.data;
     } catch (error) {
