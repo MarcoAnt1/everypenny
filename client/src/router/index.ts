@@ -6,6 +6,7 @@ import Transactions from '../pages/Transactions.vue';
 import Budgets from '../pages/Budgets.vue';
 import Goals from '../pages/Goals.vue';
 import Categories from '../pages/Categories.vue';
+import Tags from '../pages/Tags.vue'
 
 const routes = [
     { path: '/',              component: Dashboard },
@@ -13,7 +14,8 @@ const routes = [
     { path: '/transactions',  component: Transactions },
     { path: '/budgets',       component: Budgets },
     { path: '/goals',         component: Goals },
-    { path: '/categories',    component: Categories }
+    { path: '/categories',    component: Categories },
+    { path: '/tags',          component: Tags }
 ];
 
 const router = createRouter({

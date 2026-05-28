@@ -171,7 +171,7 @@ router.put('/:id', async (req: Request<{id: string}>, res: Response) => {
             return res.status(404).json({ error: 'Transaction not found' });
         }
 
-        const { categoryId, toAccountId, description, amount, date, type, status, notes } = req.body;
+        const { categoryId, toAccountId, description, amount, date, type, status, notes, tagIds } = req.body;
         const transaction = await prisma.transaction.update({
             where: { id: req.params.id },
             data: { 
@@ -181,7 +181,10 @@ router.put('/:id', async (req: Request<{id: string}>, res: Response) => {
                 amount, date: new Date(date), 
                 type, 
                 status, 
-                notes 
+                notes,
+                tags: tagIds?.length ? {
+                    create: tagIds.map((tagId: string) => ({ tagId }))
+                } : undefined
             },
             include: {
                 account: true,

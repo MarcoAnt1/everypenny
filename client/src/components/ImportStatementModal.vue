@@ -396,10 +396,6 @@ const toggleAll = (e: Event) => {
     previewRows.value.forEach(r => r.selected = checked);
 }
 
-const removeRow = (index: number) => {
-    previewRows.value.splice(index, 1);
-}
-
 const confirmImport = async () => {
     saving.value = true;
     try {

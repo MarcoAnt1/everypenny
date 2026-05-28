@@ -60,7 +60,8 @@ const menuItems = [
     { label: 'Transactions', path: '/transactions', icon: '💸' },
     { label: 'Budgets', path: '/budgets', icon: '📋' },
     { label: 'Goals', path: '/goals', icon: '🎯' },
-    { label: 'Categories', path: '/categories', icon: '🏷️'}
+    { label: 'Categories', path: '/categories', icon: '🏷️'},
+    { label: 'Tags', path: '/tags', icon: '🔖'}
     // { label: 'Settings', path: '/settings', icon: '⚙️' },
 ];
 

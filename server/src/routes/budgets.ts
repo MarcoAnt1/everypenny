@@ -63,6 +63,49 @@ router.get('/:id', async (req: Request<{id: string}>, res: Response) => {
     }
 });
 
+// GET transactions for a specific budget
+router.get('/:id/transactions', async (req: Request<{ id: string }>, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const budget = await prisma.budget.findUnique({
+            where: { id },
+            include: { category: true }
+        });
+
+        if (!budget) {
+            res.status(404).json({ error : 'Budget not found'});
+            return;
+        }
+
+        const now = new Date();
+        const startDate = budget.period === 'monthly'
+            ? new Date(now.getFullYear(), now.getMonth(), 1)
+            : new Date(now.getFullYear(), 0, 1)
+
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                categoryId: budget.categoryId,
+                type: 'expense',
+                date: { gte: startDate, lte: now }
+            },
+            include: {
+                account: true,
+                category: true
+            },
+            orderBy: { date: 'desc' }
+        });
+
+        res.json({
+            budget,
+            transactions,
+            total: transactions.reduce((sum, t) => sum + Number(t.amount), 0)
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch budget transactions', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
+});
+
 // POST create a new budget
 router.post('/', async (req: Request, res: Response) => {
     try {
