@@ -274,8 +274,7 @@
         >
             <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
                 <p class="text-4xl mb-4">⚠️</p>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Goals
-                    ?</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Goal?</h3>
                 <p class="text-sm text-gray-400 mb-6">
                     This will permanently delete <strong>{{ deleteGoal?.name }}</strong>.
                 </p>
@@ -429,7 +428,6 @@ const deleteGoalConfirmed = async () => {
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
 };
-
 
 const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
