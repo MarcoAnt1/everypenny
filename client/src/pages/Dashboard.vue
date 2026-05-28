@@ -152,6 +152,7 @@ import { getAccounts } from '../api/accounts';
 import { getTransactions } from '../api/transactions';
 import { getBudgets } from '../api/budgets';
 import { getGoals } from '../api/goals';
+import { formatDate, formatCurrency } from '../helper/formatHelper.ts';
 
 const loading = ref(true);
 const accounts = ref<any[]>([]);
@@ -201,14 +202,5 @@ const summaryCards = computed(() => {
 
 // Last 5 transactions
 const recentTransactions = computed(() => transactions.value.slice(0, 5));
-
-// Helpers
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
-};
-
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
 
 </script>

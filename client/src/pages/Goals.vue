@@ -302,6 +302,7 @@
 
 import { ref, computed, onMounted } from 'vue';
 import { getGoals, createGoal, updateGoal, deleteGoal, addFunds } from '../api/goals';
+import { formatDate, formatCurrency } from '../helper/formatHelper.ts';
 
 const loading = ref(true);
 const saving = ref(false);
@@ -423,14 +424,5 @@ const deleteGoalConfirmed = async () => {
     showDeleteConfirm.value = false;
     deletingGoal.value = null;
 }
-
-// Helpers
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
-};
-
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
 
 </script>

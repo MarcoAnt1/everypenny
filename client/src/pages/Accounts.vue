@@ -266,6 +266,7 @@
 
 import { computed, onMounted, ref } from 'vue';
 import { createAccount, deleteAccount, getAccounts, updateAccount } from '../api/accounts';
+import { formatCurrency } from '../helper/formatHelper.ts';
 
 const loading = ref(true);
 const saving = ref(false);
@@ -368,11 +369,6 @@ const deleteAccountConfirmed = async () => {
         showDeleteConfirm.value = false;
         deletingAccount.value = null;
     }
-}
-
-// Helpers
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(amount);
 }
 
 const accountIcon = (type: string) => {
