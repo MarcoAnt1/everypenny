@@ -144,78 +144,78 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-6">
                     {{ editingBudget ? 'Edit Budget' : 'Add Budget' }}
                 </h3>
-            </div>
 
-            <div class="space-y-4">
-                
-                <!-- Name -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Budget Name</label>
-                    <input
-                        v-model="form.name"
-                        type="text"
-                        placeholder="e.g. Food Budget"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
-                    />
-                </div>
+                <div class="space-y-4">
+                    
+                    <!-- Name -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Budget Name</label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            placeholder="e.g. Food Budget"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
+                        />
+                    </div>
 
-                <!-- Category -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Category</label>
-                    <select
-                        v-model="form.categoryId"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                        <option value="">Select category</option>
-                        <option 
-                            v-for="cat in categories"
-                            :key="cat.id"
-                            :value="cat.id"
+                    <!-- Category -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Category</label>
+                        <select
+                            v-model="form.categoryId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         >
-                            {{ cat.name }}
-                        </option>
-                    </select>
-                </div>
+                            <option value="">Select category</option>
+                            <option 
+                                v-for="cat in categories"
+                                :key="cat.id"
+                                :value="cat.id"
+                            >
+                                {{ cat.name }}
+                            </option>
+                        </select>
+                    </div>
 
-                <!-- Amount -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Limit Amount</label>
-                    <input
-                        v-model.number="form.limitAmount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                </div>
+                    <!-- Amount -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Limit Amount</label>
+                        <input
+                            v-model.number="form.limitAmount"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
 
-                <!-- Period -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Period</label>
-                    <select 
-                        v-model="form.period"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                    </select>
-                </div>
+                    <!-- Period -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Period</label>
+                        <select 
+                            v-model="form.period"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
 
-                <!-- Actions -->
-                <div class="flex gap-3 mt-6">
-                    <button
-                        @click="closeModal"
-                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        @click="saveBudget"
-                        :disabled="!form.name || !form.categoryId || !form.limitAmount || saving"
-                        class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
-                    >
-                        {{ saving ? 'Saving...' : editingBudget ? 'Save Changes' : 'Add Budget' }}
-                    </button>
+                    <!-- Actions -->
+                    <div class="flex gap-3 mt-6">
+                        <button
+                            @click="closeModal"
+                            class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            @click="saveBudget"
+                            :disabled="!form.name || !form.categoryId || !form.limitAmount || saving"
+                            class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        >
+                            {{ saving ? 'Saving...' : editingBudget ? 'Save Changes' : 'Add Budget' }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
