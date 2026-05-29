@@ -8,7 +8,7 @@ export const useAuthStore = defineStore("auth", () => {
     JSON.parse(localStorage.getItem("user") ?? "null"),
   );
 
-  const isAunthenticated = computed(() => !!token.value);
+  const isAuthenticated = computed(() => !!token.value);
 
   const setAuth = (newToken: string, newUser: any) => {
     token.value = newToken;
@@ -36,5 +36,5 @@ export const useAuthStore = defineStore("auth", () => {
     return res.data;
   };
 
-  return { token, user, isAunthenticated, login, register, logout };
+  return { token, user, isAuthenticated, login, register, logout };
 });
