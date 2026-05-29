@@ -386,33 +386,14 @@
             </div>
         </div>
 
-        <!-- Delete Confirmation -->
-        <div 
+        <DeleteConfirmation
             v-if="showDeleteConfirm"
-            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-        >
-            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
-                <p class="text-4xl mb-4">⚠️</p>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Transaction?</h3>
-                <p class="text-sm text-gray-400 mb-6">
-                    This will permanently delete <strong>{{ deletingTransaction?.description }}</strong> and all its transactions.
-                </p>
-                <div class="flex gap-3">
-                    <button
-                        @click="showDeleteConfirm = false"
-                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                        Cancel                        
-                    </button>
-                    <button
-                        @click="deleteTransactionConfirmed"
-                        class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
-                    >
-                        Delete
-                    </button>
-                </div>
-            </div>
-        </div>
+            :item="'Transaction'"
+            :item-description="deletingTransaction?.description"
+            @close="showDeleteConfirm = false"
+            @deleted="deleteTransactionConfirmed"
+        />
+
     </div>
 
     <ImportStatementModal
@@ -429,7 +410,9 @@ import { getTransactions, createTransaction, updateTransaction, deleteTransactio
 import { getAccounts } from '../api/accounts';
 import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
+import { formatDate, formatCurrency } from '../helper/formatHelper.ts';
 import ImportStatementModal from '../components/ImportStatementModal.vue';
+import DeleteConfirmation from '../components/DeleteConfirmation.vue';
 
 const loading = ref(true);
 const saving = ref(false);
@@ -498,8 +481,6 @@ const loadTransactions = async () => {
         if (filters.value.endDate) {
             params.endDate = filters.value.endDate;
         }
-
-        console.log(params);
 
         const res = await getTransactions(params);
         transactions.value = res.data;
@@ -621,14 +602,5 @@ const duplicateTransaction = (tx: any) => {
 
     showModal.value = true;
 }
-
-// Helpers
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
-};
-
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
 
 </script>

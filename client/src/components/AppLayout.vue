@@ -74,13 +74,14 @@ const logout = () => {
 }
 
 const menuItems = [
-  { label: "Dashboard", path: "/", icon: "📊" },
-  { label: "Accounts", path: "/accounts", icon: "🏦" },
-  { label: "Transactions", path: "/transactions", icon: "💸" },
-  { label: "Budgets", path: "/budgets", icon: "📋" },
-  { label: "Goals", path: "/goals", icon: "🎯" },
-  { label: "Categories", path: "/categories", icon: "🏷️" },
-  // { label: 'Settings', path: '/settings', icon: '⚙️' },
+    { label: 'Dashboard', path: '/', icon: '📊' },
+    { label: 'Accounts', path: '/accounts', icon: '🏦' },
+    { label: 'Transactions', path: '/transactions', icon: '💸' },
+    { label: 'Budgets', path: '/budgets', icon: '📋' },
+    { label: 'Goals', path: '/goals', icon: '🎯' },
+    { label: 'Categories', path: '/categories', icon: '🏷️'},
+    { label: 'Tags', path: '/tags', icon: '🔖'}
+    // { label: 'Settings', path: '/settings', icon: '⚙️' },
 ];
 
 const currentPage = computed(() => {

@@ -21,7 +21,7 @@
                 <p class="text-xs text-gray-400">Total Budgeted</p>
                 <p class="text-xl font-bold text-indigo-600">{{ formatCurrency(totalBudgeted) }}</p>
             </div>
-             <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
                 <p class="text-xs text-gray-400">Total Spent</p>
                 <p class="text-xl font-bold text-indigo-600">{{ formatCurrency(totalSpent) }}</p>
             </div>
@@ -113,6 +113,12 @@
                 <!-- Actions -->
                 <div class="flex gap-2 pt-2 border-t">
                     <button
+                        @click="openTransactionsModal(budget)"
+                        class="flex-1 text-sm text-gray-500 hover:bg-gray-50 py-1 rounded transition"
+                    >
+                        📋 Transactions
+                    </button>
+                    <button
                         @click="openModal(budget)"
                         class="flex-1 text-sm text-indigo-600 hover:bg-indigo-50 py-1 rounded transition"
                     >
@@ -139,122 +145,224 @@
                     {{ editingBudget ? 'Edit Budget' : 'Add Budget' }}
                 </h3>
 
-            <div class="space-y-4">
-                <!-- Name -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Budget Name</label>
-                    <input
-                        v-model="form.name"
-                        type="text"
-                        placeholder="e.g. Food Budget"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
-                    />
-                </div>
+                <div class="space-y-4">
+                    
+                    <!-- Name -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Budget Name</label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            placeholder="e.g. Food Budget"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
+                        />
+                    </div>
 
-                <!-- Category -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Category</label>
-                    <select
-                        v-model="form.categoryId"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                        <option value="">Select category</option>
-                        <option 
-                            v-for="cat in categories"
-                            :key="cat.id"
-                            :value="cat.id"
+                    <!-- Category -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Category</label>
+                        <select
+                            v-model="form.categoryId"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         >
-                            {{ cat.name }}
-                        </option>
-                    </select>
-                </div>
+                            <option value="">Select category</option>
+                            <option 
+                                v-for="cat in categories"
+                                :key="cat.id"
+                                :value="cat.id"
+                            >
+                                {{ cat.name }}
+                            </option>
+                        </select>
+                    </div>
 
-                <!-- Amount -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Limit Amount</label>
-                    <input
-                        v-model.number="form.limitAmount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                </div>
+                    <!-- Amount -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Limit Amount</label>
+                        <input
+                            v-model.number="form.limitAmount"
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
 
-                <!-- Period -->
-                <div>
-                    <label class="text-sm text-gray-600 font-medium">Period</label>
-                    <select 
-                        v-model="form.period"
-                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                    </select>
-                </div>
+                    <!-- Period -->
+                    <div>
+                        <label class="text-sm text-gray-600 font-medium">Period</label>
+                        <select 
+                            v-model="form.period"
+                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        >
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
 
-                <!-- Actions -->
-                <div class="flex gap-3 mt-6">
-                    <button
-                        @click="closeModal"
-                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        @click="saveBudget"
-                        :disabled="!form.name || !form.categoryId || !form.limitAmount || saving"
-                        class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
-                    >
-                        {{ saving ? 'Saving...' : editingBudget ? 'Save Changes' : 'Add Budget' }}
-                    </button>
+                    <!-- Actions -->
+                    <div class="flex gap-3 mt-6">
+                        <button
+                            @click="closeModal"
+                            class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            @click="saveBudget"
+                            :disabled="!form.name || !form.categoryId || !form.limitAmount || saving"
+                            class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        >
+                            {{ saving ? 'Saving...' : editingBudget ? 'Save Changes' : 'Add Budget' }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Delete Confirmation -->
-        <div 
+        <DeleteConfirmation
             v-if="showDeleteConfirm"
-            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-        >
-            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
-                <p class="text-4xl mb-4">⚠️</p>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Budget?</h3>
-                <p class="text-sm text-gray-400 mb-6">
-                    This will permanently delete <strong>{{ deletingBudget?.name }}</strong>.
-                </p>
-                <div class="flex gap-3">
-                    <button
-                        @click="showDeleteConfirm = false"
-                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                        Cancel                        
-                    </button>
-                    <button
-                        @click="deleteBudgetConfirmed"
-                        class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
-                    >
-                        Delete
-                    </button>
+            :item="'Budgets'"
+            :item-description="deletingBudget?.name"
+            @close="showDeleteConfirm = false"
+            @deleted="deleteBudgetConfirmed"
+        />
+    </div>
+
+    <!-- Budget Transactions Modal -->
+    <div
+        v-if="showTransactionsModal"
+        class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        @click.self="showTransactionsModal = false"
+    >
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+            <div class="p-6 border-b flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        {{ selecetedBudget?.name }}
+                    </h3>
+                    <p class="text-sm text-gray-400 capitalize">
+                        {{ selecetedBudget?.category?.name }} · {{  selecetedBudget?.period }}
+                    </p>
                 </div>
+                <button
+                    @click="showTransactionsModal = false"
+                    class="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <!-- Summary Strip -->
+            <div class="grid grid-cols-3 gap-4 p-6 border-b">
+                <div class="text-center">
+                    <p class="text-xs text-gray-400">Limit</p>
+                    <p class="text-lg font-bold text-gray-700">{{ formatCurrency(selecetedBudget?.limitAmount) }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-400">Spent</p>
+                    <p class="text-xl font-bold text-red-500">{{ formatCurrency(budgetTransactionsTotal) }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-400">Remaining</p>
+                    <p 
+                        class="text-xl font-bold"
+                        :class="(selecetedBudget?.limitAmount - budgetTransactionsTotal) >= 0
+                            ? 'text-green-500'
+                            : 'text-red-500'"    
+                    >
+                        {{ formatCurrency(selecetedBudget?.limitAmount - budgetTransactionsTotal) }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Transactions List -->
+            <div class="flex-1 overflow-y-auto p-6">
+            
+                <!--Loading -->
+                <div v-if="loadingTransactions" class="text-center text-gray-400 py-8">Loading...</div>
+
+                <!-- Empty -->
+                <div v-else-if="budgetTransactions.length === 0" class="text-center text-gray-400 py-8">
+                    <p class="text-3xl mb-2">🎉</p>
+                    <p class="font-medium">No transactions yet</p>
+                    <p class="text-sm">No expenses in this category for the current period</p>
+                </div>
+
+                <!-- Transactions Table -->
+                <table v-else class="w-full text-sm">
+                    <thead class="text-xs text-gray-400 uppercase border-b">
+                        <tr>
+                            <th class="pb-2 text-left">Date</th>
+                            <th class="pb-2 text-left">Description</th>
+                            <th class="pb-2 text-left">Account</th>
+                            <th class="pb-2 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr
+                            v-for="tx in budgetTransactions"
+                            :key="tx.id"
+                            class="hover:bg-gray-50"
+                        >
+                            <td class="py-3 text-gray-400 text-xs whitespace-nowrap">
+                                {{ formatDate(tx.date) }}
+                            </td>
+                            <td class="py-3 text-gray-700 px-3">
+                                {{ tx.description }}
+                            </td>
+                            <td class="py-4 text-gray-400 text-xs">
+                                {{ tx.account?.name || '—' }}
+                            </td>
+                            <td class="py-3 text-right font-semibold text-red-500 whitespace-nowrap">
+                                -{{ formatCurrency(tx.amount) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="border-t">
+                        <tr>
+                            <td colspan="3" class="pt-3 text-sm font-medium text-gray-600">Total</td>
+                            <td class="pt-3 text-right font-bold text-red-500">
+                                -{{ formatCurrency(budgetTransactionsTotal) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Fotter -->
+            <div class="p-4 border-t">
+                <button
+                    @click="showTransactionsModal = false"
+                    class="w-full border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                >
+                    Close
+                </button>
             </div>
         </div>
     </div>
-  </div>
+
 </template>
 
 <script setup lang="ts">
 
 import { ref, computed, onMounted } from 'vue';
-import { getBudgets, createBudget, updateBudget, deleteBudget } from '../api/budgets';
+import { getBudgets, createBudget, updateBudget, deleteBudget, getBudgetTransactions } from '../api/budgets';
 import { getCategories } from '../api/categories';
+import { formatDate, formatCurrency } from '../helper/formatHelper.ts';
+import DeleteConfirmation from '../components/DeleteConfirmation.vue';
 
 const loading = ref(true);
+const loadingTransactions = ref(false);
+const budgetTransactionsTotal = ref(0);
 const saving = ref(false);
 const budgets = ref<any[]>([]);
 const categories = ref<any[]>([]);
+const budgetTransactions = ref<any[]>([]);
 const showModal = ref(false);
 const showDeleteConfirm = ref(false);
+const showTransactionsModal = ref(false);
+const selecetedBudget = ref<any>(null);
 const editingBudget = ref<any>(null);
 const deletingBudget = ref<any>(null);
 
@@ -311,6 +419,22 @@ const closeModal = () => {
     form.value = { ...defaultForm };
 }
 
+const openTransactionsModal = async (budget: any) => {
+    selecetedBudget.value = budget;
+    showTransactionsModal.value = true;
+    loadingTransactions.value = true;
+    budgetTransactions.value = [];
+    budgetTransactionsTotal.value = 0;
+
+    try {
+        const res = await getBudgetTransactions(budget.id);
+        budgetTransactions.value = res.data.transactions;
+        budgetTransactionsTotal.value = res.data.total;
+    } finally {
+        loadingTransactions.value = false;
+    }
+}
+
 // Save
 const saveBudget = async () => {
     saving.value = true;
@@ -344,10 +468,5 @@ const deleteBudgetConfirmed = async () => {
     showDeleteConfirm.value = false;
     deletingBudget.value = null;
 }
-
-// Helpers
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
-};
 
 </script>

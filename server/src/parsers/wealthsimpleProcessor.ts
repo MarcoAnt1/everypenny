@@ -1,26 +1,20 @@
-import { BaseBankProcessor } from "./baseBankProcessor";
-import { ParsedTransaction, ParseResult } from "./parsedTransactions";
+import { ParsedTransaction, ParseResult } from "./interfaces/parsedTransactions";
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
+import { StatementProcessor } from "./interfaces/statementProcessor";
+import { parseDateString } from "../helper/formatHelper";
 
 const INCOME_SUBTYPES = [ 'AFT_IN', 'E_TRFIN'];
 const TRANSFER_SUBTYPES = [ 'TRANSFER', 'E_TRFOUT'];
 const INCOME_TYPES = [ 'Interest' ];
 const SKIP_TYPES = [ 'Dividend', 'Buy', 'Sell' ]
 
-export class WealthSimpleProcessor extends BaseBankProcessor {
+export class WealthSimpleProcessor implements StatementProcessor {
     protected dateHeaders = [ 'transaction_date '];
     protected descHeaders = [ 'name' ];
     protected amountHeaders = [ 'net_cash_amount' ];
 
-    protected parsePdfText(text: string): ParseResult {
-        throw new Error("Method not implemented.");
-    }
-    protected parseXlsxRow(row: any[], indexes: { date: number; desc: number; amount: number; }): ParsedTransaction | null {
-        throw new Error("Method not implemented.");
-    }
-
-    public processCsv(filePath: string): ParseResult {
+    public async parse(filePath: string): Promise<ParseResult> { 
         const raw = fs.readFileSync(filePath, 'utf-8');
 
         const cleaned = raw
@@ -61,7 +55,7 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
 
         const type = this.resolveType(activityType, activitySubType, amount);
         const description = this.buildDescription(activityType, activitySubType, accountType);
-        const date = this.parseDateString(rawDate);
+        const date = parseDateString(rawDate);
 
         return {
             rowIndex: index,
@@ -97,5 +91,9 @@ export class WealthSimpleProcessor extends BaseBankProcessor {
         if (activityType  === 'Interest') return `Interest -${accountType}`;
 
         return map[activitySubType] ?? `${accountType} ${activitySubType}`.trim();
+    }
+
+    protected parseAmount(raw: any): number {
+        return parseFloat(String(raw).replace(/[^\d.-]/g, ''));
     }
 }

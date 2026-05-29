@@ -310,34 +310,13 @@
             </div>
         </div>
 
-
-        <!-- Delete Confirmation -->
-        <div 
+        <DeleteConfirmation
             v-if="showDeleteConfirm"
-            class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-        >
-            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
-                <p class="text-4xl mb-4">⚠️</p>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Category?</h3>
-                <p class="text-sm text-gray-400 mb-6">
-                    This will permanently delete <strong>{{ deletingCategory?.name }}</strong>.
-                </p>
-                <div class="flex gap-3">
-                    <button
-                        @click="showDeleteConfirm = false"
-                        class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                    >
-                        Cancel                        
-                    </button>
-                    <button
-                        @click="deleteCategoryConfirmed"
-                        class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
-                    >
-                        Delete
-                    </button>
-                </div>
-            </div>
-        </div>
+            :item="'Category'"
+            :item-description="deletingCategory?.name"
+            @close="showDeleteConfirm = false"
+            @deleted="deleteCategoryConfirmed"
+        />
     </div>
 </template>
 
@@ -345,6 +324,7 @@
 
 import { ref, computed, onMounted } from 'vue';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../api/categories';
+import DeleteConfirmation from '../components/DeleteConfirmation.vue';
 
 const loading = ref(true);
 const saving = ref(false);

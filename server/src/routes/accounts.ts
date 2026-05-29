@@ -100,20 +100,33 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 });
 
 // DELETE a account by ID
-router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
-  try {
-    await prisma.account.delete({
-      where: { id: req.params.id },
-    });
-    res.status(204).send();
-  } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to delete account",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
-  }
-});
+router.delete('/:id', async (req: Request<{id: string}>, res: Response) => {
+    try {
+        const { id } = req.params;
+        
+        const transactions = await prisma.transaction.findMany({
+            where: { OR: [{ accountId: id }, { toAccountId: id }]}
+        });
+
+        const transactionIds = transactions.map(t => t.id);
+        if (transactionIds.length > 0) {
+            await prisma.transactionTag.deleteMany({
+                where: { transactionId: { in: transactionIds }}
+            });
+
+            await prisma.transaction.deleteMany({
+                where: { OR: [{ accountId: id}, { toAccountId: id }]}
+            });
+        }
+
+        await prisma.account.delete({
+            where: { id: req.params.id }
+        });
+        
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete account', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
+}); 
 
 export default router;

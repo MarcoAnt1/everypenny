@@ -50,13 +50,13 @@ router.post(
 
       if (bankType.includes("AMEX")) {
         const processor = new AmexProcessor();
-        preview = processor.processXlsx(req.file.path);
+        preview = await processor.parse(req.file.path);
       } else if (bankType.includes("NEO")) {
         const processor = new NeoProcessor();
-        preview = await processor.processPdf(req.file.path);
+        preview = await processor.parse(req.file.path);
       } else if (bankType.includes("WEALTHSIMPLE")) {
         const processor = new WealthSimpleProcessor();
-        preview = processor.processCsv(req.file.path);
+        preview = await processor.parse(req.file.path);
       }
 
       if (!preview) {
@@ -79,7 +79,6 @@ router.post(
 router.post("/confirm", async (req: Request, res: Response) => {
   try {
     const { accountId, transactions } = req.body;
-    console.log("it got here");
 
     if (!accountId || !transactions?.length) {
       res
