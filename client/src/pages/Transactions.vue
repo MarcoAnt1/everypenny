@@ -24,7 +24,6 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm p-4 space-y-4">
-
       <!-- Row 1 - Date presets + account + type + category -->
       <div class="flex flex-wrap gap-3">
         <!-- Date Preset -->
@@ -124,9 +123,11 @@
           :key="tag.id"
           @click="toggleTagFilter(tag.id)"
           class="text-s px-3 py-1 rounded-full transition"
-          :class="filters.tagIds.includes(tag.id)
-            ? 'bg-indigo-600 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+          :class="
+            filters.tagIds.includes(tag.id)
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          "
         >
           {{ tag.name }}
           <span v-if="filters.tagIds.includes(tag.id)">✓</span>
@@ -134,19 +135,34 @@
       </div>
 
       <!-- Active filter summary -->
-      <div v-if="hasActiveFilters" class="flex items-center gap-2 text-xs text-gray-400">
+      <div
+        v-if="hasActiveFilters"
+        class="flex items-center gap-2 text-xs text-gray-400"
+      >
         <span>Showing:</span>
         <span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
           {{ dataRangeLabel }}
         </span>
-        <span v-if="filters.type" class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+        <span
+          v-if="filters.type"
+          class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize"
+        >
           {{ filters.type }}
         </span>
-        <span v-if="filters.tagIds.length" class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-          {{ filters.tagIds.length }} tag{{ filters.tagIds.length > 1 ? 's' : '' }}
+        <span
+          v-if="filters.tagIds.length"
+          class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
+        >
+          {{ filters.tagIds.length }} tag{{
+            filters.tagIds.length > 1 ? "s" : ""
+          }}
         </span>
         <span class="text-gray-300">·</span>
-        <span>{{ transactions.length }} transaction{{ transactions.length !== 1 ? 's' : '' }}</span>
+        <span
+          >{{ transactions.length }} transaction{{
+            transactions.length !== 1 ? "s" : ""
+          }}</span
+        >
       </div>
     </div>
 
@@ -258,27 +274,14 @@
                     : "-"
               }}{{ formatCurrency(tx.amount) }}
             </td>
+
             <td class="px-6 py-4 text-center">
-              <div class="flex justify-center gap-2">
-                <button
-                  @click="openModal(tx)"
-                  class="text-indigo-500 hover:text-indigo-700 text-xs"
-                >
-                  Edit
-                </button>
-                <button
-                  @click="duplicateTransaction(tx)"
-                  class="text-gray-400 hover:text-gray-600 text-xs"
-                >
-                  Copy
-                </button>
-                <button
-                  @click="confirmDelete(tx)"
-                  class="text-red-400 hover:text-red-600 text-xs"
-                >
-                  Delete
-                </button>
-              </div>
+              <ActionMenu :actions="[
+                { label: 'Edit', icon: '✏️', onClick: () => openModal(tx) },
+                { label: 'Copy', icon: '📋', onClick: () => duplicateTransaction(tx) },
+                { label: 'Delete', icon: '🗑️', danger: true, onClick: () => confirmDelete(tx) },
+              ]" 
+              />
             </td>
           </tr>
         </tbody>
@@ -516,6 +519,7 @@ import { getTags } from "../api/tags";
 import { formatDate, formatCurrency } from "../helper/formatHelper.ts";
 import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import ActionMenu from "../components/ActionMenu.vue";
 
 const loading = ref(true);
 const saving = ref(false);
@@ -531,68 +535,70 @@ const deletingTransaction = ref<any>(null);
 
 const today = () => new Date();
 
-const getPresetDates = (preset: string): { startDate: string, endDate: string } => {
+const getPresetDates = (
+  preset: string,
+): { startDate: string; endDate: string } => {
   const now = today();
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
 
   switch (preset) {
-    case 'this_month':
+    case "this_month":
       return {
         startDate: fmt(new Date(year, month, 1)),
-        endDate: fmt(new Date(year, month + 1, 0))
+        endDate: fmt(new Date(year, month + 1, 0)),
       };
-    case 'last_month':
+    case "last_month":
       return {
         startDate: fmt(new Date(year, month - 1, 1)),
-        endDate: fmt(new Date(year, month, 0))
+        endDate: fmt(new Date(year, month, 0)),
       };
-    case 'ytd':
+    case "ytd":
       return {
         startDate: fmt(new Date(year, 0, 1)),
-        endDate: fmt(now)
+        endDate: fmt(now),
       };
-    case 'this_year':
+    case "this_year":
       return {
         startDate: fmt(new Date(year, 0, 1)),
-        endDate: fmt(new Date(year, 11, 31))
+        endDate: fmt(new Date(year, 11, 31)),
       };
-    case 'last_year':
+    case "last_year":
       return {
         startDate: fmt(new Date(year - 1, 0, 1)),
-        endDate: fmt(new Date(year - 1, 11, 31))
+        endDate: fmt(new Date(year - 1, 11, 31)),
       };
-    case 'all':
-      return { startDate: '', endDate: '' };
+    case "all":
+      return { startDate: "", endDate: "" };
     default:
-      return { startDate: '', endDate: '' };
+      return { startDate: "", endDate: "" };
   }
-}
+};
 
 const defaultFilters = () => {
-  const { startDate, endDate } = getPresetDates('this_month');
+  const { startDate, endDate } = getPresetDates("this_month");
   return {
-    preset: 'this_month',
-    type: '',
-    accountId: '',
-    categoryId: '',
+    preset: "this_month",
+    type: "",
+    accountId: "",
+    categoryId: "",
     startDate,
     endDate,
-    tagIds: [] as string[]
-  }
-}
+    tagIds: [] as string[],
+  };
+};
 
 const filters = ref(defaultFilters());
 
 const onPresetChange = () => {
-  if (filters.value.preset !== 'custom') {
+  if (filters.value.preset !== "custom") {
     const { startDate, endDate } = getPresetDates(filters.value.preset);
     filters.value.startDate = startDate;
     filters.value.endDate = endDate;
   }
-}
+};
 
 const toggleTagFilter = (tagId: string) => {
   const idx = filters.value.tagIds.indexOf(tagId);
@@ -601,40 +607,42 @@ const toggleTagFilter = (tagId: string) => {
   } else {
     filters.value.tagIds.splice(idx, 1);
   }
-}
+};
 
 const dataRangeLabel = computed(() => {
   const presetLabels: Record<string, string> = {
-    this_month: 'This Month',
-    last_month: 'Last Month',
-    ytd: 'Year to Date',
-    this_year: 'This Year',
-    last_year: 'Last Year',
-    all: 'All Time',
+    this_month: "This Month",
+    last_month: "Last Month",
+    ytd: "Year to Date",
+    this_year: "This Year",
+    last_year: "Last Year",
+    all: "All Time",
     custom: `${filters.value.startDate} → ${filters.value.endDate}`,
   };
-  return presetLabels[filters.value.preset] ?? 'Custom';
+  return presetLabels[filters.value.preset] ?? "Custom";
 });
 
 const hasActiveFilters = computed(() => {
-  return filters.value.type !== '' ||
-    filters.value.accountId !== '' ||
-    filters.value.categoryId !== '' ||
+  return (
+    filters.value.type !== "" ||
+    filters.value.accountId !== "" ||
+    filters.value.categoryId !== "" ||
     filters.value.tagIds.length > 0 ||
-    filters.value.preset !== 'all';
+    filters.value.preset !== "all"
+  );
 });
 
 const defaultForm = {
-  description: '',
+  description: "",
   amount: 0,
   date: new Date().toISOString().split("T")[0],
-  type: 'expense',
-  accountId: '',
-  categoryId: '',
-  toAccountId: '',
+  type: "expense",
+  accountId: "",
+  categoryId: "",
+  toAccountId: "",
   tagIds: [] as string[],
-  notes: '',
-  status: 'cleared',
+  notes: "",
+  status: "cleared",
 };
 
 const form = ref({ ...defaultForm, tagIds: [] as string[] });
