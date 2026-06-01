@@ -331,7 +331,7 @@ const form = ref({
 });
 
 const acceptedFormats = computed(() => {
-    return '.pdf,.xls,.xlsx';
+    return '.pdf,.xls,.xlsx,.csv';
 });
 
 const stepLabel = computed(() => {
