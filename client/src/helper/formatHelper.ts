@@ -1,7 +1,15 @@
 export const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+  }).format(amount);
 };
 
-export const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+export const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeStyle: "medium",
+    dateStyle: "short",
+  }).format(date);
 };
