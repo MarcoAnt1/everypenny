@@ -277,9 +277,9 @@
 
             <td class="px-6 py-4 text-center">
               <ActionMenu :actions="[
-                { label: 'Edit', icon: '✏️', onClick: () => openModal(tx) },
-                { label: 'Copy', icon: '📋', onClick: () => duplicateTransaction(tx) },
-                { label: 'Delete', icon: '🗑️', danger: true, onClick: () => confirmDelete(tx) },
+                { label: 'Edit', onClick: () => openModal(tx) },
+                { label: 'Copy', onClick: () => duplicateTransaction(tx) },
+                { label: 'Delete', danger: true, onClick: () => confirmDelete(tx) },
               ]" 
               />
             </td>
