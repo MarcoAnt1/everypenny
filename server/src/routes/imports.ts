@@ -57,6 +57,8 @@ router.post(
       } else if (bankType.includes("WEALTHSIMPLE")) {
         const processor = new WealthSimpleProcessor();
         preview = await processor.parse(req.file.path);
+      } else {
+        res.status(400).json("Institution not registered");
       }
 
       if (!preview) {
