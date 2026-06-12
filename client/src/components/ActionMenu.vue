@@ -45,7 +45,6 @@ import { ref, onMounted, onUnmounted, nextTick } from "vue";
 
 interface Action {
   label: string;
-  icon: string;
   danger?: boolean;
   onClick: () => void;
 }
