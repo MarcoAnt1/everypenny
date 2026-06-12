@@ -57,7 +57,7 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
     const category = await prisma.category.create({
-      data: { name, type, icon, parentId: parentId ?? null },
+      data: { name, type, icon, parentId: parentId || null },
     });
     res.status(201).json(category);
   } catch (error) {
@@ -76,7 +76,7 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
     const { name, type, icon, parentId } = req.body;
     const category = await prisma.category.update({
       where: { id: req.params.id },
-      data: { name, type, icon, parentId: parentId ?? null },
+      data: { name, type, icon, parentId: parentId || null },
     });
     res.json(category);
   } catch (error) {
