@@ -276,11 +276,16 @@
             </td>
 
             <td class="px-6 py-4 text-center">
-              <ActionMenu :actions="[
-                { label: 'Edit', onClick: () => openModal(tx) },
-                { label: 'Copy', onClick: () => duplicateTransaction(tx) },
-                { label: 'Delete', danger: true, onClick: () => confirmDelete(tx) },
-              ]" 
+              <ActionMenu
+                :actions="[
+                  { label: 'Edit', onClick: () => openModal(tx) },
+                  { label: 'Copy', onClick: () => duplicateTransaction(tx) },
+                  {
+                    label: 'Delete',
+                    danger: true,
+                    onClick: () => confirmDelete(tx),
+                  },
+                ]"
               />
             </td>
           </tr>
@@ -429,22 +434,45 @@
 
           <!-- Tags -->
           <div>
-            <label for="Tags" class="text-sm text-gray-600 font-medium"
-              >Tags</label
-            >
-            <div class="flex flex-wrap gap-2 mt-2">
+            <label class="text-sm text-gray-600 font-medium">Tags</label>
+            <div class="relative mt=1" ref="formTagMenuRef">
               <button
-                v-for="tag in tags"
-                :key="tag.id"
-                @click="toggleTag(tag.id)"
-                :class="
-                  form.tagIds.includes(tag.id)
-                    ? 'bg-indigo-600 text-white text-xs px-3 py-1 rounded-full'
-                    : 'bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full hover:bg-gray-200'
-                "
+                @click.stop="showFormTagMenu = !showFormTagMenu"
+                type="button"
+                class="w-full border rounded-lg px-3 py-2 text-sm text-left bg-white hover:bg-gray-50"
               >
-                {{ tag.name }}
+                {{
+                  form.tagIds.length > 0
+                    ? form.tagIds
+                        .map((id) => tags.find((t) => t.id === id)?.name)
+                        .join(", ")
+                    : "— Select tags —"
+                }}
               </button>
+
+              <div
+                v-if="showFormTagMenu"
+                class="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg p-2 space-y-1 max-h-48 overflow-y-auto"
+              >
+                <label
+                  v-for="tag in tags"
+                  :key="tag.id"
+                  class="flex items-center gap-2 text-sm px-2 py-1 hover:bg-gray-50 rounded coursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="form.tagIds.includes(tag.id)"
+                    @change="toggleTag(tag.id)"
+                  />
+                  {{ tag.name }}
+                </label>
+                <div
+                  v-if="tags.length === 0"
+                  class="text-xs text-gray-400 px-2 py-1"
+                >
+                  No tags yet
+                </div>
+              </div>
             </div>
           </div>
 
@@ -506,7 +534,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
   getTransactions,
   createTransaction,
@@ -532,6 +560,8 @@ const showImportModal = ref(false);
 const showDeleteConfirm = ref(false);
 const editingTransaction = ref<any>(null);
 const deletingTransaction = ref<any>(null);
+const showFormTagMenu = ref(false);
+const formTagMenuRef = ref<HTMLElement | null>(null);
 
 const today = () => new Date();
 
@@ -648,6 +678,8 @@ const defaultForm = {
 const form = ref({ ...defaultForm, tagIds: [] as string[] });
 
 onMounted(async () => {
+  document.addEventListener("click", handleClickOutSideTags);
+
   await Promise.all([
     loadTransactions(),
     loadAccounts(),
@@ -817,4 +849,17 @@ const duplicateTransaction = (tx: any) => {
 
   showModal.value = true;
 };
+
+const handleClickOutSideTags = (e: MouseEvent) => {
+  if (
+    formTagMenuRef.value &&
+    !formTagMenuRef.value.contains(e.target as Node)
+  ) {
+    showFormTagMenu.value = false;
+  }
+};
+
+onUnmounted(() =>
+  document.removeEventListener("click", handleClickOutSideTags),
+);
 </script>
