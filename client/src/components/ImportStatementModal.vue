@@ -144,8 +144,9 @@
                                         <th class="px-6 py-3 text-left">Date</th>
                                         <th class="px-6 py-3 text-left">Description</th>
                                         <th class="px-6 py-3 text-left">Type</th>
-                                        <th class="px-6 py-3 text-left">Category</th>
                                         <th class="px-6 py-3 text-left">To Account</th>
+                                        <th class="px-6 py-3 text-left">Category</th>
+                                        <th class="px-6 py-3 text-left">Tags</th>
                                         <th class="px-6 py-3 text-right">Amount</th>
                                     </tr>
                                 </thead>
@@ -186,23 +187,6 @@
                                             </button>
                                         </td>
 
-                                        <!-- Type toggle -->
-                                        <td class="px-3 py-2">
-                                            <select
-                                                v-model="row.categoryId"
-                                                class="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 max-w-32"
-                                            >
-                                                <option value="">— None —</option>
-                                                <option
-                                                    v-for="cat in categories"
-                                                    :key="cat.id"
-                                                    :value="cat.id"
-                                                >
-                                                    {{  cat.name }}
-                                                </option>
-                                            </select>
-                                        </td>
-
                                         <!-- To Account (Only relevant for transfers)-->
                                         <td class="px-3 py-2">
                                             <select
@@ -220,6 +204,60 @@
                                                 </option>
                                             </select>
                                             <span v-else class="text-gray-300">-</span>
+                                        </td>
+
+                                        <!-- Category toggle -->
+                                        <td class="px-3 py-2">
+                                            <select
+                                                v-model="row.categoryId"
+                                                class="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 max-w-32"
+                                            >
+                                                <option value="">— None —</option>
+                                                <option
+                                                    v-for="cat in categories"
+                                                    :key="cat.id"
+                                                    :value="cat.id"
+                                                >
+                                                    {{  cat.name }}
+                                                </option>
+                                            </select>
+                                        </td>
+
+                                        <!-- Tag toggle -->
+
+                                        <td class="px-3 py-2">
+                                            <div class="relative">
+                                                <button
+                                                    @click.stop="openTagMenu = openTagMenu === i ? null : i"
+                                                    type="button"
+                                                    class="tag-trigger-btn w-full border rounded px-2 py-1 text-xs text-left bg-white hover:bg-gray-50"    
+                                                >
+                                                    {{  row.tagIds.length > 0 ? `${row.tagIds.length} selected` : '— Tags —' }}
+                                                </button>
+
+                                                <div
+                                                    v-if="openTagMenu === i"
+                                                    class="absolute z-50 mt-1 w-40 bg-white border rounded-lg shadow-lg p-2 space-y-1"
+                                                >
+                                                    <label 
+                                                        v-for="tag in tags"
+                                                        :key="tag.id"
+                                                        class="flex items-center gap-2 text-xs px-2 py-1 hover:bg-gray-50 rounded coursor-pointer"
+                                                    >
+                                                        <input 
+                                                            type="checkbox"
+                                                            :checked="row.tagIds.includes(tag.id)"
+                                                            @change="toggleRowTag(row, tag.id)"
+                                                        />
+                                                        {{ tag.name }}
+                                                    </label>
+                                                    <div 
+                                                        v-if="tags.length === 0" class="text-xs text-gray-400 px-2 py-1"
+                                                    >
+                                                        No tags yet
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
 
                                         <!-- Amount -->
@@ -306,9 +344,11 @@
 
 <script setup lang="ts">
 
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { preview, confirmImport as confirmImportApi } from '../api/import';
 import { getCategories } from '../api/categories';
+import { getTags } from '../api/tags';
+import { formatCurrency, formatDate } from '../helper/formatHelper';
 
 const props = defineProps<{ accounts: any[] }>();
 const emit = defineEmits(['close', 'imported']);
@@ -322,6 +362,10 @@ const skippedCount = ref(0);
 
 const previewRows = ref<any[]>([]);
 const categories = ref<any[]>([]);
+const tags = ref<any[]>([]);
+
+const openTagMenu = ref<number | null>(null);
+const tagMenuRefs = ref<Record<number, any>>({});
 
 const steps = [ 'Upload', 'Preview & Edit', 'Done'];
 
@@ -362,8 +406,9 @@ const parseFile = async () => {
     step.value = 1;
 
     try {
-        const catRes = await getCategories();
+        const [ catRes, tagRes ] = await Promise.all([getCategories(), getTags()]);
         categories.value = catRes.data;
+        tags.value = tagRes.data;
 
         const bankType = props.accounts.find(a => a.id === form.value.accountId).name;
 
@@ -380,7 +425,8 @@ const parseFile = async () => {
                 valid: r.valid,
                 selected: true,
                 categoryId: r.categoryId || '',
-                toAccountId: r.toAccountId || ''
+                toAccountId: r.toAccountId || '',
+                tagIds: [] as string[]
             }));
     } catch (error: any) {
         console.error('Parse error:', error);
@@ -396,6 +442,24 @@ const toggleAll = (e: Event) => {
     previewRows.value.forEach(r => r.selected = checked);
 }
 
+const toggleRowTag = (row:any, tagId: string) => {
+    const idx = row.tagIds.indexOf(tagId);
+    if (idx === -1) row.tagIds.push(tagId);
+    else row.tagIds.splice(idx, 1);
+}
+
+const getTagMenuStyle = (index: number) => {
+    const buttons = document.querySelectorAll('.tag-trigger-btn');
+    const btn = buttons[index] as HTMLElement;
+    if (!btn) return {};
+
+    const rect = btn.getBoundingClientRect();
+    return {
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+    }
+}
+
 const confirmImport = async () => {
     saving.value = true;
     try {
@@ -408,6 +472,7 @@ const confirmImport = async () => {
                 type: r.type,
                 categoryId: r.categoryId || null,
                 toAccountId: r.toAccountId || null,
+                tagIds: r.tagIds || [],
                 valid: r.valid
             }))
         );
@@ -422,14 +487,6 @@ const confirmImport = async () => {
         saving.value = false;
     }
 }
-
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(amount);
-};
-
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
 
 const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
