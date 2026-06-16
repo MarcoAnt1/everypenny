@@ -224,9 +224,12 @@
             :key="tx.id"
             class="hover:bg-gray-50 transition"
           >
+            <!-- Date -->
             <td class="px-6 py-4 text-gray-400 whitespace-nowrap">
               {{ formatDate(tx.date) }}
             </td>
+
+            <!-- Description -->
             <td class="px-6 py-4">
               <p class="font-medium text-gray-800">{{ tx.description }}</p>
               <p v-if="tx.notes" class="text-xs text-gray-400">
@@ -236,15 +239,19 @@
             <td class="px-6 py-4 text-gray-500">
               {{ tx.category?.name || "-" }}
             </td>
+
+            <!-- Account -->
             <td class="px-6 py-4 text-gray-500">
-              <span>{{ tx.account?.name || "-" }}</span>
-              <span
-                v-if="tx.type === 'transfer' && tx.toAccount"
-                class="text-xs text-indigo-500"
-              >
-                → {{ tx.toAccount.name }}
-              </span>
+              <div v-if="tx.type === 'transfer'">
+                <p class="txt-sm">{{ tx.account?.name }}</p>
+                <p class="text-xs" :class="tx.direction === 'in' ? 'text-green-400' : 'text-indigo-400'">
+                  {{ tx.direction === 'out' ? '← from' : '→ to' }} {{ tx.direction === 'out' ? tx.Account?.name : tx.toAccountId.name }}
+                </p>
+              </div>
+              <span v-else>{{ tx.account?.name || "-" }}</span>
             </td>
+
+            <!-- Tags -->
             <td class="px-6 py-4">
               <div class="flex flex-wrap gap-1">
                 <span
@@ -256,25 +263,24 @@
                 </span>
               </div>
             </td>
+
+            <!-- Amount -->
             <td
               class="px-6 py-4 text-right font-semibold whitespace-nowrap"
               :class="
-                tx.type === 'income'
-                  ? 'text-green-500'
-                  : tx.type === 'transfer'
-                    ? 'text-indigo-500'
-                    : 'text-red-500'
+                tx.type === 'transfer'
+                  ? tx.direction === 'in' ? 'text-green-500' : 'text-indigo-500'
+                  : tx.type === 'income' ? 'text-green-500' : 'text-red-500'
               "
             >
               {{
-                tx.type === "income"
-                  ? "+"
-                  : tx.type === "transfer"
-                    ? "🔁"
-                    : "-"
+                tx.type === "transfer"
+                  ? tx.direction === 'in' ? '↓' : '↑'
+                  : tx.type === "income" ? '+' : '-'
               }}{{ formatCurrency(tx.amount) }}
             </td>
 
+            <!-- Actions -->
             <td class="px-6 py-4 text-center">
               <ActionMenu
                 :actions="[
@@ -833,13 +839,17 @@ const deleteTransactionConfirmed = async () => {
 };
 
 const duplicateTransaction = (tx: any) => {
+  if (tx.type === 'transfer' && tx.direction === 'in') {
+    alert('To duplicate a transfer, use the outgoing record.');
+    return;
+  }
   editingTransaction.value = null;
   form.value = {
     description: `${tx.description} (copy)`,
     amount: tx.amount,
     date: new Date().toISOString().split("T")[0],
     type: tx.type,
-    accountId: tx.accountId || "",
+    accountId: tx.accountId,
     categoryId: tx.categoryId || "",
     toAccountId: tx.toAccountId || "",
     tagIds: tx.tags?.map((t: any) => t.tagId) || [],

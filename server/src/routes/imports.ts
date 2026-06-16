@@ -89,16 +89,64 @@ router.post("/confirm", async (req: Request, res: Response) => {
       return;
     }
 
-    // Save all transactions
-    const created = await prisma.$transaction(
-      transactions.map((tx: any) => {
+    const transactionCreates: any[] = [];
+
+    for (const tx of transactions) {
+      if (tx.type === 'transfer' && tx.toAccountId) {
+        const transferGroupId = crypto.randomUUID();
+
+        transactionCreates.push(
+          prisma.transaction.create({
+          data: {
+            accountId,
+            toAccountId: tx.toAccountId,
+            transferGroupId,
+            direction: 'out',
+            categoryId: tx.categoryId || null,
+            description: tx.description || "Imported transaction",
+            amount: Number(tx.amount),
+            date: tx.date,
+            type: 'transfer',
+            status: "cleared",
+            notes: "Imported from statement",
+            tags: tx.tagIds?.length
+              ? {
+                  create: tx.tagIds.map((tagId: string) => ({ tagId })),
+                }
+              : undefined,
+            },
+          }),
+          prisma.transaction.create({
+          data: {
+            accountId: tx.toAccountId,
+            toAccountId: accountId,
+            transferGroupId,
+            direction: 'in',
+            categoryId: tx.categoryId || null,
+            description: tx.description || "Imported transaction",
+            amount: Number(tx.amount),
+            date: tx.date,
+            type: 'transfer',
+            status: "cleared",
+            notes: "Imported from statement",
+            tags: tx.tagIds?.length
+              ? {
+                  create: tx.tagIds.map((tagId: string) => ({ tagId })),
+                }
+              : undefined,
+            },
+          })
+        )
+      } else {
         const isTransferWithoutDestination =
           tx.type === "transfer" && !tx.toAccountId;
-        return prisma.transaction.create({
+        transactionCreates.push(
+          prisma.transaction.create({
           data: {
             accountId,
             categoryId: tx.categoryId || null,
             toAccountId: tx.toAccountId || null,
+            direction: tx.type === 'transfer' ? 'out' : null,
             description: tx.description || "Imported transaction",
             amount: Number(tx.amount),
             date: tx.date,
@@ -110,10 +158,14 @@ router.post("/confirm", async (req: Request, res: Response) => {
                   create: tx.tagIds.map((tagId: string) => ({ tagId })),
                 }
               : undefined,
-          },
-        });
-      }),
-    );
+            },
+          })
+        )
+      }
+    }
+
+    // Save all transactions
+    const created = await prisma.$transaction(transactionCreates);
 
     for (const tx of transactions) {
       if (tx.type === "income") {

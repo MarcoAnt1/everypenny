@@ -64,6 +64,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
   try {
     const { accountId, categoryId, type, startDate, endDate, tagIds } =
       req.query;
+
     const tagIdArray = tagIds
       ? Array.isArray(tagIds)
         ? (tagIds as string[])
@@ -82,15 +83,14 @@ router.get("/", async (req: AuthRequest, res: Response) => {
               gte: new Date(String(startDate)),
               lte: new Date(String(endDate)),
             },
-          }
-        ),
+          }),
         ...(tagIdArray.length > 0 && {
           tags: {
             some: {
-              tagId: { in: tagIdArray }
-            }
-          }
-        })
+              tagId: { in: tagIdArray },
+            },
+          },
+        }),
       },
       include: {
         account: true,
@@ -102,12 +102,10 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     });
     res.json(transactions);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to fetch transactions",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to fetch transactions",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -128,12 +126,10 @@ router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
     }
     res.json(transaction);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to fetch transaction",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to fetch transaction",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -169,6 +165,78 @@ router.post("/", async (req: Request, res: Response) => {
 
     if (!account) {
       res.status(400).json({ error: "Account not found" });
+      return;
+    }
+
+    if (type === "transfer" && toAccountId && toAccount) {
+      const transferGroupId = crypto.randomUUID();
+
+      const [outTx, inTx] = await prisma.$transaction([
+        prisma.transaction.create({
+          data: {
+            accountId,
+            toAccountId,
+            transferGroupId,
+            direction: "out",
+            categoryId: categoryId || null,
+            description,
+            amount,
+            date: new Date(date),
+            type,
+            status: status || "cleared",
+            notes,
+            tags: tagIds?.length
+              ? {
+                  create: tagIds.map((tagId: string) => ({ tagId })),
+                }
+              : undefined,
+          },
+          include: {
+            account: true,
+            toAccount: true,
+            category: true,
+            tags: { include: { tag: true } },
+          },
+        }),
+
+        prisma.transaction.create({
+          data: {
+            accountId: toAccountId,
+            toAccountId: accountId,
+            transferGroupId,
+            direction: "in",
+            categoryId: categoryId || null,
+            description,
+            amount,
+            date: new Date(date),
+            type,
+            status: status || "cleared",
+            notes,
+            tags: tagIds?.length
+              ? {
+                  create: tagIds.map((tagId: string) => ({ tagId })),
+                }
+              : undefined,
+          },
+          include: {
+            account: true,
+            toAccount: true,
+            category: true,
+            tags: { include: { tag: true } },
+          },
+        }),
+      ]);
+
+      await updateBalances(
+        type,
+        accountId,
+        toAccountId,
+        amount,
+        account.type,
+        toAccount?.type,
+      );
+
+      res.status(201).json({ out: outTx, in: inTx });
       return;
     }
 
@@ -208,12 +276,10 @@ router.post("/", async (req: Request, res: Response) => {
 
     res.status(201).json(transaction);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to create transaction",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to create transaction",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -281,12 +347,10 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 
     res.json(transaction);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to update transaction",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to update transaction",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -295,41 +359,84 @@ router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
   try {
     const id = req.params.id;
 
-    const existingTransaction = await prisma.transaction.findUnique({
+    const tx = await prisma.transaction.findUnique({
       where: { id },
       include: { account: true },
     });
 
-    if (!existingTransaction) {
+    if (!tx) {
       return res.status(404).json({ error: "Transaction not found" });
     }
 
-    // Update account balance before deleting the transaction
-    const balanceChange =
-      existingTransaction.type === "income"
-        ? -existingTransaction.amount
-        : existingTransaction.amount;
-    await prisma.account.update({
-      where: { id: existingTransaction.accountId },
-      data: { balance: { increment: balanceChange } },
-    });
+    if (tx.type === "transfer" && tx.transferGroupId) {
+      const grouped = await prisma.transaction.findMany({
+        where: { transferGroupId: tx.transferGroupId },
+      });
 
-    // Delete related transaction tags first to maintain referential integrity
-    await prisma.transactionTag.deleteMany({
-      where: { transactionId: id },
-    });
+      const ids = grouped.map((t) => t.id);
+      await prisma.transactionTag.deleteMany({
+        where: { transactionId: { in: ids } },
+      });
 
-    await prisma.transaction.delete({
-      where: { id },
-    });
+      await prisma.transaction.deleteMany({
+        where: { transferGroupId: tx.transferGroupId },
+      });
+
+      for (const t of grouped) {
+        if (t.direction === "out") {
+          prisma.account.update({
+            where: { id: t.accountId },
+            data: { balance: { increment: t.amount } },
+          });
+        } else if (tx.direction === "in") {
+          const acc = await prisma.account.findUnique({
+            where: { id: t.accountId },
+          });
+          prisma.account.update({
+            where: { id: t.accountId },
+            data: {
+              balance:
+                acc?.type === "credit"
+                  ? { increment: t.amount }
+                  : { decrement: t.amount },
+            },
+          });
+        }
+      }
+    } else {
+      await prisma.transactionTag.deleteMany({
+        where: { transactionId: id },
+      });
+
+      await prisma.transaction.delete({
+        where: { id },
+      });
+
+      const account = await prisma.account.findUnique({ where: { id: tx.accountId }});
+      if (tx.direction === "income") {
+        prisma.account.update({
+          where: { id: tx.accountId },
+          data: { balance: { decrement: tx.amount } },
+        });
+      } else if (tx.direction === "expense") {
+        prisma.account.update({
+          where: { id: tx.accountId },
+          data: {
+            balance:
+              account?.type === "credit"
+                ? { decrement: tx.amount }
+                : { increment: tx.amount },
+          },
+        });
+      }
+    }
+
     res.status(204).send();
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to delete transaction",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to delete transaction",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
