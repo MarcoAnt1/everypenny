@@ -44,6 +44,8 @@ model Transaction {
   accountId    String
   categoryId   String?
   toAccountId  String?
+  transferGroupId String?
+  direction   String?
   description  String
   amount       Float
   date         DateTime
