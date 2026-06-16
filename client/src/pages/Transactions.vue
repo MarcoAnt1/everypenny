@@ -425,17 +425,46 @@
           </div>
 
           <!-- Category -->
-          <div>
+          <div class="relative">
             <label class="text-sm text-gray-600 font-medium">Category</label>
-            <select
-              v-model="form.categoryId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            <button
+              type="button"
+              @click="showCategoryMenu = !showCategoryMenu"
+              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-              <option value="">Select category</option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
-            </select>
+              {{ selectedCategoryLabel || "Select category" }}
+            </button>
+
+            <div
+              v-if="showCategoryMenu"
+              class="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto"
+            >
+              <div
+                v-for="cat in categories"
+                :key="cat.id"
+                class="px-2"
+              >
+                <!-- Parent -->
+                <div
+                  class="font-medium text-gray-700 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
+                  @click="selectCategory(cat)"
+                >
+                  {{ cat.name }}
+                </div>
+
+                <!-- Children -->
+                <div class="ml-4">
+                  <div
+                    v-for="sub in cat.subcategories"
+                    :key="sub.id"
+                    class="text=sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
+                    @click="selectCategory(sub)"
+                  >
+                    └ {{ sub.name }}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Tags -->
@@ -452,7 +481,7 @@
                     ? form.tagIds
                         .map((id) => tags.find((t) => t.id === id)?.name)
                         .join(", ")
-                    : "— Select tags —"
+                    : "Select tags"
                 }}
               </button>
 
@@ -568,6 +597,8 @@ const editingTransaction = ref<any>(null);
 const deletingTransaction = ref<any>(null);
 const showFormTagMenu = ref(false);
 const formTagMenuRef = ref<HTMLElement | null>(null);
+const showCategoryMenu = ref(false);
+const selectedCategoryLabel = ref("");
 
 const today = () => new Date();
 
@@ -868,6 +899,12 @@ const handleClickOutSideTags = (e: MouseEvent) => {
     showFormTagMenu.value = false;
   }
 };
+
+const selectCategory = (item: any) => {
+  form.value.categoryId = item.id;
+  selectedCategoryLabel.value = item.name;
+  showCategoryMenu.value = false;
+}
 
 onUnmounted(() =>
   document.removeEventListener("click", handleClickOutSideTags),

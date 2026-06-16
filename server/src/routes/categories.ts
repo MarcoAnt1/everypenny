@@ -7,6 +7,9 @@ const router = Router();
 router.get("/", async (req: Request, res: Response) => {
   try {
     const categories = await prisma.category.findMany({
+      where: {
+        parentId: null,
+      },
       include: {
         subcategories: true,
       },
