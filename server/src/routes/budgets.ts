@@ -23,6 +23,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 
         const spending = await prisma.transaction.aggregate({
           where: {
+            account: { userId: req.userId },
             categoryId: budget.categoryId,
             type: "expense",
             date: { gte: startDate, lte: now },
