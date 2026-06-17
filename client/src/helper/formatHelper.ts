@@ -6,10 +6,10 @@ export const formatCurrency = (amount: number) => {
 };
 
 export const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
+  if (!dateString) return "";
 
-  return new Intl.DateTimeFormat("en-CA", {
-    timeStyle: "medium",
-    dateStyle: "short",
-  }).format(date);
+  const d = new Date(dateString);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split("T")[0];
 };

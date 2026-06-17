@@ -226,7 +226,7 @@
           >
             <!-- Date -->
             <td class="px-6 py-4 text-gray-400 whitespace-nowrap">
-              {{ formatDate(tx.date) }}
+              {{ tx.date }}
             </td>
 
             <!-- Description -->
@@ -802,7 +802,7 @@ const openModal = (tx?: any) => {
     ? {
         description: tx.description,
         amount: tx.amount,
-        date: tx.date.split("T")[0],
+        date: tx.date,
         type: tx.type,
         accountId: tx.accountId,
         categoryId: tx.categoryId || "",
