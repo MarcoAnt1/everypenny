@@ -100,7 +100,12 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       },
       orderBy: { date: "desc" },
     });
-    res.json(transactions);
+
+    const formatted = transactions.map((t) => ({
+      ...t,
+      date: t.date.toISOString().split("T")[0]
+    }));
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({
       error: "Failed to fetch transactions",
