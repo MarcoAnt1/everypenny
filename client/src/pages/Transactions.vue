@@ -244,8 +244,18 @@
             <td class="px-6 py-4 text-gray-500">
               <div v-if="tx.type === 'transfer'">
                 <p class="txt-sm">{{ tx.account?.name }}</p>
-                <p class="text-xs" :class="tx.direction === 'in' ? 'text-green-400' : 'text-indigo-400'">
-                  {{ tx.direction === 'out' ? '← from' : '→ to' }} {{ tx.direction === 'out' ? tx.Account?.name : tx.toAccountId.name }}
+                <p
+                  class="text-xs"
+                  :class="
+                    tx.direction === 'in' ? 'text-green-400' : 'text-indigo-400'
+                  "
+                >
+                  {{ tx.direction === "out" ? "← from" : "→ to" }}
+                  {{
+                    tx.direction === "out"
+                      ? tx.Account?.name
+                      : tx.toAccountId.name
+                  }}
                 </p>
               </div>
               <span v-else>{{ tx.account?.name || "-" }}</span>
@@ -269,14 +279,22 @@
               class="px-6 py-4 text-right font-semibold whitespace-nowrap"
               :class="
                 tx.type === 'transfer'
-                  ? tx.direction === 'in' ? 'text-green-500' : 'text-indigo-500'
-                  : tx.type === 'income' ? 'text-green-500' : 'text-red-500'
+                  ? tx.direction === 'in'
+                    ? 'text-green-500'
+                    : 'text-indigo-500'
+                  : tx.type === 'income'
+                    ? 'text-green-500'
+                    : 'text-red-500'
               "
             >
               {{
                 tx.type === "transfer"
-                  ? tx.direction === 'in' ? '↓' : '↑'
-                  : tx.type === "income" ? '+' : '-'
+                  ? tx.direction === "in"
+                    ? "↓"
+                    : "↑"
+                  : tx.type === "income"
+                    ? "+"
+                    : "-"
               }}{{ formatCurrency(tx.amount) }}
             </td>
 
@@ -434,16 +452,20 @@
             >
               {{ selectedCategoryLabel || "Select category" }}
             </button>
+            <button
+              @click="showCategoryModal = true"
+              type="button"
+              class="absolute bottom-1 right-1 border rounded-lg px-2 py-1 text-sm text-indigo-600 hover:bg-indigo-50 transition whitespace-nowrap"
+              title="Add new category"
+            >
+              +
+            </button>
 
             <div
               v-if="showCategoryMenu"
               class="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto"
             >
-              <div
-                v-for="cat in categories"
-                :key="cat.id"
-                class="px-2"
-              >
+              <div v-for="cat in categories" :key="cat.id" class="px-2">
                 <!-- Parent -->
                 <div
                   class="font-medium text-gray-700 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
@@ -510,6 +532,12 @@
               </div>
             </div>
           </div>
+
+          <CategoryForModal
+            v-if="showCategoryModal"
+            @close="showCategoryModal = false"
+            @saved="onCategorySaved"
+          />
 
           <!-- Notes -->
           <div>
@@ -579,10 +607,11 @@ import {
 import { getAccounts } from "../api/accounts";
 import { getCategories } from "../api/categories";
 import { getTags } from "../api/tags";
-import { formatDate, formatCurrency } from "../helper/formatHelper.ts";
+import { formatCurrency } from "../helper/formatHelper.ts";
 import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
+import CategoryForModal from "../components/CategoryForModal.vue";
 
 const loading = ref(true);
 const saving = ref(false);
@@ -599,6 +628,7 @@ const showFormTagMenu = ref(false);
 const formTagMenuRef = ref<HTMLElement | null>(null);
 const showCategoryMenu = ref(false);
 const selectedCategoryLabel = ref("");
+const showCategoryModal = ref(false);
 
 const today = () => new Date();
 
@@ -870,8 +900,8 @@ const deleteTransactionConfirmed = async () => {
 };
 
 const duplicateTransaction = (tx: any) => {
-  if (tx.type === 'transfer' && tx.direction === 'in') {
-    alert('To duplicate a transfer, use the outgoing record.');
+  if (tx.type === "transfer" && tx.direction === "in") {
+    alert("To duplicate a transfer, use the outgoing record.");
     return;
   }
   editingTransaction.value = null;
@@ -904,7 +934,13 @@ const selectCategory = (item: any) => {
   form.value.categoryId = item.id;
   selectedCategoryLabel.value = item.name;
   showCategoryMenu.value = false;
-}
+};
+
+const onCategorySaved = async (newCategory: any) => {
+  await loadCategories();
+  form.value.categoryId = newCategory.id;
+  showCategoryModal.value = false;
+};
 
 onUnmounted(() =>
   document.removeEventListener("click", handleClickOutSideTags),

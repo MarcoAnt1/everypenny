@@ -108,132 +108,14 @@
       </ul>
     </div>
 
-    <!-- Add/Edit Modal -->
-    <div
+    <CategoryForModal
       v-if="showModal"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="closeModal"
-    >
-      <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">
-          {{
-            editingCategory
-              ? "Edit Category"
-              : parentId
-                ? "Add Subcategory"
-                : "Add Category"
-          }}
-        </h3>
-
-        <div class="space-y-4">
-          <!-- Name -->
-          <div>
-            <label class="text-sm text-gray-600 font-medium">Name</label>
-            <input
-              v-model="form.name"
-              type="text"
-              placeholder="e.g. Food"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
-            />
-          </div>
-
-          <!-- Type -->
-          <div>
-            <label class="text-sm text-gray-600 font-medium">Type</label>
-            <div class="flex gap-3 mt-1">
-              <button
-                @click="form.type = 'expense'"
-                :class="
-                  form.type === 'expense'
-                    ? 'flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium'
-                    : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'
-                "
-              >
-                💸 Expense
-              </button>
-              <button
-                @click="form.type = 'income'"
-                :class="
-                  form.type === 'income'
-                    ? 'flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium'
-                    : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'
-                "
-              >
-                💰 income
-              </button>
-            </div>
-          </div>
-
-          <!-- Icon -->
-          <div>
-            <label class="text-sm text-gray-600 font-medium"
-              >Icon (emoji)</label
-            >
-            <input
-              v-model.number="form.icon"
-              type="text"
-              placeholder="e.g. 🍔"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-          </div>
-
-          <!-- Parent Category (read only if set) -->
-          <div v-if="parentId && !editingCategory">
-            <label class="text-sm text-gray-600 font-medium"
-              >Parent Category</label
-            >
-            <p
-              class="mt-1 text-sm text-indigo-600 font-medium px-3 py-2 bg-indigo-50 rounded-lg"
-            >
-              {{ parentCategoryName }}
-            </p>
-          </div>
-
-          <!-- Parent selector on edit -->
-          <div v-if="editingCategory">
-            <label class="text-sm text-gray-600 font-medium"
-              >Parent Category (optional)</label
-            >
-            <select
-              v-model="form.parentId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="">None (top level)</option>
-              <option
-                v-for="cat in parentOptions"
-                :key="cat.id"
-                :value="cat.id"
-              >
-                {{ cat.icom || "📁" }} {{ cat.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex gap-3 mt-6">
-            <button
-              @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              @click="saveGoal"
-              :disabled="!form.name || !form.type || saving"
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
-            >
-              {{
-                saving
-                  ? "Saving..."
-                  : editingCategory
-                    ? "Save Changes"
-                    : "Add Category"
-              }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      :category="editingCategory"
+      :parent-id="parentId || undefined"
+      :parent-name="parentCategoryName"
+      @close="closeModal"
+      @saved="loadCategories()"
+    />
 
     <DeleteConfirmation
       v-if="showDeleteConfirm"
@@ -249,14 +131,12 @@
 import { ref, computed, onMounted } from "vue";
 import {
   getCategories,
-  createCategory,
-  updateCategory,
   deleteCategory,
 } from "../api/categories";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import CategoryForModal from "../components/CategoryForModal.vue";
 
 const loading = ref(true);
-const saving = ref(false);
 const categories = ref<any[]>([]);
 const showModal = ref(false);
 const showDeleteConfirm = ref(false);
@@ -266,7 +146,6 @@ const parentId = ref<string | null>(null);
 
 const defaultForm = {
   name: "",
-  type: "expense",
   icon: "",
   parentId: "",
 };
@@ -287,13 +166,6 @@ const loadCategories = async () => {
   }
 };
 
-// Options for parent selector (exlcude self when editing
-const parentOptions = computed(() =>
-  categories.value.filter(
-    (c) => !c.parentId && c.id !== editingCategory.value?.id,
-  ),
-);
-
 // Parent name for display
 const parentCategoryName = computed(() => {
   if (!parentId.value) return "";
@@ -309,7 +181,6 @@ const openModal = (category?: any, presentParentId?: string) => {
   form.value = category
     ? {
         name: category.name,
-        type: category.type,
         icon: category.icon || "",
         parentId: category.parentId || "",
       }
@@ -324,24 +195,6 @@ const closeModal = () => {
   showModal.value = false;
   editingCategory.value = null;
   form.value = { ...defaultForm };
-};
-
-// Save
-const saveGoal = async () => {
-  saving.value = true;
-  try {
-    if (editingCategory.value) {
-      await updateCategory(editingCategory.value.id, form.value);
-    } else {
-      await createCategory(form.value);
-    }
-    await loadCategories();
-    closeModal();
-  } catch (error) {
-    console.error("Error saving category:", error);
-  } finally {
-    saving.value = false;
-  }
 };
 
 // Delete
