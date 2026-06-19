@@ -58,7 +58,7 @@ model AccountShare {
 
 model Connection {
   id                  String    @id @default(uuid())
-  requestId           String
+  requesterId           String
   inviteeId           String?
   inviteeEmail        String
   status              String    @default("PEDING")
@@ -69,10 +69,10 @@ model Connection {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  requester           User?     @relation("RequesterConnections", fields: [requestId], references: [id])
+  requester           User?     @relation("RequesterConnections", fields: [requesterId], references: [id])
   invitee             User?     @relation("InviteeConnections", fields: [inviteeId], references: [id])
 
-  @@unique([requestId, inviteeEmail])
+  @@unique([requesterId, inviteeEmail])
 }
 
 model Transaction {
