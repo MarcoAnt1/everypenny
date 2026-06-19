@@ -9,6 +9,7 @@ import budgetRoutes from "./routes/budgets";
 import goalRoutes from "./routes/goals";
 import tagRoutes from "./routes/tags";
 import importRoutes from "./routes/imports";
+import connectionsRouter from "./routes/connections";
 import { authenticate } from "./middleware/auth";
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use("/api/budgets", authenticate, budgetRoutes);
 app.use("/api/goals", authenticate, goalRoutes);
 app.use("/api/tags", authenticate, tagRoutes);
 app.use("/api/import", authenticate, importRoutes);
+app.use("/api/connections", authenticate, connectionsRouter);
 
 // Health check
 app.get("/health", (_req, res) => {
