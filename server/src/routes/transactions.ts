@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
+import { userCanEditTransactionInAccount } from "../helper/authorization";
 
 // TODO: Verify if the balance change logic is correct when updating or deleting a transaction, especially when changing the type (income/expense) or amount.
 
@@ -73,7 +74,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 
     const transactions = await prisma.transaction.findMany({
       where: {
-        account: { userId: req.userId },
+        account: { ownerId: req.userId },
         ...(accountId && { accountId: String(accountId) }),
         ...(categoryId && { categoryId: String(categoryId) }),
         ...(type && { type: String(type) }),
@@ -103,7 +104,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 
     const formatted = transactions.map((t) => ({
       ...t,
-      date: t.date.toISOString().split("T")[0]
+      date: t.date.toISOString().split("T")[0],
     }));
     res.json(formatted);
   } catch (error) {
@@ -139,7 +140,7 @@ router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
 });
 
 // POST create a new transaction
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", async (req: AuthRequest, res: Response) => {
   try {
     const {
       accountId,
@@ -153,6 +154,15 @@ router.post("/", async (req: Request, res: Response) => {
       notes,
       tagIds,
     } = req.body;
+
+    const canAccess = await userCanEditTransactionInAccount(
+      req.userId!,
+      accountId,
+    );
+    if (!canAccess) {
+      res.status(403).json({ error: "You do not have access to this account" });
+      return;
+    }
 
     if (type === "transfer" && !toAccountId) {
       res
@@ -280,10 +290,10 @@ router.post("/", async (req: Request, res: Response) => {
     );
 
     res.status(201).json(transaction);
-  } catch (error) {
+  } catch (err: any) {
     res.status(500).json({
       error: "Failed to create transaction",
-      details: error instanceof Error ? error.message : "Unknown error",
+      details: err.message,
     });
   }
 });
@@ -360,7 +370,7 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 });
 
 // DELETE a transaction by ID
-router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.delete("/:id", async (req: AuthRequest & Request<{ id: string}>, res: Response) => {
   try {
     const id = req.params.id;
 
@@ -371,6 +381,17 @@ router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
 
     if (!tx) {
       return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    const canAccess = await userCanEditTransactionInAccount(
+      req.userId!,
+      tx.accountId,
+    );
+    if (!canAccess) {
+      res
+        .status(403)
+        .json({ error: "You do not have access to delete this account" });
+      return;
     }
 
     if (tx.type === "transfer" && tx.transferGroupId) {
@@ -410,14 +431,16 @@ router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
       }
     } else {
       await prisma.transactionTag.deleteMany({
-        where: { transactionId: id },
+        where: { transactionId:  id },
       });
 
       await prisma.transaction.delete({
         where: { id },
       });
 
-      const account = await prisma.account.findUnique({ where: { id: tx.accountId }});
+      const account = await prisma.account.findUnique({
+        where: { id: tx.accountId },
+      });
       if (tx.direction === "income") {
         prisma.account.update({
           where: { id: tx.accountId },
@@ -437,10 +460,10 @@ router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
     }
 
     res.status(204).send();
-  } catch (error) {
+  } catch (err: any) {
     res.status(500).json({
       error: "Failed to delete transaction",
-      details: error instanceof Error ? error.message : "Unknown error",
+      details: err.message,
     });
   }
 });
