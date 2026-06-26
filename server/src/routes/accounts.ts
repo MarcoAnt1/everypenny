@@ -83,7 +83,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
 });
 
 // POST share account with another user
-router.post("/:id/share", async (req: AuthRequest & Request<{ id: string}>, res: Response) => {
+router.post("/:id/share", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
     const { userId } = req.body;
@@ -124,7 +124,7 @@ router.post("/:id/share", async (req: AuthRequest & Request<{ id: string}>, res:
   }
 });
 
-// PUT update a account by ID
+// PUT update an account by ID
 router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { name, type, institution, balance, currency } = req.body;
@@ -141,8 +141,8 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
   }
 });
 
-// DELETE a account by ID
-router.delete("/:id", async (req: AuthRequest & Request<{ id: string}>, res: Response) => {
+// DELETE an account by ID
+router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -181,7 +181,7 @@ router.delete("/:id", async (req: AuthRequest & Request<{ id: string}>, res: Res
 });
 
 // DELETE remove shared access to account
-router.delete("/:id/share/:userId", async (req: AuthRequest & Request<{ id: string, userId: string}>, res: Response) => {
+router.delete("/:id/share/:userId", async (req: AuthRequest & Request<{ id: string; userId: string }>, res: Response) => {
   try {
     const { id, userId } = req.params;
 
