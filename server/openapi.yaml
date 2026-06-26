@@ -1,0 +1,1407 @@
+openapi: 3.0.0
+info:
+  title: EveryPenny API
+  version: 1.0.0
+  description: EveryPenny backend API
+servers:
+  - url: http://localhost:3000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        ownerId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        institution:
+          type: string
+        balance:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        creditLimit:
+          type: number
+        availableCredit:
+          type: number
+        utilization:
+          type: number
+    AccountShare:
+      type: object
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        userId:
+          type: string
+        role:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    Budget:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        categoryId:
+          type: string
+        limitAmount:
+          type: number
+        period:
+          type: string
+        spent:
+          type: number
+        remaining:
+          type: number
+        percentage:
+          type: number
+        category:
+          type: object
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        icon:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        subcategories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    Connection:
+      type: object
+      properties:
+        id:
+          type: string
+        requesterId:
+          type: string
+        inviteeId:
+          type: string
+          nullable: true
+        inviteeEmail:
+          type: string
+        shareAllAccounts:
+          type: boolean
+        shareAllBudgets:
+          type: boolean
+        shareAllCategories:
+          type: boolean
+        shareAllGoals:
+          type: boolean
+        status:
+          type: string
+        requester:
+          $ref: '#/components/schemas/User'
+        invitee:
+          $ref: '#/components/schemas/User'
+    Goal:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        targetAmount:
+          type: number
+        currentAmount:
+          type: number
+        targetDate:
+          type: string
+          format: date
+        status:
+          type: string
+        percentage:
+          type: number
+        remainingAmount:
+          type: number
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        userId:
+          type: string
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        toAccountId:
+          type: string
+          nullable: true
+        categoryId:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+        type:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        direction:
+          type: string
+          nullable: true
+        transferGroupId:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: object
+paths:
+  /api/accounts:
+    get:
+      summary: Get all accounts
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+    post:
+      summary: Create a new account
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                institution:
+                  type: string
+                balance:
+                  type: number
+                currency:
+                  type: string
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Registered user and token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/auth/login:
+    post:
+      summary: Login user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/auth/me:
+    post:
+      summary: Get current authenticated user
+      tags:
+        - Auth
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /api/budgets:
+    get:
+      summary: Get all budgets for the user
+      tags:
+        - Budgets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of budgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Budget'
+    post:
+      summary: Create a new budget
+      tags:
+        - Budgets
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - categoryId
+                - limitAmount
+              properties:
+                name:
+                  type: string
+                categoryId:
+                  type: string
+                limitAmount:
+                  type: number
+                period:
+                  type: string
+      responses:
+        '201':
+          description: Created budget
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+  /api/budgets/{id}:
+    get:
+      summary: Get budget by id
+      tags:
+        - Budgets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Budget details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+        '404':
+          description: Budget not found
+    put:
+      summary: Update a budget
+      tags:
+        - Budgets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                categoryId:
+                  type: string
+                limitAmount:
+                  type: number
+                period:
+                  type: string
+      responses:
+        '200':
+          description: Updated budget
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+    delete:
+      summary: Delete a budget
+      tags:
+        - Budgets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Budget deleted
+  /api/budgets/{id}/transactions:
+    get:
+      summary: Get transactions for a budget
+      tags:
+        - Budgets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Budget transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  budget:
+                    $ref: '#/components/schemas/Budget'
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  total:
+                    type: number
+  /api/categories:
+    get:
+      summary: Get all categories
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      summary: Create a category
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                icon:
+                  type: string
+                parentId:
+                  type: string
+      responses:
+        '201':
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+  /api/categories/{id}:
+    get:
+      summary: Get category by id
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+    put:
+      summary: Update category
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                icon:
+                  type: string
+                parentId:
+                  type: string
+      responses:
+        '200':
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+    delete:
+      summary: Delete category
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Category deleted
+  /api/connections/invite:
+    post:
+      summary: Invite a user to connect
+      tags:
+        - Connections
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - inviteeEmail
+              properties:
+                inviteeEmail:
+                  type: string
+                shareAllAccounts:
+                  type: boolean
+                shareAllBudgets:
+                  type: boolean
+                shareAllCategories:
+                  type: boolean
+                shareAllGoals:
+                  type: boolean
+      responses:
+        '201':
+          description: Connection invite created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+  /api/connections:
+    get:
+      summary: Get all connections
+      tags:
+        - Connections
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Connections list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Connection'
+                  received:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Connection'
+  /api/connections/{id}/accept:
+    post:
+      summary: Accept a connection invite
+      tags:
+        - Connections
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Accepted connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+  /api/connections/{id}/reject:
+    post:
+      summary: Reject a connection invite
+      tags:
+        - Connections
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rejected connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+  /api/connections/{id}:
+    delete:
+      summary: Delete a connection
+      tags:
+        - Connections
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Connection deleted
+    put:
+      summary: Update connection sharing preferences
+      tags:
+        - Connections
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shareAllAccounts:
+                  type: boolean
+                shareAllBudgets:
+                  type: boolean
+                shareAllCategories:
+                  type: boolean
+                shareAllGoals:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+  /api/goals:
+    get:
+      summary: Get all goals
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of goals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Goal'
+    post:
+      summary: Create a new goal
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - targetAmount
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                targetAmount:
+                  type: number
+                currentAmount:
+                  type: number
+                targetDate:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Created goal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+  /api/goals/{id}:
+    get:
+      summary: Get goal by id
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Goal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+        '404':
+          description: Goal not found
+    put:
+      summary: Update a goal
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                targetAmount:
+                  type: number
+                currentAmount:
+                  type: number
+                targetDate:
+                  type: string
+                  format: date
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Updated goal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+    delete:
+      summary: Delete a goal
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Goal deleted
+  /api/goals/{id}/add-funds:
+    patch:
+      summary: Add funds to a goal
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Updated goal after adding funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+  /api/import/preview:
+    post:
+      summary: Preview imported transactions from uploaded file
+      tags:
+        - Import
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                bankType:
+                  type: string
+      responses:
+        '200':
+          description: Parsed preview data
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/import/confirm:
+    post:
+      summary: Confirm import and save transactions
+      tags:
+        - Import
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accountId
+                - transactions
+              properties:
+                accountId:
+                  type: string
+                transactions:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '201':
+          description: Import confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: number
+                  message:
+                    type: string
+  /api/tags:
+    get:
+      summary: Get all tags for the user
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+    post:
+      summary: Create a tag
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+      responses:
+        '201':
+          description: Created tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+  /api/tags/{id}:
+    get:
+      summary: Get tag by id
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tag details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '404':
+          description: Tag not found
+    put:
+      summary: Update a tag
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                color:
+                  type: string
+      responses:
+        '200':
+          description: Updated tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+    delete:
+      summary: Delete a tag
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Tag deleted
+  /api/transactions:
+    get:
+      summary: Get all transactions
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: tagIds
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+    post:
+      summary: Create a transaction
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accountId
+                - amount
+                - date
+                - type
+              properties:
+                accountId:
+                  type: string
+                categoryId:
+                  type: string
+                toAccountId:
+                  type: string
+                amount:
+                  type: number
+                date:
+                  type: string
+                  format: date
+                description:
+                  type: string
+                type:
+                  type: string
+                status:
+                  type: string
+                notes:
+                  type: string
+                tagIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+  /api/transactions/{id}:
+    get:
+      summary: Get transaction by id
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+    put:
+      summary: Update a transaction
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryId:
+                  type: string
+                toAccountId:
+                  type: string
+                description:
+                  type: string
+                amount:
+                  type: number
+                date:
+                  type: string
+                  format: date
+                type:
+                  type: string
+                status:
+                  type: string
+                notes:
+                  type: string
+                tagIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+    delete:
+      summary: Delete a transaction
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Transaction deleted
+  /api/accounts/{id}:
+    get:
+      summary: Get one account by id
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account details with transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  ownerId:
+                    type: string
+                  name:
+                    type: string
+                  type:
+                    type: string
+                  institution:
+                    type: string
+                  balance:
+                    type: number
+                  currency:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Account not found
+    put:
+      summary: Update an account by id
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                institution:
+                  type: string
+                balance:
+                  type: number
+                currency:
+                  type: string
+      responses:
+        '200':
+          description: Updated account object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+    delete:
+      summary: Delete an account by id
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Account deleted successfully
+        '403':
+          description: Only account owner can delete
+  /api/accounts/{id}/share:
+    post:
+      summary: Share an account with another user
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+      responses:
+        '201':
+          description: Account has been shared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountShare'
+        '400':
+          description: Missing userId
+        '403':
+          description: Only account owner can share
+        '409':
+          description: Account already shared with this user
+  /api/accounts/{id}/share/{userId}:
+    delete:
+      summary: Remove shared access to an account
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Share removed successfully
+        '403':
+          description: Only account owner can remove access

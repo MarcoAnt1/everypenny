@@ -11,11 +11,14 @@ import tagRoutes from "./routes/tags";
 import importRoutes from "./routes/imports";
 import connectionsRouter from "./routes/connections";
 import { authenticate } from "./middleware/auth";
+import { setupSwagger } from "./swagger";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+setupSwagger(app);
 
 app.use(cors({ 
   origin: [
