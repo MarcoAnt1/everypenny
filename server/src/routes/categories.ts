@@ -1,13 +1,23 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
+import { AuthRequest } from "../middleware/auth";
+import { getConnectedUserIds } from "../helper/authorization";
 
 const router = Router();
 
 // GET all categories
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", async (req: AuthRequest, res: Response) => {
   try {
+    const connectedUserIds = await getConnectedUserIds(
+      req.userId!,
+      "shareAllCategories",
+    );
+
     const categories = await prisma.category.findMany({
       where: {
+        userId: {
+          in: [req.userId!, ...connectedUserIds],
+        },
         parentId: null,
       },
       include: {
@@ -16,12 +26,10 @@ router.get("/", async (req: Request, res: Response) => {
     });
     res.json(categories);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to fetch categories",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to fetch categories",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -37,12 +45,10 @@ router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
     }
     res.json(category);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to fetch category",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to fetch category",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -64,12 +70,10 @@ router.post("/", async (req: Request, res: Response) => {
     });
     res.status(201).json(category);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to create category",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to create category",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -83,12 +87,10 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
     });
     res.json(category);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to update category",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to update category",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
@@ -100,12 +102,10 @@ router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
     });
     res.status(204).send();
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to delete category",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to delete category",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 

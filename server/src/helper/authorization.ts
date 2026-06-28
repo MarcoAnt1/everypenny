@@ -99,3 +99,25 @@ export async function getUserAccounts(userId: string) {
     return true;
   });
 }
+
+export async function getConnectedUserIds(userId: string, shareFlag: string) {
+  const connections = await prisma.connection.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ requesterId: userId }, { inviteeId: userId }],
+      ...(shareFlag === "shareAllAccounts"
+        ? { shareAllAccounts: true }
+        : shareFlag === "shareAllBudgets"
+          ? { shareAllBudgets: true }
+          : shareFlag === "shareAllCategories"
+            ? { shareAllCategories: true }
+            : { shareAllGoals: true }),
+    },
+  });
+
+  return connections
+    .map((conn) =>
+      conn.requesterId === userId ? conn.inviteeId : conn.requesterId,
+    )
+    .filter((id): id is string => !!id);
+}

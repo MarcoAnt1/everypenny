@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
 import { userCanEditTransactionInAccount } from "../helper/authorization";
+import { getUserAccounts } from "../helper/authorization";
 
 // TODO: Verify if the balance change logic is correct when updating or deleting a transaction, especially when changing the type (income/expense) or amount.
 
@@ -72,9 +73,12 @@ router.get("/", async (req: AuthRequest, res: Response) => {
         : [tagIds as string]
       : [];
 
+    const userAccounts = await getUserAccounts(req.userId!);
+    const accountIds = userAccounts.map((acc) => acc.id);
+
     const transactions = await prisma.transaction.findMany({
       where: {
-        account: { ownerId: req.userId },
+        accountId: { in: accountIds },
         ...(accountId && { accountId: String(accountId) }),
         ...(categoryId && { categoryId: String(categoryId) }),
         ...(type && { type: String(type) }),

@@ -1,14 +1,25 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
+import { getConnectedUserIds } from "../helper/authorization";
 
 const router = Router();
 
 // GET all goals
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
+
+    const connectedUserIds = await getConnectedUserIds(req.userId!, "shareAllGoals");
+
     const goals = await prisma.goal.findMany({
-      where: { userId: req.userId! },
+      where: { 
+        userId: {
+          in: [req.userId!, ...connectedUserIds],
+        },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true }},
+      },
       orderBy: { createdAt: "asc" },
     });
 
