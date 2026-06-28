@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth";
-import { getUserAccounts, userIsAccountOwner } from "../helper/authorization";
+import { getUserAccounts, userCanAccessAccount, userIsAccountOwner } from "../helper/authorization";
 import prisma from "../lib/prisma";
 
 const router = Router();
@@ -32,10 +32,17 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 });
 
 // GET one account by id
-router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.get("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const accountId = req.params.id;
+
+    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    if (!canAccess) {
+      return res.status(403).json({ error: "You do not have access to this account"});
+    }
+
     const account = await prisma.account.findUnique({
-      where: { id: req.params.id },
+      where: { id: accountId },
       include: { transactions: true },
     });
     if (!account) {
@@ -85,22 +92,22 @@ router.post("/", async (req: AuthRequest, res: Response) => {
 // POST share account with another user
 router.post("/:id/share", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
-    const { id } = req.params;
+    const accountId = req.params.id;
     const { userId } = req.body;
-
+    
     if (!userId) {
       res.status(400).json({ error: "userId is required" });
       return;
     }
 
-    const isOwner = await userIsAccountOwner(req.userId!, id);
+    const isOwner = await userIsAccountOwner(req.userId!, accountId);
     if (!isOwner) {
       res.status(403).json({ error: "Only account owner can share" });
       return;
     }
 
     const existing = await prisma.accountShare.findUnique({
-      where: { accountId_userId: { accountId: id, userId } },
+      where: { accountId_userId: { accountId: accountId, userId } },
     });
     if (existing) {
       res.status(409).json({ error: "Account already shared with this user" });
@@ -109,7 +116,7 @@ router.post("/:id/share", async (req: AuthRequest & Request<{ id: string }>, res
 
     const share = await prisma.accountShare.create({
       data: {
-        accountId: id,
+        accountId: accountId,
         userId,
         role: "EDITOR",
       },
@@ -125,11 +132,18 @@ router.post("/:id/share", async (req: AuthRequest & Request<{ id: string }>, res
 });
 
 // PUT update an account by ID
-router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.put("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const accountId = req.params.id;
+
+    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    if (!canAccess) {
+      return res.status(403).json({ error: "You do not have access to this account"});
+    }
+
     const { name, type, institution, balance, currency } = req.body;
     const account = await prisma.account.update({
-      where: { id: req.params.id },
+      where: { id: accountId },
       data: { name, type, institution, balance, currency },
     });
     res.json(account);
@@ -144,16 +158,21 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 // DELETE an account by ID
 router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
-    const { id } = req.params;
+    const accountId = req.params.id;
 
-    const isOwner = await userIsAccountOwner(req.userId!, id);
+    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    if (!canAccess) {
+      return res.status(403).json({ error: "You do not have access to this account"});
+    }
+
+    const isOwner = await userIsAccountOwner(req.userId!, accountId);
     if (!isOwner) {
       res.status(403).json({ error: "Only account owner can delete" });
       return;
     }
 
     const transactions = await prisma.transaction.findMany({
-      where: { OR: [{ accountId: id }, { toAccountId: id }] },
+      where: { OR: [{ accountId: accountId }, { toAccountId: accountId }] },
     });
 
     const transactionIds = transactions.map((t) => t.id);
@@ -163,12 +182,12 @@ router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Re
       });
 
       await prisma.transaction.deleteMany({
-        where: { OR: [{ accountId: id }, { toAccountId: id }] },
+        where: { OR: [{ accountId: accountId }, { toAccountId: accountId }] },
       });
     }
 
     await prisma.account.delete({
-      where: { id: req.params.id },
+      where: { id: accountId },
     });
 
     res.status(204).send();

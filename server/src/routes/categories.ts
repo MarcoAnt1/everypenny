@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
-import { getConnectedUserIds } from "../helper/authorization";
+import { getConnectedUserIds, userCanAccessAccount } from "../helper/authorization";
 
 const router = Router();
 
@@ -34,10 +34,17 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 });
 
 // GET one category by ID
-router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.get("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const accountId = req.params.id;
+
+    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    if (!canAccess) {
+      return res.status(403).json({ error: "You do not have access to this account"});
+    }
+    
     const category = await prisma.category.findUnique({
-      where: { id: req.params.id },
+      where: { id: accountId },
       include: { subcategories: true },
     });
     if (!category) {
@@ -78,11 +85,18 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 // PUT update a category by ID
-router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.put("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const accountId = req.params.id;
+
+    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    if (!canAccess) {
+      return res.status(403).json({ error: "You do not have access to this account"});
+    }
+
     const { name, type, icon, parentId } = req.body;
     const category = await prisma.category.update({
-      where: { id: req.params.id },
+      where: { id: accountId },
       data: { name, type, icon, parentId: parentId || null },
     });
     res.json(category);
@@ -95,10 +109,17 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 });
 
 // DELETE a category by ID
-router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const accountId = req.params.id;
+
+    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    if (!canAccess) {
+      return res.status(403).json({ error: "You do not have access to this account"});
+    }
+
     await prisma.category.delete({
-      where: { id: req.params.id },
+      where: { id: accountId },
     });
     res.status(204).send();
   } catch (error) {

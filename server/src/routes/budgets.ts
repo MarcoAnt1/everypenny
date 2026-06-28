@@ -1,14 +1,20 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
-import { getConnectedUserIds } from "../helper/authorization";
+import {
+  getConnectedUserIds,
+  userCanAccessAccount,
+} from "../helper/authorization";
 
 const router = Router();
 
 // GET all budgets
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const connectedUserIds = await getConnectedUserIds(req.userId!, "shareAllBudgets");
+    const connectedUserIds = await getConnectedUserIds(
+      req.userId!,
+      "shareAllBudgets",
+    );
 
     const budgets = await prisma.budget.findMany({
       where: {
@@ -61,34 +67,53 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 });
 
 // GET one budget by id
-router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
-  try {
-    const budget = await prisma.budget.findUnique({
-      where: { id: req.params.id },
-      include: { category: true },
-    });
-    if (!budget) {
-      return res.status(404).json({ error: "Budget not found" });
-    }
+router.get(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const accountId = req.params.id;
 
-    res.json(budget);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch budget",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
+
+      const budget = await prisma.budget.findUnique({
+        where: { id: accountId },
+        include: { category: true },
+      });
+      if (!budget) {
+        return res.status(404).json({ error: "Budget not found" });
+      }
+
+      res.json(budget);
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to fetch budget",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
 
 // GET transactions for a specific budget
 router.get(
   "/:id/transactions",
-  async (req: Request<{ id: string }>, res: Response) => {
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const { id } = req.params;
+      const accountId = req.params.id;
+
+      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
 
       const budget = await prisma.budget.findUnique({
-        where: { id },
+        where: { id: accountId },
         include: { category: true },
       });
 
@@ -122,12 +147,10 @@ router.get(
         total: transactions.reduce((sum, t) => sum + Number(t.amount), 0),
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          error: "Failed to fetch budget transactions",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
+      res.status(500).json({
+        error: "Failed to fetch budget transactions",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   },
 );
@@ -156,36 +179,60 @@ router.post("/", async (req: AuthRequest, res: Response) => {
 });
 
 // PUT update a budget by ID
-router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
-  try {
-    const { name, categoryId, limitAmount, period } = req.body;
-    const budget = await prisma.budget.update({
-      where: { id: req.params.id },
-      data: { name, categoryId, limitAmount, period },
-      include: { category: true },
-    });
-    res.json(budget);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to update budget",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+router.put(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const accountId = req.params.id;
+
+      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
+
+      const { name, categoryId, limitAmount, period } = req.body;
+      const budget = await prisma.budget.update({
+        where: { id: accountId },
+        data: { name, categoryId, limitAmount, period },
+        include: { category: true },
+      });
+      res.json(budget);
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to update budget",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
 
 // DELETE a budget by ID
-router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
-  try {
-    await prisma.budget.delete({
-      where: { id: req.params.id },
-    });
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to delete budget",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+router.delete(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const accountId = req.params.id;
+
+      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
+
+      await prisma.budget.delete({
+        where: { id: accountId },
+      });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to delete budget",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
 
 export default router;

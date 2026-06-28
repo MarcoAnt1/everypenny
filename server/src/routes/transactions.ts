@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
 import { userCanEditTransactionInAccount } from "../helper/authorization";
-import { getUserAccounts } from "../helper/authorization";
+import { getUserAccounts, userCanAccessAccount } from "../helper/authorization";
 
 // TODO: Verify if the balance change logic is correct when updating or deleting a transaction, especially when changing the type (income/expense) or amount.
 
@@ -120,28 +120,40 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 });
 
 // GET one transaction by id
-router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
-  try {
-    const transaction = await prisma.transaction.findUnique({
-      where: { id: req.params.id },
-      include: {
-        account: true,
-        toAccount: true,
-        category: true,
-        tags: { include: { tag: true } },
-      },
-    });
-    if (!transaction) {
-      return res.status(404).json({ error: "Transaction not found" });
+router.get(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const accountId = req.params.id;
+
+      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
+
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: accountId },
+        include: {
+          account: true,
+          toAccount: true,
+          category: true,
+          tags: { include: { tag: true } },
+        },
+      });
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+      res.json(transaction);
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to fetch transaction",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
-    res.json(transaction);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch transaction",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+  },
+);
 
 // POST create a new transaction
 router.post("/", async (req: AuthRequest, res: Response) => {
@@ -303,173 +315,188 @@ router.post("/", async (req: AuthRequest, res: Response) => {
 });
 
 // PUT update a transaction by ID
-router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
-  try {
-    const existingTransaction = await prisma.transaction.findUnique({
-      where: { id: req.params.id },
-      include: { account: true },
-    });
+router.put(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const accountId = req.params.id;
 
-    if (!existingTransaction) {
-      return res.status(404).json({ error: "Transaction not found" });
-    }
+      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
 
-    const {
-      categoryId,
-      toAccountId,
-      description,
-      amount,
-      date,
-      type,
-      status,
-      notes,
-      tagIds,
-    } = req.body;
-    const transaction = await prisma.transaction.update({
-      where: { id: req.params.id },
-      data: {
-        categoryId: categoryId || null,
-        toAccountId: toAccountId || null,
+      const existingTransaction = await prisma.transaction.findUnique({
+        where: { id: accountId },
+        include: { account: true },
+      });
+
+      if (!existingTransaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      const {
+        categoryId,
+        toAccountId,
         description,
         amount,
-        date: new Date(date),
+        date,
         type,
         status,
         notes,
-        tags: tagIds?.length
-          ? {
-              create: tagIds.map((tagId: string) => ({ tagId })),
-            }
-          : undefined,
-      },
-      include: {
-        account: true,
-        toAccount: true,
-        category: true,
-        tags: { include: { tag: true } },
-      },
-    });
-
-    await prisma.account.update({
-      where: { id: transaction.accountId },
-      data: {
-        balance: {
-          increment: balanceChange(
-            existingTransaction?.type || "",
-            existingTransaction?.amount || 0,
-            type,
-            amount,
-          ),
+        tagIds,
+      } = req.body;
+      const transaction = await prisma.transaction.update({
+        where: { id: accountId },
+        data: {
+          categoryId: categoryId || null,
+          toAccountId: toAccountId || null,
+          description,
+          amount,
+          date: new Date(date),
+          type,
+          status,
+          notes,
+          tags: tagIds?.length
+            ? {
+                create: tagIds.map((tagId: string) => ({ tagId })),
+              }
+            : undefined,
         },
-      },
-    });
+        include: {
+          account: true,
+          toAccount: true,
+          category: true,
+          tags: { include: { tag: true } },
+        },
+      });
 
-    res.json(transaction);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to update transaction",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+      await prisma.account.update({
+        where: { id: transaction.accountId },
+        data: {
+          balance: {
+            increment: balanceChange(
+              existingTransaction?.type || "",
+              existingTransaction?.amount || 0,
+              type,
+              amount,
+            ),
+          },
+        },
+      });
+
+      res.json(transaction);
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to update transaction",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
 
 // DELETE a transaction by ID
-router.delete("/:id", async (req: AuthRequest & Request<{ id: string}>, res: Response) => {
-  try {
-    const id = req.params.id;
+router.delete(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const accountId = req.params.id;
 
-    const tx = await prisma.transaction.findUnique({
-      where: { id },
-      include: { account: true },
-    });
-
-    if (!tx) {
-      return res.status(404).json({ error: "Transaction not found" });
-    }
-
-    const canAccess = await userCanEditTransactionInAccount(
-      req.userId!,
-      tx.accountId,
-    );
-    if (!canAccess) {
-      res
-        .status(403)
-        .json({ error: "You do not have access to delete this account" });
-      return;
-    }
-
-    if (tx.type === "transfer" && tx.transferGroupId) {
-      const grouped = await prisma.transaction.findMany({
-        where: { transferGroupId: tx.transferGroupId },
+      const tx = await prisma.transaction.findUnique({
+        where: { id: accountId },
+        include: { account: true },
       });
 
-      const ids = grouped.map((t) => t.id);
-      await prisma.transactionTag.deleteMany({
-        where: { transactionId: { in: ids } },
-      });
+      if (!tx) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
 
-      await prisma.transaction.deleteMany({
-        where: { transferGroupId: tx.transferGroupId },
-      });
+      const canAccess = await userCanEditTransactionInAccount(
+        req.userId!,
+        tx.accountId,
+      );
+      if (!canAccess) {
+        res
+          .status(403)
+          .json({ error: "You do not have access to delete this account" });
+        return;
+      }
 
-      for (const t of grouped) {
-        if (t.direction === "out") {
+      if (tx.type === "transfer" && tx.transferGroupId) {
+        const grouped = await prisma.transaction.findMany({
+          where: { transferGroupId: tx.transferGroupId },
+        });
+
+        const ids = grouped.map((t) => t.id);
+        await prisma.transactionTag.deleteMany({
+          where: { transactionId: { in: ids } },
+        });
+
+        await prisma.transaction.deleteMany({
+          where: { transferGroupId: tx.transferGroupId },
+        });
+
+        for (const t of grouped) {
+          if (t.direction === "out") {
+            prisma.account.update({
+              where: { id: t.accountId },
+              data: { balance: { increment: t.amount } },
+            });
+          } else if (tx.direction === "in") {
+            const acc = await prisma.account.findUnique({
+              where: { id: t.accountId },
+            });
+            prisma.account.update({
+              where: { id: t.accountId },
+              data: {
+                balance:
+                  acc?.type === "credit"
+                    ? { increment: t.amount }
+                    : { decrement: t.amount },
+              },
+            });
+          }
+        }
+      } else {
+        await prisma.transactionTag.deleteMany({
+          where: { transactionId: accountId },
+        });
+
+        await prisma.transaction.delete({
+          where: { id: accountId },
+        });
+
+        const account = await prisma.account.findUnique({
+          where: { id: tx.accountId },
+        });
+        if (tx.direction === "income") {
           prisma.account.update({
-            where: { id: t.accountId },
-            data: { balance: { increment: t.amount } },
+            where: { id: tx.accountId },
+            data: { balance: { decrement: tx.amount } },
           });
-        } else if (tx.direction === "in") {
-          const acc = await prisma.account.findUnique({
-            where: { id: t.accountId },
-          });
+        } else if (tx.direction === "expense") {
           prisma.account.update({
-            where: { id: t.accountId },
+            where: { id: tx.accountId },
             data: {
               balance:
-                acc?.type === "credit"
-                  ? { increment: t.amount }
-                  : { decrement: t.amount },
+                account?.type === "credit"
+                  ? { decrement: tx.amount }
+                  : { increment: tx.amount },
             },
           });
         }
       }
-    } else {
-      await prisma.transactionTag.deleteMany({
-        where: { transactionId:  id },
-      });
 
-      await prisma.transaction.delete({
-        where: { id },
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({
+        error: "Failed to delete transaction",
+        details: err.message,
       });
-
-      const account = await prisma.account.findUnique({
-        where: { id: tx.accountId },
-      });
-      if (tx.direction === "income") {
-        prisma.account.update({
-          where: { id: tx.accountId },
-          data: { balance: { decrement: tx.amount } },
-        });
-      } else if (tx.direction === "expense") {
-        prisma.account.update({
-          where: { id: tx.accountId },
-          data: {
-            balance:
-              account?.type === "credit"
-                ? { decrement: tx.amount }
-                : { increment: tx.amount },
-          },
-        });
-      }
     }
-
-    res.status(204).send();
-  } catch (err: any) {
-    res.status(500).json({
-      error: "Failed to delete transaction",
-      details: err.message,
-    });
-  }
-});
+  },
+);
 
 export default router;
