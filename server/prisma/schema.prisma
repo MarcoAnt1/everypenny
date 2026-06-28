@@ -19,6 +19,7 @@ model User {
   accountShares        AccountShare[]
   sentConnections      Connection[]    @relation("RequesterConnections")
   receivedConnections  Connection[]    @relation("InviteeConnections")
+  categories           Category[]
   budgets              Budget[]
   goals                Goal[]
   tags                 Tag[]
@@ -40,7 +41,6 @@ model Account {
   accountShares      AccountShare[]
   transactions       Transaction[]   @relation("FromAccount")
   incomingTransfers  Transaction[]   @relation("ToAccount")
-
 }
 
 model AccountShare {
@@ -99,12 +99,14 @@ model Transaction {
 
 model Category {
   id             String         @id @default(uuid())
+  userId         String?
   parentId       String?
   name           String
   icon           String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  user           User?          @relation(fields: [userId], references: [id])
   parent         Category?      @relation("CategoryToCategory", fields: [parentId], references: [id])
   subcategories  Category[]     @relation("CategoryToCategory")
   transactions   Transaction[]
