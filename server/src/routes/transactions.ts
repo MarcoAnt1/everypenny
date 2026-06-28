@@ -1,8 +1,11 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
-import { userCanEditTransactionInAccount } from "../helper/authorization";
-import { getUserAccounts, userCanAccessAccount } from "../helper/authorization";
+import {
+  getUserAccounts,
+  userCanAccessTransaction,
+  userCanEditTransactionInAccount,
+} from "../helper/authorization";
 
 // TODO: Verify if the balance change logic is correct when updating or deleting a transaction, especially when changing the type (income/expense) or amount.
 
@@ -124,17 +127,10 @@ router.get(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
-
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
-      if (!canAccess) {
-        return res
-          .status(403)
-          .json({ error: "You do not have access to this account" });
-      }
+      const transactionId = req.params.id;
 
       const transaction = await prisma.transaction.findUnique({
-        where: { id: accountId },
+        where: { id: transactionId },
         include: {
           account: true,
           toAccount: true,
@@ -145,6 +141,14 @@ router.get(
       if (!transaction) {
         return res.status(404).json({ error: "Transaction not found" });
       }
+
+      const canAccess = await userCanAccessTransaction(req.userId!, transactionId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this transaction" });
+      }
+
       res.json(transaction);
     } catch (error) {
       res.status(500).json({
@@ -319,22 +323,22 @@ router.put(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
-
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
-      if (!canAccess) {
-        return res
-          .status(403)
-          .json({ error: "You do not have access to this account" });
-      }
+      const transactionId = req.params.id;
 
       const existingTransaction = await prisma.transaction.findUnique({
-        where: { id: accountId },
+        where: { id: transactionId },
         include: { account: true },
       });
 
       if (!existingTransaction) {
         return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      const canAccess = await userCanAccessTransaction(req.userId!, transactionId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this transaction" });
       }
 
       const {
@@ -349,7 +353,7 @@ router.put(
         tagIds,
       } = req.body;
       const transaction = await prisma.transaction.update({
-        where: { id: accountId },
+        where: { id: transactionId },
         data: {
           categoryId: categoryId || null,
           toAccountId: toAccountId || null,
@@ -378,8 +382,8 @@ router.put(
         data: {
           balance: {
             increment: balanceChange(
-              existingTransaction?.type || "",
-              existingTransaction?.amount || 0,
+              existingTransaction.type,
+              existingTransaction.amount,
               type,
               amount,
             ),
@@ -402,10 +406,10 @@ router.delete(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
+      const transactionId = req.params.id;
 
       const tx = await prisma.transaction.findUnique({
-        where: { id: accountId },
+        where: { id: transactionId },
         include: { account: true },
       });
 
@@ -420,7 +424,7 @@ router.delete(
       if (!canAccess) {
         res
           .status(403)
-          .json({ error: "You do not have access to delete this account" });
+          .json({ error: "You do not have access to delete this transaction" });
         return;
       }
 
@@ -440,15 +444,15 @@ router.delete(
 
         for (const t of grouped) {
           if (t.direction === "out") {
-            prisma.account.update({
+            await prisma.account.update({
               where: { id: t.accountId },
               data: { balance: { increment: t.amount } },
             });
-          } else if (tx.direction === "in") {
+          } else if (t.direction === "in") {
             const acc = await prisma.account.findUnique({
               where: { id: t.accountId },
             });
-            prisma.account.update({
+            await prisma.account.update({
               where: { id: t.accountId },
               data: {
                 balance:
@@ -461,23 +465,23 @@ router.delete(
         }
       } else {
         await prisma.transactionTag.deleteMany({
-          where: { transactionId: accountId },
+          where: { transactionId },
         });
 
         await prisma.transaction.delete({
-          where: { id: accountId },
+          where: { id: transactionId },
         });
 
         const account = await prisma.account.findUnique({
           where: { id: tx.accountId },
         });
         if (tx.direction === "income") {
-          prisma.account.update({
+          await prisma.account.update({
             where: { id: tx.accountId },
             data: { balance: { decrement: tx.amount } },
           });
         } else if (tx.direction === "expense") {
-          prisma.account.update({
+          await prisma.account.update({
             where: { id: tx.accountId },
             data: {
               balance:
