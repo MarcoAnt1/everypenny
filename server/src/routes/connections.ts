@@ -106,6 +106,7 @@ router.post("/:id/accept", async (req: AuthRequest & Request<{ id: string}>, res
       where: { id },
       data: {
         status: "ACCEPTED",
+        inviteeId: req.userId!
       },
       include: { requester: true, invitee: true },
     });

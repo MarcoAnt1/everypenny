@@ -1,7 +1,10 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
-import { getConnectedUserIds, userCanAccessAccount } from "../helper/authorization";
+import {
+  getConnectedUserIds,
+  userCanAccessCategory,
+} from "../helper/authorization";
 
 const router = Router();
 
@@ -36,15 +39,15 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 // GET one category by ID
 router.get("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
-    const accountId = req.params.id;
+    const categoryId = req.params.id;
 
-    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    const canAccess = await userCanAccessCategory(req.userId!, categoryId);
     if (!canAccess) {
-      return res.status(403).json({ error: "You do not have access to this account"});
+      return res.status(403).json({ error: "You do not have access to this category" });
     }
-    
+
     const category = await prisma.category.findUnique({
-      where: { id: accountId },
+      where: { id: categoryId },
       include: { subcategories: true },
     });
     if (!category) {
@@ -60,7 +63,7 @@ router.get("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Respo
 });
 
 // POST create a new category
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", async (req: AuthRequest, res: Response) => {
   try {
     const { name, type, icon, parentId } = req.body;
 
@@ -73,7 +76,7 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
     const category = await prisma.category.create({
-      data: { name, type, icon, parentId: parentId || null },
+      data: { userId: req.userId, name, type, icon, parentId: parentId || null },
     });
     res.status(201).json(category);
   } catch (error) {
@@ -87,16 +90,16 @@ router.post("/", async (req: Request, res: Response) => {
 // PUT update a category by ID
 router.put("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
-    const accountId = req.params.id;
+    const categoryId = req.params.id;
 
-    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    const canAccess = await userCanAccessCategory(req.userId!, categoryId);
     if (!canAccess) {
-      return res.status(403).json({ error: "You do not have access to this account"});
+      return res.status(403).json({ error: "You do not have access to this category" });
     }
 
     const { name, type, icon, parentId } = req.body;
     const category = await prisma.category.update({
-      where: { id: accountId },
+      where: { id: categoryId },
       data: { name, type, icon, parentId: parentId || null },
     });
     res.json(category);
@@ -111,15 +114,15 @@ router.put("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Respo
 // DELETE a category by ID
 router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
-    const accountId = req.params.id;
+    const categoryId = req.params.id;
 
-    const canAccess = await userCanAccessAccount(req.userId!, accountId)
+    const canAccess = await userCanAccessCategory(req.userId!, categoryId);
     if (!canAccess) {
-      return res.status(403).json({ error: "You do not have access to this account"});
+      return res.status(403).json({ error: "You do not have access to this category" });
     }
 
     await prisma.category.delete({
-      where: { id: accountId },
+      where: { id: categoryId },
     });
     res.status(204).send();
   } catch (error) {

@@ -51,6 +51,71 @@ export async function userCanEditTransactionInAccount(
   return userCanAccessAccount(userId, accountId);
 }
 
+export async function userCanAccessCategory(
+  userId: string,
+  categoryId: string,
+): Promise<boolean> {
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+  });
+
+  if (!category) return false;
+  if (category.userId === userId) return true;
+
+  const connectedUserIds = await getConnectedUserIds(
+    userId,
+    "shareAllCategories",
+  );
+
+  return !!category.userId && connectedUserIds.includes(category.userId);
+}
+
+export async function userCanAccessBudget(
+  userId: string,
+  budgetId: string,
+): Promise<boolean> {
+  const budget = await prisma.budget.findUnique({
+    where: { id: budgetId },
+  });
+
+  if (!budget) return false;
+  if (budget.userId === userId) return true;
+
+  const connectedUserIds = await getConnectedUserIds(userId, "shareAllBudgets");
+
+  return connectedUserIds.includes(budget.userId);
+}
+
+export async function userCanAccessGoal(
+  userId: string,
+  goalId: string,
+): Promise<boolean> {
+  const goal = await prisma.goal.findUnique({
+    where: { id: goalId },
+  });
+
+  if (!goal) return false;
+  if (goal.userId === userId) return true;
+
+  const connectedUserIds = await getConnectedUserIds(userId, "shareAllGoals");
+
+  return connectedUserIds.includes(goal.userId);
+}
+
+export async function userCanAccessTransaction(
+  userId: string,
+  transactionId: string,
+): Promise<boolean> {
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { accountId: true },
+  });
+
+  if (!transaction) return false;
+
+  return userCanAccessAccount(userId, transaction.accountId);
+}
+
 export async function getUserAccounts(userId: string) {
   const ownedAccounts = await prisma.account.findMany({
     where: { ownerId: userId },

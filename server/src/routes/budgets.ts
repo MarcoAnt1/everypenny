@@ -3,7 +3,8 @@ import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
 import {
   getConnectedUserIds,
-  userCanAccessAccount,
+  getUserAccounts,
+  userCanAccessBudget,
 } from "../helper/authorization";
 
 const router = Router();
@@ -29,6 +30,9 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
 
+    const accessibleAccounts = await getUserAccounts(req.userId!);
+    const accessibleAccountIds = accessibleAccounts.map((account) => account.id);
+
     // Calculate spent amount for each budget
     const budgetsWithSpent = await Promise.all(
       budgets.map(async (budget) => {
@@ -40,7 +44,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 
         const spending = await prisma.transaction.aggregate({
           where: {
-            account: { ownerId: req.userId },
+            accountId: { in: accessibleAccountIds },
             categoryId: budget.categoryId,
             type: "expense",
             date: { gte: startDate, lte: now },
@@ -71,17 +75,17 @@ router.get(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
+      const budgetId = req.params.id;
 
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      const canAccess = await userCanAccessBudget(req.userId!, budgetId);
       if (!canAccess) {
         return res
           .status(403)
-          .json({ error: "You do not have access to this account" });
+          .json({ error: "You do not have access to this budget" });
       }
 
       const budget = await prisma.budget.findUnique({
-        where: { id: accountId },
+        where: { id: budgetId },
         include: { category: true },
       });
       if (!budget) {
@@ -103,17 +107,17 @@ router.get(
   "/:id/transactions",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
+      const budgetId = req.params.id;
 
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      const canAccess = await userCanAccessBudget(req.userId!, budgetId);
       if (!canAccess) {
         return res
           .status(403)
-          .json({ error: "You do not have access to this account" });
+          .json({ error: "You do not have access to this budget" });
       }
 
       const budget = await prisma.budget.findUnique({
-        where: { id: accountId },
+        where: { id: budgetId },
         include: { category: true },
       });
 
@@ -128,8 +132,12 @@ router.get(
           ? new Date(now.getFullYear(), now.getMonth(), 1)
           : new Date(now.getFullYear(), 0, 1);
 
+      const accessibleAccounts = await getUserAccounts(req.userId!);
+      const accessibleAccountIds = accessibleAccounts.map((account) => account.id);
+
       const transactions = await prisma.transaction.findMany({
         where: {
+          accountId: { in: accessibleAccountIds },
           categoryId: budget.categoryId,
           type: "expense",
           date: { gte: startDate, lte: now },
@@ -183,18 +191,18 @@ router.put(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
+      const budgetId = req.params.id;
 
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      const canAccess = await userCanAccessBudget(req.userId!, budgetId);
       if (!canAccess) {
         return res
           .status(403)
-          .json({ error: "You do not have access to this account" });
+          .json({ error: "You do not have access to this budget" });
       }
 
       const { name, categoryId, limitAmount, period } = req.body;
       const budget = await prisma.budget.update({
-        where: { id: accountId },
+        where: { id: budgetId },
         data: { name, categoryId, limitAmount, period },
         include: { category: true },
       });
@@ -213,17 +221,17 @@ router.delete(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
-      const accountId = req.params.id;
+      const budgetId = req.params.id;
 
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
+      const canAccess = await userCanAccessBudget(req.userId!, budgetId);
       if (!canAccess) {
         return res
           .status(403)
-          .json({ error: "You do not have access to this account" });
+          .json({ error: "You do not have access to this budget" });
       }
 
       await prisma.budget.delete({
-        where: { id: accountId },
+        where: { id: budgetId },
       });
       res.status(204).send();
     } catch (error) {
