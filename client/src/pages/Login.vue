@@ -94,10 +94,10 @@
 
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
+import { userAuthStore } from '../stores/auth';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const authStore = userAuthStore();
 
 const mode = ref<'login' | 'register'>('login');
 const loading = ref(false);

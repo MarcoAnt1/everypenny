@@ -344,7 +344,7 @@
 
 <script setup lang="ts">
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { preview, confirmImport as confirmImportApi } from '../api/import';
 import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
@@ -365,7 +365,6 @@ const categories = ref<any[]>([]);
 const tags = ref<any[]>([]);
 
 const openTagMenu = ref<number | null>(null);
-const tagMenuRefs = ref<Record<number, any>>({});
 
 const steps = [ 'Upload', 'Preview & Edit', 'Done'];
 
@@ -446,18 +445,6 @@ const toggleRowTag = (row:any, tagId: string) => {
     const idx = row.tagIds.indexOf(tagId);
     if (idx === -1) row.tagIds.push(tagId);
     else row.tagIds.splice(idx, 1);
-}
-
-const getTagMenuStyle = (index: number) => {
-    const buttons = document.querySelectorAll('.tag-trigger-btn');
-    const btn = buttons[index] as HTMLElement;
-    if (!btn) return {};
-
-    const rect = btn.getBoundingClientRect();
-    return {
-        top: `${rect.bottom + 4}px`,
-        left: `${rect.left}px`,
-    }
 }
 
 const confirmImport = async () => {
