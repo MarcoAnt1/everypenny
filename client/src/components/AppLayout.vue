@@ -63,9 +63,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "../stores/auth";
+import { userAuthStore } from "../stores/auth";
 
-const authStore = useAuthStore();
+const authStore = userAuthStore();
 const router = useRouter();
 
 const logout = () => {
@@ -80,7 +80,8 @@ const menuItems = [
     { label: 'Budgets', path: '/budgets', icon: '📋' },
     { label: 'Goals', path: '/goals', icon: '🎯' },
     { label: 'Categories', path: '/categories', icon: '🏷️'},
-    { label: 'Tags', path: '/tags', icon: '🔖'}
+    { label: 'Tags', path: '/tags', icon: '🔖'},
+    { label: 'Connections', path: '/connections', icon: '🤝'},
     // { label: 'Settings', path: '/settings', icon: '⚙️' },
 ];
 
