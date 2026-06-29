@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { login as loginApi, register as registerApi } from "../api/auth";
 
-export const useAuthStore = defineStore("auth", () => {
+export const userAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem("token"));
   const user = ref<any | null>(
     JSON.parse(localStorage.getItem("user") ?? "null"),

@@ -82,7 +82,7 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/me", async (req: Request, res: Response) => {
+router.get("/me", async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
