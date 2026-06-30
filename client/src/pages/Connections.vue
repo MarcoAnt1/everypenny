@@ -281,7 +281,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { userAuthStore } from "../stores/auth";
+import { useAuthStore } from "../stores/auth";
 import { getAccounts, shareAccount } from "../api/accounts";
 import {
   acceptConnection as acceptConnectionApi,
@@ -292,7 +292,7 @@ import {
   updateConnection
 } from "../api/connections"
 
-const authStore = userAuthStore();
+const authStore = useAuthStore();
 
 const accounts = ref<any[]>([]);
 const connectionsSent = ref<any[]>([]);

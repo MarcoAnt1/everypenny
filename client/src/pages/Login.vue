@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-
       <!-- Logo -->
       <div class="text-center mb-8">
         <h3 class="text-3xl font-bold text-indigo-600">💰 EveryPenny</h3>
@@ -12,17 +11,21 @@
       <div class="flex border rounded-lg overflow-hidden mb-6">
         <button
           @click="mode = 'login'"
-          :class="mode === 'login'
-            ? 'flex-1 py-2 bg-indigo-600 text-white text-sm font-medium'
-            : 'flex-1 py-2 text-gray-500 text-sm hover:bg-gray-50'"
+          :class="
+            mode === 'login'
+              ? 'flex-1 py-2 bg-indigo-600 text-white text-sm font-medium'
+              : 'flex-1 py-2 text-gray-500 text-sm hover:bg-gray-50'
+          "
         >
           Login
         </button>
         <button
           @click="mode = 'register'"
-          :class="mode === 'register'
-            ? 'flex-1 py-2 bg-indigo-600 text-white text-sm font-medium'
-            : 'flex-1 py-2 text-gray-500 text-sm hover:bg-gray-50'"
+          :class="
+            mode === 'register'
+              ? 'flex-1 py-2 bg-indigo-600 text-white text-sm font-medium'
+              : 'flex-1 py-2 text-gray-500 text-sm hover:bg-gray-50'
+          "
         >
           Register
         </button>
@@ -38,11 +41,10 @@
 
       <!-- Form -->
       <div class="space-y-4">
-
         <!-- Name (register only) -->
         <div v-if="mode === 'register'">
           <label class="text-sm font-medium text-gray-600">Full Name</label>
-          <input 
+          <input
             v-model="form.name"
             type="text"
             placeholder="John Doe"
@@ -53,7 +55,7 @@
         <!-- Email -->
         <div>
           <label class="text-sm font-medium text-gray-600">Email</label>
-          <input 
+          <input
             v-model="form.email"
             type="email"
             placeholder="john@example.com"
@@ -64,7 +66,7 @@
         <!-- Password -->
         <div>
           <label class="text-sm font-medium text-gray-600">Password</label>
-          <input 
+          <input
             v-model="form.password"
             type="password"
             placeholder="********"
@@ -83,48 +85,55 @@
         :disabled="loading"
         class="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity=50"
       >
-        {{ loading ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create Account' }}
+        {{
+          loading
+            ? "Please wait..."
+            : mode === "login"
+              ? "Login"
+              : "Create Account"
+        }}
       </button>
     </div>
-    
   </div>
 </template>
 
 <script setup lang="ts">
-
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { userAuthStore } from '../stores/auth';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 
 const router = useRouter();
-const authStore = userAuthStore();
+const authStore = useAuthStore();
 
-const mode = ref<'login' | 'register'>('login');
+const mode = ref<"login" | "register">("login");
 const loading = ref(false);
-const error = ref('');
+const error = ref("");
 
-const form = ref({ name: '', email: '', password: '' });
+const form = ref({ name: "", email: "", password: "" });
 
 const submit = async () => {
-  error.value = '';
+  error.value = "";
   loading.value = true;
 
   try {
-    if (mode.value === 'login') {
+    if (mode.value === "login") {
       await authStore.login(form.value.email, form.value.password);
     } else {
       if (!form.value.name.trim()) {
-        error.value = 'Name is required';
+        error.value = "Name is required";
         return;
       }
-      await authStore.register(form.value.name, form.value.email, form.value.password);
+      await authStore.register(
+        form.value.name,
+        form.value.email,
+        form.value.password,
+      );
     }
-    router.push('/');
-  } catch (error: any) {
-    error.value = error.response?.data?.error ?? 'Something went wrong';
+    router.push("/");
+  } catch (err: any) {
+    err.value = err.message ?? "Something went wrong";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
-
+};
 </script>

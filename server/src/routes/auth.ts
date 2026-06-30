@@ -16,13 +16,13 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     if (password.length < 8) {
-      res.status(400).json({ error: "Password mus be at least 8 characters" });
+      res.status(400).json({ error: "Password must be at least 8 characters" });
       return;
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      res.status(409).json({ error: "Email alreayd in use" });
+      res.status(409).json({ error: "Email already in use" });
       return;
     }
 

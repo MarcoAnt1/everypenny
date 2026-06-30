@@ -11,10 +11,10 @@
 <script setup lang="ts">
 
 import { computed } from 'vue';
-import { userAuthStore } from './stores/auth.ts';
+import { useAuthStore } from './stores/auth.ts';
 import AppLayout from './components/AppLayout.vue';
 
-const authStore = userAuthStore();
+const authStore = useAuthStore();
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 </script>

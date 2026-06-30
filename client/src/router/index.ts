@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { userAuthStore } from "../stores/auth.ts";
+import { useAuthStore } from "../stores/auth.ts";
 
 import Login from "../pages/Login.vue";
 import Dashboard from "../pages/Dashboard.vue";
@@ -29,7 +29,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next) => {
-  const authStore = userAuthStore();
+  const authStore = useAuthStore();
   if (!to.meta.public && !authStore.isAuthenticated) {
     next("/login");
   } else if (to.path === "/login" && authStore.isAuthenticated) {

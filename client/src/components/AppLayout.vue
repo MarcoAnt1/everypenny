@@ -63,9 +63,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { userAuthStore } from "../stores/auth";
+import { useAuthStore } from "../stores/auth";
 
-const authStore = userAuthStore();
+const authStore = useAuthStore();
 const router = useRouter();
 
 const logout = () => {
