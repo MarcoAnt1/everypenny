@@ -48,7 +48,7 @@
             v-model="form.name"
             type="text"
             placeholder="John Doe"
-            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus-ring-2 focus:ring-indigo-400"
+            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>
 
@@ -59,7 +59,7 @@
             v-model="form.email"
             type="email"
             placeholder="john@example.com"
-            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus-ring-2 focus:ring-indigo-400"
+            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>
 
@@ -70,7 +70,7 @@
             v-model="form.password"
             type="password"
             placeholder="********"
-            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus-ring-2 focus:ring-indigo-400"
+            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             @keyup.enter="submit"
           />
           <p v-if="mode === 'register'" class="text-xs text-gray-400 mt-1">
@@ -83,7 +83,7 @@
       <button
         @click="submit"
         :disabled="loading"
-        class="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity=50"
+        class="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
       >
         {{
           loading
@@ -115,14 +115,24 @@ const submit = async () => {
   error.value = "";
   loading.value = true;
 
+  if (mode.value === 'register' && !form.value.name.trim()) {
+    error.value = 'Full name is required';
+    loading.value = false;
+    return;
+  }
+
+  if (!form.value.password || form.value.password.length < 8) {
+    error.value = mode.value === 'register'
+      ? 'Password must be at least 8 characters'
+      : 'Passwword is required';
+    loading.value = false;
+    return;
+  }
+
   try {
     if (mode.value === "login") {
       await authStore.login(form.value.email, form.value.password);
     } else {
-      if (!form.value.name.trim()) {
-        error.value = "Name is required";
-        return;
-      }
       await authStore.register(
         form.value.name,
         form.value.email,
@@ -131,7 +141,7 @@ const submit = async () => {
     }
     router.push("/");
   } catch (err: any) {
-    err.value = err.message ?? "Something went wrong";
+    error.value = err.response?.data?.error ?? "Something went wrong";
   } finally {
     loading.value = false;
   }
