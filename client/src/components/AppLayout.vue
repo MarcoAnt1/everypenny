@@ -80,7 +80,8 @@ const menuItems = [
     { label: 'Budgets', path: '/budgets', icon: '📋' },
     { label: 'Goals', path: '/goals', icon: '🎯' },
     { label: 'Categories', path: '/categories', icon: '🏷️'},
-    { label: 'Tags', path: '/tags', icon: '🔖'}
+    { label: 'Tags', path: '/tags', icon: '🔖'},
+    { label: 'Connections', path: '/connections', icon: '🤝'},
     // { label: 'Settings', path: '/settings', icon: '⚙️' },
 ];
 

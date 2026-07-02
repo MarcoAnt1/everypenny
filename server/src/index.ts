@@ -9,14 +9,23 @@ import budgetRoutes from "./routes/budgets";
 import goalRoutes from "./routes/goals";
 import tagRoutes from "./routes/tags";
 import importRoutes from "./routes/imports";
+import connectionsRouter from "./routes/connections";
 import { authenticate } from "./middleware/auth";
+import { setupSwagger } from "./swagger";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({ origin: "http://localhost:5173" }));
+setupSwagger(app);
+
+app.use(cors({ 
+  origin: [
+    "http://localhost:5173",
+    "http://192.168.1.114:5173"
+  ],
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -29,6 +38,7 @@ app.use("/api/budgets", authenticate, budgetRoutes);
 app.use("/api/goals", authenticate, goalRoutes);
 app.use("/api/tags", authenticate, tagRoutes);
 app.use("/api/import", authenticate, importRoutes);
+app.use("/api/connections", authenticate, connectionsRouter);
 
 // Health check
 app.get("/health", (_req, res) => {

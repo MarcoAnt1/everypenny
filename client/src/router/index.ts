@@ -8,7 +8,8 @@ import Transactions from "../pages/Transactions.vue";
 import Budgets from "../pages/Budgets.vue";
 import Goals from "../pages/Goals.vue";
 import Categories from "../pages/Categories.vue";
-import Tags from '../pages/Tags.vue';
+import Tags from "../pages/Tags.vue";
+import Connections from "../pages/Connections.vue";
 
 const routes = [
   { path: "/login", component: Login, meta: { public: true } },
@@ -18,7 +19,8 @@ const routes = [
   { path: "/budgets", component: Budgets },
   { path: "/goals", component: Goals },
   { path: "/categories", component: Categories },
-  { path: '/tags',          component: Tags }
+  { path: "/tags", component: Tags },
+  { path: "/connections", component: Connections },
 ];
 
 const router = createRouter({
@@ -29,9 +31,9 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
   if (!to.meta.public && !authStore.isAuthenticated) {
-    next('/login');
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
-    next('/');
+    next("/login");
+  } else if (to.path === "/login" && authStore.isAuthenticated) {
+    next("/");
   } else {
     next();
   }

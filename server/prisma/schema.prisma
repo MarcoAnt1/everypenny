@@ -8,67 +8,106 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String    @unique
-  passwordHash  String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                   String          @id @default(uuid())
+  name                 String
+  email                String          @unique
+  passwordHash         String
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
-  accounts      Account[]
-  budgets       Budget[]
-  goals         Goal[]
-  tags          Tag[]
+  ownedAccounts        Account[]       @relation("AccountOwner")
+  accountShares        AccountShare[]
+  sentConnections      Connection[]    @relation("RequesterConnections")
+  receivedConnections  Connection[]    @relation("InviteeConnections")
+  categories           Category[]
+  budgets              Budget[]
+  goals                Goal[]
+  tags                 Tag[]
 }
 
 model Account {
-  id                 String         @id @default(uuid())
-  userId             String
+  id                 String          @id @default(uuid())
+  ownerId            String
   name               String
-  type               String         // "checking", "savings", "credit_card", "cash", etc.
+  type               String          // "checking", "savings", "credit_card", "cash", etc.
   institution        String?
-  balance            Float          @default(0)
-  currency           String         @default("CAD")
+  balance            Float           @default(0)
+  currency           String          @default("CAD")
   creditLimit        Float?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  user               User           @relation(fields: [userId], references: [id])
-  transactions       Transaction[]  @relation("FromAccount")
-  incomingTransfers  Transaction[]  @relation("ToAccount")
+  owner              User            @relation("AccountOwner", fields: [ownerId], references: [id])
+  accountShares      AccountShare[]
+  transactions       Transaction[]   @relation("FromAccount")
+  incomingTransfers  Transaction[]   @relation("ToAccount")
+}
 
+model AccountShare {
+  accountId  String
+  userId     String
+  role       String    @default("EDITOR")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  account    Account   @relation(fields: [accountId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@id([accountId, userId])
+}
+
+model Connection {
+  id                  String    @id @default(uuid())
+  requesterId           String
+  inviteeId           String?
+  inviteeEmail        String
+  status              String    @default("PENDING")
+  shareAllAccounts    Boolean   @default(false)
+  shareAllBudgets     Boolean   @default(false)
+  shareAllCategories  Boolean   @default(false)
+  shareAllGoals       Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  requester           User?     @relation("RequesterConnections", fields: [requesterId], references: [id])
+  invitee             User?     @relation("InviteeConnections", fields: [inviteeId], references: [id])
+
+  @@unique([requesterId, inviteeEmail])
 }
 
 model Transaction {
-  id           String            @id @default(uuid())
-  accountId    String
-  categoryId   String?
-  toAccountId  String?
-  description  String
-  amount       Float
-  date         DateTime
-  type         String            // "income" or "expense" or "transfer"
-  status       String            @default("cleared") // "cleared", "pending", "reconciled"
-  notes        String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id               String            @id @default(uuid())
+  accountId        String
+  categoryId       String?
+  toAccountId      String?
+  transferGroupId  String?
+  direction        String?
+  description      String
+  amount           Float
+  date             DateTime
+  type             String            // "income" or "expense" or "transfer"
+  status           String            @default("cleared") // "cleared", "pending", "reconciled"
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  account      Account           @relation("FromAccount", fields: [accountId], references: [id])
-  toAccount    Account?          @relation("ToAccount", fields: [toAccountId], references: [id])
-  category     Category?         @relation(fields: [categoryId], references: [id])
-  tags         TransactionTag[]
+  account          Account           @relation("FromAccount", fields: [accountId], references: [id])
+  toAccount        Account?          @relation("ToAccount", fields: [toAccountId], references: [id])
+  category         Category?         @relation(fields: [categoryId], references: [id])
+  tags             TransactionTag[]
 }
 
 model Category {
   id             String         @id @default(uuid())
+  userId         String?
   parentId       String?
   name           String
-  type           String         // "income" or "expense" or "transfer"
   icon           String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  parent        Category?       @relation("CategoryToCategory", fields: [parentId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
+  parent         Category?      @relation("CategoryToCategory", fields: [parentId], references: [id])
   subcategories  Category[]     @relation("CategoryToCategory")
   transactions   Transaction[]
   budgets        Budget[]

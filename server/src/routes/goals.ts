@@ -1,14 +1,27 @@
 import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
+import {
+  getConnectedUserIds,
+  userCanAccessGoal,
+} from "../helper/authorization";
 
 const router = Router();
 
 // GET all goals
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
+    const connectedUserIds = await getConnectedUserIds(req.userId!, "shareAllGoals");
+
     const goals = await prisma.goal.findMany({
-      where: { userId: req.userId! },
+      where: { 
+        userId: {
+          in: [req.userId!, ...connectedUserIds],
+        },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true }},
+      },
       orderBy: { createdAt: "asc" },
     });
 
@@ -36,10 +49,19 @@ router.get("/", async (req: AuthRequest, res: Response) => {
 });
 
 // GET one goal by id
-router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.get("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const goalId = req.params.id;
+
+    const canAccess = await userCanAccessGoal(req.userId!, goalId);
+    if (!canAccess) {
+      return res
+        .status(403)
+        .json({ error: "You do not have access to this goal" });
+    }
+
     const goal = await prisma.goal.findUnique({
-      where: { id: req.params.id },
+      where: { id: goalId },
     });
     if (!goal) {
       return res.status(404).json({ error: "Goal not found" });
@@ -87,10 +109,19 @@ router.post("/", async (req: AuthRequest, res: Response) => {
 });
 
 // PUT update a goal by ID
-router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.put("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const goalId = req.params.id;
+
+    const canAccess = await userCanAccessGoal(req.userId!, goalId);
+    if (!canAccess) {
+      return res
+        .status(403)
+        .json({ error: "You do not have access to this goal" });
+    }
+
     const existingGoal = await prisma.goal.findUnique({
-      where: { id: req.params.id },
+      where: { id: goalId },
     });
     if (!existingGoal) {
       return res.status(404).json({ error: "Goal not found" });
@@ -105,7 +136,7 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
       status,
     } = req.body;
     const goal = await prisma.goal.update({
-      where: { id: req.params.id },
+      where: { id: goalId },
       data: {
         name,
         description,
@@ -133,12 +164,21 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 // PATCH add founds to a goal
 router.patch(
   "/:id/add-funds",
-  async (req: Request<{ id: string }>, res: Response) => {
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
     try {
+      const goalId = req.params.id;
+
+      const canAccess = await userCanAccessGoal(req.userId!, goalId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this goal" });
+      }
+
       const { amount } = req.body;
 
       const goal = await prisma.goal.findUnique({
-        where: { id: req.params.id },
+        where: { id: goalId },
       });
       if (!goal) {
         return res.status(404).json({ error: "Goal not found" });
@@ -148,7 +188,7 @@ router.patch(
       const isCompleted = newAmount >= goal.targetAmount;
 
       const updatedGoal = await prisma.goal.update({
-        where: { id: req.params.id },
+        where: { id: goalId },
         data: {
           currentAmount: newAmount,
           status: isCompleted ? "completed" : goal.status,
@@ -174,10 +214,19 @@ router.patch(
 );
 
 // DELETE a goal by ID
-router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
   try {
+    const goalId = req.params.id;
+
+    const canAccess = await userCanAccessGoal(req.userId!, goalId);
+    if (!canAccess) {
+      return res
+        .status(403)
+        .json({ error: "You do not have access to this goal" });
+    }
+
     await prisma.goal.delete({
-      where: { id: req.params.id },
+      where: { id: goalId },
     });
     res.status(204).send();
   } catch (error) {
