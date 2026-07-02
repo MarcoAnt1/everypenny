@@ -41,6 +41,17 @@
 
       <!-- Form -->
       <div class="space-y-4">
+        <!-- Invite Token (register only)-->
+        <div v-if="mode === 'register'">
+          <label class="text-sm font-medium text-gray-600">Invite Token</label>
+          <input 
+            v-model="form.inviteToken"
+            type="text"
+            placeholder="Enter inivte token"
+            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+        </div>
+
         <!-- Name (register only) -->
         <div v-if="mode === 'register'">
           <label class="text-sm font-medium text-gray-600">Full Name</label>
@@ -109,22 +120,23 @@ const mode = ref<"login" | "register">("login");
 const loading = ref(false);
 const error = ref("");
 
-const form = ref({ name: "", email: "", password: "" });
+const form = ref({ name: "", email: "", password: "", inviteToken: "" });
 
 const submit = async () => {
   error.value = "";
   loading.value = true;
 
-  if (mode.value === 'register' && !form.value.name.trim()) {
-    error.value = 'Full name is required';
+  if (mode.value === "register" && !form.value.name.trim()) {
+    error.value = "Full name is required";
     loading.value = false;
     return;
   }
 
   if (!form.value.password || form.value.password.length < 8) {
-    error.value = mode.value === 'register'
-      ? 'Password must be at least 8 characters'
-      : 'Passwword is required';
+    error.value =
+      mode.value === "register"
+        ? "Password must be at least 8 characters"
+        : "Passwword is required";
     loading.value = false;
     return;
   }
@@ -137,6 +149,7 @@ const submit = async () => {
         form.value.name,
         form.value.email,
         form.value.password,
+        form.value.inviteToken,
       );
     }
     router.push("/");

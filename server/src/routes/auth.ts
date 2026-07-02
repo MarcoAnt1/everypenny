@@ -4,11 +4,16 @@ import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret";
+const JWT_SECRET = process.env.JWT_SECRET!;
+const INVITE_TOKEN = process.env.INVITE_TOKEN;
 
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, inviteToken } = req.body;
+
+    if (!inviteToken || inviteToken !== INVITE_TOKEN) {
+      return res.status(401).json({ error: "Invalid invite token"});
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
