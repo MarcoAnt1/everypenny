@@ -4,6 +4,7 @@ export const register = (data: {
   name: string;
   email: string;
   password: string;
+  inviteToken: string;
 }) => {
   return apiClient.post("/api/auth/register", data);
 };
