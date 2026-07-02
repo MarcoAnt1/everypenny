@@ -23,7 +23,8 @@ setupSwagger(app);
 app.use(cors({ 
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.114:5173"
+    "http://192.168.1.114:5173",
+    "https://everypenny-sigma.vercel.app"
   ],
 }));
 app.use(express.json());
