@@ -8,6 +8,6 @@ export const acceptConnection = (id: string) =>
 export const rejectConnection = (id: string) =>
   apiClient.post(`/api/connections/${id}/reject`);
 export const deleteConnection = (id: string) =>
-  apiClient.post(`/api/connections/${id}`);
+  apiClient.delete(`/api/connections/${id}`);
 export const updateConnection = (id: string, data: object) =>
   apiClient.put(`/api/connections/${id}`, data);

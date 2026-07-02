@@ -8,6 +8,26 @@
           see.
         </p>
       </div>
+
+      <!-- Global error -->
+      <div
+        v-if="errorMessage"
+        class="bg-red-50 border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2"
+      >
+        <span>⚠️</span>
+        <span>{{ errorMessage }}</span>
+        <button @click="errorMessage = ''" class="ml-auto text-red-400 hover:text-red-600" >✕</button>
+      </div>
+
+      <!-- Global success -->
+      <div
+        v-if="successMessage"
+        class="bg-red-50 border-green-200 text-green-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2"
+      >
+        <span>✅</span>
+        <span>{{ successMessage }}</span>
+        <button @click="successMessage = ''" class="ml-auto text-green-400 hover:text-green-600" >✕</button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -59,7 +79,7 @@
 
           <button
             @click="inviteConnection"
-            class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+            class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50 cursor-pointer"
             :disabled="inviting"
           >
             {{ inviting ? "Sending..." : "Send invite" }}
@@ -108,7 +128,7 @@
 
             <button
               @click="shareAccountWithConnection"
-              class="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition text-sm disabled:opacity-50"
+              class="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition text-sm disabled:opacity-50 cursor-pointer"
               :disabled="sharing"
             >
               {{ sharing ? "Sharing..." : "Share account" }}
@@ -142,7 +162,8 @@
                 </div>
                 <button
                   @click="deleteConnection(connection.id)"
-                  class="text-sm text-red-500"
+                  type="button"
+                  class="text-sm text-red-500 hover:text-red-700 cursor-pointer transition ml-auto"
                 >
                   Remove
                 </button>
@@ -178,14 +199,14 @@
                 <button
                   v-if="connection.status === 'PENDING'"
                   @click="acceptConnection(connection.id)"
-                  class="text-sm text-emerald-500"
+                  class="text-sm text-emerald-500 hover:text-emerald-700 cursor-pointer transition"
                 >
                   Accept
                 </button>
                 <button
                   v-if="connection.status === 'PENDING'"
                   @click="rejectConnection(connection.id)"
-                  class="text-sm text-red-500"
+                  class="text-sm text-red-500 hover:text-red-700 cursor-pointer transition"
                 >
                   Reject
                 </button>
@@ -266,9 +287,7 @@
               <input
                 :checked="connection.shareAllGoals"
                 type="checkbox"
-                @change="
-                  togglePermission(connection, 'shareAllGoals', $event)
-                "
+                @change="togglePermission(connection, 'shareAllGoals', $event)"
               />
               Goals
             </label>
@@ -289,8 +308,8 @@ import {
   inviteConnection as inviteConnectionApi,
   rejectConnection as rejectConnectionApi,
   getConnections,
-  updateConnection
-} from "../api/connections"
+  updateConnection,
+} from "../api/connections";
 
 const authStore = useAuthStore();
 
@@ -299,6 +318,9 @@ const connectionsSent = ref<any[]>([]);
 const connectionsReceived = ref<any[]>([]);
 const inviting = ref(false);
 const sharing = ref(false);
+
+const errorMessage = ref("");
+const successMessage = ref("");
 
 const inviteForm = ref({
   inviteeEmail: "",
@@ -311,11 +333,15 @@ const inviteForm = ref({
 const shareForm = ref({ accountId: "", userId: "" });
 
 const sentConnections = computed(() =>
-  connectionsSent.value.filter((conn) => conn.requesterId === authStore.user?.id),
+  connectionsSent.value.filter(
+    (conn) => conn.requesterId === authStore.user?.id,
+  ),
 );
 
 const receivedConnections = computed(() =>
-  connectionsReceived.value.filter((conn) => conn.inviteeId === authStore.user?.id),
+  connectionsReceived.value.filter(
+    (conn) => conn.inviteeId === authStore.user?.id,
+  ),
 );
 
 const acceptedConnections = computed(() =>
@@ -345,7 +371,10 @@ const loadConnections = async () => {
 };
 
 const inviteConnection = async () => {
-  if (!inviteForm.value.inviteeEmail) return;
+  if (!inviteForm.value.inviteeEmail) {
+    showMessage("error", "Please enter an email address");
+    return;
+  }
 
   inviting.value = true;
   try {
@@ -358,22 +387,30 @@ const inviteConnection = async () => {
       shareAllGoals: false,
     };
     await loadConnections();
-  } catch (error) {
-    console.error("Error to send invite");
+    showMessage("success", "Invite sent successfully!");
+  } catch (err: any) {
+    showMessage("error", err.response?.data?.error ?? "Failed to send invite");
   } finally {
     inviting.value = false;
   }
 };
 
 const shareAccountWithConnection = async () => {
-  if (!shareForm.value.accountId || !shareForm.value.userId) return;
+  if (!shareForm.value.accountId || !shareForm.value.userId) {
+    showMessage("error", "Please select an account and a connection");
+    return;
+  }
 
   sharing.value = true;
   try {
     await shareAccount(shareForm.value.accountId, shareForm.value.userId);
     shareForm.value = { accountId: "", userId: "" };
-  } catch (error) {
-    console.error("Error to share account");
+    showMessage("success", "Account shared successfully!");
+  } catch (err: any) {
+    showMessage(
+      "error",
+      err.response?.data?.error ?? "Failed to share account",
+    );
   } finally {
     sharing.value = false;
   }
@@ -381,22 +418,85 @@ const shareAccountWithConnection = async () => {
 
 const togglePermission = async (connection: any, key: string, event: Event) => {
   const target = event.target as HTMLInputElement;
-  await updateConnection(connection.id, { [key]: target.checked });
-  await loadConnections();
+  const checked = target.checked;
+  const label = key.replace("shareAll", "").toLowerCase();
+  const action = checked ? "share" : "stop sharing";
+
+  const confirmed = window.confirm(
+    `Are you sure you want to ${action} ${label} with ${connection.otherUser?.name}?`,
+  );
+
+  if (!confirmed) {
+    target.checked = !checked;
+    return;
+  }
+
+  try {
+    await updateConnection(connection.id, { [key]: target.checked });
+    await loadConnections();
+    showMessage("success", "Permission updated successfully!");
+  } catch (err: any) {
+    target.checked = !checked;
+    showMessage(
+      "error",
+      err.response?.data?.error ?? "Failed to update permission",
+    );
+  }
 };
 
 const acceptConnection = async (id: string) => {
-  await acceptConnectionApi(id);
-  await loadConnections();
+  try {
+    await acceptConnectionApi(id);
+    await loadConnections();
+    showMessage("success", "Connection accepted!");
+  } catch (err: any) {
+    showMessage(
+      "error",
+      err.response?.data?.error ?? "Failed to accept connection",
+    );
+  }
 };
 
 const rejectConnection = async (id: string) => {
+  try {
+    await acceptConnectionApi(id);
+    await loadConnections();
+    showMessage("success", "Connection rejected!");
+  } catch (err: any) {
+    showMessage(
+      "error",
+      err.response?.data?.error ?? "Failed to reject connection",
+    );
+  }
   await rejectConnectionApi(id);
   await loadConnections();
 };
 
 const deleteConnection = async (id: string) => {
-  await deleteConnectionApi(id);
-  await loadConnections();
+  const confirmed = window.confirm(
+    "Are you sure you want to remove this connectoin?",
+  );
+  if (!confirmed) return;
+
+  try {
+    await deleteConnectionApi(id);
+    await loadConnections();
+    showMessage("success", "Connection remvoed successfully!");
+  } catch (err: any) {
+    showMessage(
+      "error",
+      err.response?.data?.error ?? "Failed to remove connection",
+    );
+  }
+};
+
+const showMessage = (type: "success" | "error", message: string) => {
+  if (type === "success") {
+    successMessage.value = message;
+    setTimeout(() => (successMessage.value = ""), 3000);
+  } else {
+    errorMessage.value = message;
+    setTimeout(() => (successMessage.value = ""), 3000);
+  }
 };
 </script>
