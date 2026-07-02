@@ -61,7 +61,7 @@ model Connection {
   requesterId           String
   inviteeId           String?
   inviteeEmail        String
-  status              String    @default("PEDING")
+  status              String    @default("PENDING")
   shareAllAccounts    Boolean   @default(false)
   shareAllBudgets     Boolean   @default(false)
   shareAllCategories  Boolean   @default(false)
