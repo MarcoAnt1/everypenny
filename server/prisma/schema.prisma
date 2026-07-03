@@ -41,6 +41,8 @@ model Account {
   accountShares      AccountShare[]
   transactions       Transaction[]   @relation("FromAccount")
   incomingTransfers  Transaction[]   @relation("ToAccount")
+
+  @@unique([ownerId, name])
 }
 
 model AccountShare {
@@ -60,7 +62,7 @@ model AccountShare {
 
 model Connection {
   id                  String    @id @default(uuid())
-  requesterId           String
+  requesterId         String
   inviteeId           String?
   inviteeEmail        String
   status              String    @default("PENDING")
@@ -71,7 +73,7 @@ model Connection {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  requester           User?     @relation("RequesterConnections", fields: [requesterId], references: [id], onDelete: Cascade)
+  requester           User     @relation("RequesterConnections", fields: [requesterId], references: [id], onDelete: Cascade)
   invitee             User?     @relation("InviteeConnections", fields: [inviteeId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, inviteeEmail])
@@ -126,6 +128,8 @@ model Category {
 
   @@index([userId])
   @@index([parentId])
+
+  @@unique([userId, parentId, name])
 }
 
 model Budget {
@@ -143,6 +147,8 @@ model Budget {
 
   @@index([userId])
   @@index([categoryId])
+
+  @@unique([userId, categoryId, period])
 }
 
 model Goal {
@@ -174,6 +180,8 @@ model Tag {
   transactions  TransactionTag[]
 
   @@index([userId])
+
+  @@unique([userId, name])
 }
 
 model TransactionTag {
