@@ -72,7 +72,7 @@ router.get(
       }
 
       const currentAmount = new Decimal(goal.currentAmount);
-      const targetAmount = new Decimal(goal.currentAmount);
+      const targetAmount = new Decimal(goal.targetAmount);
 
       res.json({
         ...goal,
@@ -194,8 +194,8 @@ router.patch(
         return res.status(404).json({ error: "Goal not found" });
       }
 
-      const newAmount = goal.currentAmount + amount;
-      const isCompleted = newAmount >= goal.targetAmount;
+      const newAmount = new Decimal(goal.currentAmount).plus(amount);
+      const isCompleted = newAmount.greaterThanOrEqualTo(goal.targetAmount);
 
       const updatedGoal = await prisma.goal.update({
         where: { id: goalId },
@@ -206,7 +206,7 @@ router.patch(
       });
 
       const updateCurrentAmount = new Decimal(updatedGoal.currentAmount);
-      const updateTargetAmount = new Decimal(updatedGoal.currentAmount);
+      const updateTargetAmount = new Decimal(updatedGoal.targetAmount);
 
       res.json({
         ...goal,

@@ -86,7 +86,6 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       data: {
         accountId: account.id,
         userId: req.userId!,
-        role: "OWNER",
       },
     });
 
