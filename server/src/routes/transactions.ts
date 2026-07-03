@@ -7,6 +7,7 @@ import {
   userCanEditTransactionInAccount,
 } from "../helper/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
+import { AccountType, TxType } from "@prisma/client";
 
 const router = Router();
 
@@ -74,6 +75,10 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     const { accountId, categoryId, type, startDate, endDate, tagIds } =
       req.query;
 
+    const validType = typeof type === "string" && (Object.values(TxType) as string[]).includes(type)
+      ? (type as TxType)
+      : undefined;
+
     const tagIdArray = tagIds
       ? Array.isArray(tagIds)
         ? (tagIds as string[])
@@ -88,7 +93,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
         accountId: { in: accountIds },
         ...(accountId && { accountId: String(accountId) }),
         ...(categoryId && { categoryId: String(categoryId) }),
-        ...(type && { type: String(type) }),
+        ...(validType && { type: validType }),
         ...(startDate &&
           endDate && {
             date: {
@@ -405,6 +410,9 @@ router.put(
   },
 );
 
+// TODO(balance-rework): non-transfer delete now adjusts balance correctly (was checking
+// tx.direction, which is only set on transfers). Still doesn't validate that account has
+// permission to delete, and shares the broader balance-logic issues tracked in balanceChange.
 // DELETE a transaction by ID
 router.delete(
   "/:id",
@@ -460,7 +468,7 @@ router.delete(
               where: { id: t.accountId },
               data: {
                 balance:
-                  acc?.type === "credit"
+                  acc?.type === AccountType.credit_card
                     ? { increment: t.amount }
                     : { decrement: t.amount },
               },
@@ -479,17 +487,17 @@ router.delete(
         const account = await prisma.account.findUnique({
           where: { id: tx.accountId },
         });
-        if (tx.direction === "income") {
+        if (tx.type === TxType.income) {
           await prisma.account.update({
             where: { id: tx.accountId },
             data: { balance: { decrement: tx.amount } },
           });
-        } else if (tx.direction === "expense") {
+        } else if (tx.type === TxType.expense) {
           await prisma.account.update({
             where: { id: tx.accountId },
             data: {
               balance:
-                account?.type === "credit"
+                account?.type === AccountType.credit_card
                   ? { decrement: tx.amount }
                   : { increment: tx.amount },
             },
