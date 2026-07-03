@@ -6,6 +6,7 @@ import {
   getUserAccounts,
   userCanAccessBudget,
 } from "../helper/authorization";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const router = Router();
 
@@ -31,7 +32,9 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     });
 
     const accessibleAccounts = await getUserAccounts(req.userId!);
-    const accessibleAccountIds = accessibleAccounts.map((account) => account.id);
+    const accessibleAccountIds = accessibleAccounts.map(
+      (account) => account.id,
+    );
 
     // Calculate spent amount for each budget
     const budgetsWithSpent = await Promise.all(
@@ -52,12 +55,15 @@ router.get("/", async (req: AuthRequest, res: Response) => {
           _sum: { amount: true },
         });
 
-        const spent = spending._sum.amount || 0;
+        const spent = new Decimal(spending._sum.amount || 0);
+        const limitAmount = new Decimal(budget.limitAmount);
         return {
           ...budget,
           spent,
-          remaining: budget.limitAmount - spent,
-          percentage: Math.round((spent / budget.limitAmount) * 100),
+          remaining: limitAmount.minus(spent),
+          percentage: limitAmount.isZero()
+            ? 0
+            : Math.round(spent.dividedBy(limitAmount).times(100).toNumber()),
         };
       }),
     );
@@ -133,7 +139,9 @@ router.get(
           : new Date(now.getFullYear(), 0, 1);
 
       const accessibleAccounts = await getUserAccounts(req.userId!);
-      const accessibleAccountIds = accessibleAccounts.map((account) => account.id);
+      const accessibleAccountIds = accessibleAccounts.map(
+        (account) => account.id,
+      );
 
       const transactions = await prisma.transaction.findMany({
         where: {
@@ -152,7 +160,9 @@ router.get(
       res.json({
         budget,
         transactions,
-        total: transactions.reduce((sum, t) => sum + Number(t.amount), 0),
+        total: transactions
+          .reduce((sum: Decimal, t) => sum.plus(t.amount), new Decimal(0))
+          .toString(),
       });
     } catch (error) {
       res.status(500).json({

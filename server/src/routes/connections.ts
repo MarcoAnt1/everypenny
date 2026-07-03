@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
 import { deflate } from "zlib";
+import { ConnectionStatus } from "@prisma/client";
 
 const router = Router();
 
@@ -105,7 +106,7 @@ router.post("/:id/accept", async (req: AuthRequest & Request<{ id: string}>, res
     const updated = await prisma.connection.update({
       where: { id },
       data: {
-        status: "ACCEPTED",
+        status: ConnectionStatus.ACCEPTED,
         inviteeId: req.userId!
       },
       include: { requester: true, invitee: true },
@@ -140,7 +141,7 @@ router.post("/:id/reject", async (req: AuthRequest & Request<{ id: string}>, res
     const updated = await prisma.connection.update({
       where: { id },
       data: {
-        status: "REJECTED",
+        status: ConnectionStatus.DECLINED,
       },
       include: { requester: true, invitee: true },
     });

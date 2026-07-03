@@ -6,6 +6,7 @@ import {
   userIsAccountOwner,
 } from "../helper/authorization";
 import prisma from "../lib/prisma";
+import { AccountType } from "@prisma/client";
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     const accounts = await getUserAccounts(req.userId!);
 
     const enriched = accounts.map((account) => {
-      if (account.type === "credit" && account.creditLimit) {
+      if (account.type === AccountType.credit_card && account.creditLimit) {
         const creditLimit = Number(account.creditLimit);
         const balance = Number(account.balance);
         const availableCredit = creditLimit - balance;
@@ -85,7 +86,6 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       data: {
         accountId: account.id,
         userId: req.userId!,
-        role: "OWNER",
       },
     });
 

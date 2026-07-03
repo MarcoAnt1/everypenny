@@ -5,22 +5,26 @@ import {
   getConnectedUserIds,
   userCanAccessGoal,
 } from "../helper/authorization";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const router = Router();
 
 // GET all goals
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const connectedUserIds = await getConnectedUserIds(req.userId!, "shareAllGoals");
+    const connectedUserIds = await getConnectedUserIds(
+      req.userId!,
+      "shareAllGoals",
+    );
 
     const goals = await prisma.goal.findMany({
-      where: { 
+      where: {
         userId: {
           in: [req.userId!, ...connectedUserIds],
         },
       },
       include: {
-        user: { select: { id: true, name: true, email: true }},
+        user: { select: { id: true, name: true, email: true } },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -39,48 +43,52 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     );
     res.json(goalsWithProgress);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to fetch goals",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to fetch goals",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
 // GET one goal by id
-router.get("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
-  try {
-    const goalId = req.params.id;
+router.get(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const goalId = req.params.id;
 
-    const canAccess = await userCanAccessGoal(req.userId!, goalId);
-    if (!canAccess) {
-      return res
-        .status(403)
-        .json({ error: "You do not have access to this goal" });
-    }
+      const canAccess = await userCanAccessGoal(req.userId!, goalId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this goal" });
+      }
 
-    const goal = await prisma.goal.findUnique({
-      where: { id: goalId },
-    });
-    if (!goal) {
-      return res.status(404).json({ error: "Goal not found" });
-    }
+      const goal = await prisma.goal.findUnique({
+        where: { id: goalId },
+      });
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
 
-    res.json({
-      ...goal,
-      percentage: Math.round((goal.currentAmount / goal.targetAmount) * 100),
-      remainingAmount: goal.targetAmount - goal.currentAmount,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({
+      const currentAmount = new Decimal(goal.currentAmount);
+      const targetAmount = new Decimal(goal.targetAmount);
+
+      res.json({
+        ...goal,
+        percentage: Math.round(
+          currentAmount.dividedBy(targetAmount).times(100).toNumber(),
+        ),
+        remainingAmount: targetAmount.minus(currentAmount),
+      });
+    } catch (error) {
+      res.status(500).json({
         error: "Failed to fetch goal",
         details: error instanceof Error ? error.message : "Unknown error",
       });
-  }
-});
+    }
+  },
+);
 
 // POST create a new goal
 router.post("/", async (req: AuthRequest, res: Response) => {
@@ -99,67 +107,69 @@ router.post("/", async (req: AuthRequest, res: Response) => {
     });
     res.status(201).json(goal);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Failed to create goal",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    res.status(500).json({
+      error: "Failed to create goal",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 
 // PUT update a goal by ID
-router.put("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
-  try {
-    const goalId = req.params.id;
+router.put(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const goalId = req.params.id;
 
-    const canAccess = await userCanAccessGoal(req.userId!, goalId);
-    if (!canAccess) {
-      return res
-        .status(403)
-        .json({ error: "You do not have access to this goal" });
-    }
+      const canAccess = await userCanAccessGoal(req.userId!, goalId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this goal" });
+      }
 
-    const existingGoal = await prisma.goal.findUnique({
-      where: { id: goalId },
-    });
-    if (!existingGoal) {
-      return res.status(404).json({ error: "Goal not found" });
-    }
+      const existingGoal = await prisma.goal.findUnique({
+        where: { id: goalId },
+      });
+      if (!existingGoal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
 
-    const {
-      name,
-      description,
-      targetAmount,
-      currentAmount,
-      targetDate,
-      status,
-    } = req.body;
-    const goal = await prisma.goal.update({
-      where: { id: goalId },
-      data: {
+      const {
         name,
         description,
         targetAmount,
         currentAmount,
-        targetDate: targetDate ? new Date(targetDate) : null,
+        targetDate,
         status,
-      },
-    });
-    res.json({
-      ...goal,
-      percentage: Math.round((goal.currentAmount / goal.targetAmount) * 100),
-      remainingAmount: goal.targetAmount - goal.currentAmount,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({
+      } = req.body;
+      const goal = await prisma.goal.update({
+        where: { id: goalId },
+        data: {
+          name,
+          description,
+          targetAmount,
+          currentAmount,
+          targetDate: targetDate ? new Date(targetDate) : null,
+          status,
+        },
+      });
+
+      res.json({
+        ...goal,
+        percentage: Math.round(
+          currentAmount.dividedBy(targetAmount).times(100).toNumber(),
+        ),
+        remainingAmount: targetAmount.minus(currentAmount),
+      });
+    } catch (error) {
+      res.status(500).json({
         error: "Failed to update goal",
         details: error instanceof Error ? error.message : "Unknown error",
       });
-  }
-});
+    }
+  },
+);
 
 // PATCH add founds to a goal
 router.patch(
@@ -184,8 +194,8 @@ router.patch(
         return res.status(404).json({ error: "Goal not found" });
       }
 
-      const newAmount = goal.currentAmount + amount;
-      const isCompleted = newAmount >= goal.targetAmount;
+      const newAmount = new Decimal(goal.currentAmount).plus(amount);
+      const isCompleted = newAmount.greaterThanOrEqualTo(goal.targetAmount);
 
       const updatedGoal = await prisma.goal.update({
         where: { id: goalId },
@@ -195,48 +205,50 @@ router.patch(
         },
       });
 
+      const updateCurrentAmount = new Decimal(updatedGoal.currentAmount);
+      const updateTargetAmount = new Decimal(updatedGoal.targetAmount);
+
       res.json({
-        ...updatedGoal,
+        ...goal,
         percentage: Math.round(
-          (updatedGoal.currentAmount / updatedGoal.targetAmount) * 100,
+          updateCurrentAmount.dividedBy(updateTargetAmount).times(100).toNumber(),
         ),
-        remaningAmount: updatedGoal.targetAmount - updatedGoal.currentAmount,
+        remainingAmount: updateTargetAmount.minus(updateCurrentAmount),
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          error: "Failed to add funds to goal",
-          details: error instanceof Error ? error.message : "Unknown error",
-        });
+      res.status(500).json({
+        error: "Failed to add funds to goal",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   },
 );
 
 // DELETE a goal by ID
-router.delete("/:id", async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
-  try {
-    const goalId = req.params.id;
+router.delete(
+  "/:id",
+  async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
+    try {
+      const goalId = req.params.id;
 
-    const canAccess = await userCanAccessGoal(req.userId!, goalId);
-    if (!canAccess) {
-      return res
-        .status(403)
-        .json({ error: "You do not have access to this goal" });
-    }
+      const canAccess = await userCanAccessGoal(req.userId!, goalId);
+      if (!canAccess) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this goal" });
+      }
 
-    await prisma.goal.delete({
-      where: { id: goalId },
-    });
-    res.status(204).send();
-  } catch (error) {
-    res
-      .status(500)
-      .json({
+      await prisma.goal.delete({
+        where: { id: goalId },
+      });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({
         error: "Failed to delete goal",
         details: error instanceof Error ? error.message : "Unknown error",
       });
-  }
-});
+    }
+  },
+);
 
 export default router;
