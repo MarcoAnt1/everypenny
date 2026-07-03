@@ -24,7 +24,8 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://192.168.1.114:5173",
-    "https://everypenny-sigma.vercel.app"
+    "https://everypenny-sigma.vercel.app",
+    "https://everypenny-45ky1a2n2-everypenny.vercel.app"
   ],
 }));
 app.use(express.json());
