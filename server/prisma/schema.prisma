@@ -81,8 +81,10 @@ model Account {
   name        String
   type        AccountType
   institution String?
+  // TODO: consider migrating to derived balance if balance drift becomes a recurring
+  // support issue. Would remove Account.balance and compute from SUM(Transaction.amount).
   balance     Decimal     @default(0) @db.Decimal(19, 4)
-  currency    String      @default("CAD")
+  currency    String      @default("CAD") @db.Char(3)
   creditLimit Decimal?    @db.Decimal(19, 4)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -131,6 +133,8 @@ model Connection {
   @@index([status])
 }
 
+// TODO(future): soft delete via `deletedAt DateTime?` + trash view UI. Not worth the
+// query-site churn until users actually complain about accidental deletes.
 model Transaction {
   id              String       @id @default(uuid())
   accountId       String
@@ -235,6 +239,7 @@ model Tag {
 model TransactionTag {
   transactionId String
   tagId         String
+  createAt      DateTime @default(now())
 
   transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
