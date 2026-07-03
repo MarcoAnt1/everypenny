@@ -137,6 +137,9 @@ model Transaction {
   categoryId      String?
   toAccountId     String?
   transferGroupId String?
+  // TODO(balance-rework): Drop `direction` and make `amount` signed
+  // (positive = entered accountId, negative = left accountId). Coordinate
+  // with the balanceChange rewrite in transactions.ts.
   direction       TxDirection?
   description     String
   amount          Decimal      @db.Decimal(19, 4)
