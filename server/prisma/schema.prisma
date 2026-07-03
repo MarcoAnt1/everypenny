@@ -45,7 +45,6 @@ enum GoalStatus {
 }
 
 enum ShareRole {
-  OWNER
   EDITOR
   VIEWER
 }
@@ -239,7 +238,7 @@ model Tag {
 model TransactionTag {
   transactionId String
   tagId         String
-  createAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
 
   transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
