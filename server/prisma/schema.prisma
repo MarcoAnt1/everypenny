@@ -31,13 +31,13 @@ model Account {
   name               String
   type               String          // "checking", "savings", "credit_card", "cash", etc.
   institution        String?
-  balance            Float           @default(0)
+  balance            Decimal         @default(0) @db.Decimal(19, 4)
   currency           String          @default("CAD")
-  creditLimit        Float?
+  creditLimit        Decimal?        @db.Decimal(19, 4)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  owner              User            @relation("AccountOwner", fields: [ownerId], references: [id])
+  owner              User            @relation("AccountOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   accountShares      AccountShare[]
   transactions       Transaction[]   @relation("FromAccount")
   incomingTransfers  Transaction[]   @relation("ToAccount")
@@ -50,8 +50,8 @@ model AccountShare {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  account    Account   @relation(fields: [accountId], references: [id])
-  user       User      @relation(fields: [userId], references: [id])
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([accountId, userId])
 }
@@ -69,8 +69,8 @@ model Connection {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  requester           User?     @relation("RequesterConnections", fields: [requesterId], references: [id])
-  invitee             User?     @relation("InviteeConnections", fields: [inviteeId], references: [id])
+  requester           User?     @relation("RequesterConnections", fields: [requesterId], references: [id], onDelete: Cascade)
+  invitee             User?     @relation("InviteeConnections", fields: [inviteeId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, inviteeEmail])
 }
@@ -83,7 +83,7 @@ model Transaction {
   transferGroupId  String?
   direction        String?
   description      String
-  amount           Float
+  amount           Decimal           @db.Decimal(19, 4)
   date             DateTime
   type             String            // "income" or "expense" or "transfer"
   status           String            @default("cleared") // "cleared", "pending", "reconciled"
@@ -91,9 +91,9 @@ model Transaction {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  account          Account           @relation("FromAccount", fields: [accountId], references: [id])
-  toAccount        Account?          @relation("ToAccount", fields: [toAccountId], references: [id])
-  category         Category?         @relation(fields: [categoryId], references: [id])
+  account          Account           @relation("FromAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  toAccount        Account?          @relation("ToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags             TransactionTag[]
 }
 
@@ -106,8 +106,8 @@ model Category {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  user           User?          @relation(fields: [userId], references: [id])
-  parent         Category?      @relation("CategoryToCategory", fields: [parentId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent         Category?      @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
   subcategories  Category[]     @relation("CategoryToCategory")
   transactions   Transaction[]
   budgets        Budget[]
@@ -118,13 +118,13 @@ model Budget {
   userId       String
   categoryId   String
   name         String
-  limitAmount  Float
+  limitAmount  Decimal   @db.Decimal(19, 4)
   period       String    // "monthly", "quarterly", "yearly"
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user         User      @relation(fields: [userId], references: [id])
-  category     Category  @relation(fields: [categoryId], references: [id])
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 }
 
 model Goal {
@@ -132,14 +132,14 @@ model Goal {
   userId         String
   name           String
   description    String?
-  targetAmount   Float
-  currentAmount  Float      @default(0)
+  targetAmount   Decimal    @db.Decimal(19, 4)
+  currentAmount  Decimal    @default(0) @db.Decimal(19, 4)
   targetDate     DateTime?
   status         String     @default("active") // "active", "completed", "cancelled"
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  user           User       @relation(fields: [userId], references: [id])
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
@@ -150,7 +150,7 @@ model Tag {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  user          User              @relation(fields: [userId], references: [id])
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions  TransactionTag[]
 }
 
@@ -158,8 +158,8 @@ model TransactionTag {
   transactionId String
   tagId         String
 
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
-  tag           Tag         @relation(fields: [tagId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([transactionId, tagId]) // Composite primary key
 }
