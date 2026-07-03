@@ -6,8 +6,7 @@ import {
   userCanAccessTransaction,
   userCanEditTransactionInAccount,
 } from "../helper/authorization";
-
-// TODO: Verify if the balance change logic is correct when updating or deleting a transaction, especially when changing the type (income/expense) or amount.
+import { Decimal } from "@prisma/client/runtime/library";
 
 const router = Router();
 
@@ -53,15 +52,20 @@ const updateBalances = async (
   }
 };
 
+// TODO(balance-rework): This function only handles income/expense on a single account.
+// It ignores: (1) credit-card sign inversion, (2) transfers (both accounts must be adjusted),
+// (3) changing accountId on update, (4) the DELETE handler's tx.direction checks are also
+// broken (direction is only set on transfers, so non-transfer deletes never adjust balance).
+// Rewrite this as a per-account delta calculator that takes old+new full transaction state.
 function balanceChange(
   oldType: string,
-  oldAmount: number,
+  oldAmount: Decimal,
   newType: string,
-  newAmount: number,
-): number {
-  const oldBalanceChange = oldType === "income" ? oldAmount : -oldAmount;
-  const newBalanceChange = newType === "income" ? newAmount : -newAmount;
-  return newBalanceChange - oldBalanceChange;
+  newAmount: Decimal,
+): Decimal {
+  const oldSignedAmount = oldType === "income" ? oldAmount : oldAmount.negated();
+  const newSignedAmount = newType === "income" ? newAmount : newAmount.negated();
+  return newSignedAmount.minus(oldSignedAmount);
 }
 
 // GET all transactions
