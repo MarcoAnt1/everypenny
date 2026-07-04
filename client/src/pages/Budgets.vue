@@ -397,7 +397,7 @@ const loadCategories = async() => {
 }
 
 // Summary
-const totalBudgeted = computed(() => budgets.value.reduce((s, b) => s + b.limitAmount, 0));
+const totalBudgeted = computed(() => budgets.value.reduce((s, b) => s + Number(b.limitAmount), 0));
 const totalSpent = computed(() => budgets.value.reduce((s, b) => s + b.spent, 0));
 const totalRemaining = computed(() => totalBudgeted.value - totalSpent.value);
 

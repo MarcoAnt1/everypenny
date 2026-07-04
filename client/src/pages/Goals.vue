@@ -323,8 +323,8 @@ const loadGoals = async () => {
 
 // Summary
 const activeGoals = computed(() => goals.value.filter(g => g.status === 'active'));
-const totalSaved = computed(() => goals.value.reduce((s, g) => s + g.currentAmount, 0));
-const totalNeeded = computed(() => goals.value.reduce((s, g) => s + g.remainingAmount, 0));
+const totalSaved = computed(() => goals.value.reduce((s, g) => s + Number(g.currentAmount), 0));
+const totalNeeded = computed(() => goals.value.reduce((s, g) => s + Number(g.remainingAmount), 0));
 
 // Add/Edit Modal
 const openModal = (goal?: any) => {
