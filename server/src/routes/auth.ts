@@ -7,9 +7,12 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET!;
 const INVITE_TOKEN = process.env.INVITE_TOKEN;
 
+const normalizeEmail = (raw: unknown): string => typeof raw === "string" ? raw.trim().toLowerCase() : "";
+
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { name, email, password, inviteToken } = req.body;
+    const { name, password, inviteToken } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     if (!inviteToken || inviteToken !== INVITE_TOKEN) {
       return res.status(401).json({ error: "Invalid invite token"});
@@ -44,7 +47,8 @@ router.post("/register", async (req: Request, res: Response) => {
 
 router.post("/login", async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
     if (!email || !password) {
       res.status(400).json({ error: "Email and password are required" });
       return;
