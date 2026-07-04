@@ -816,12 +816,12 @@ const clearFilters = () => {
 const totalIncome = computed(() =>
   transactions.value
     .filter((t) => t.type === "income")
-    .reduce((s, t) => s + t.amount, 0),
+    .reduce((s, t) => s + Number(t.amount), 0),
 );
 const totalExpenses = computed(() =>
   transactions.value
     .filter((t) => t.type === "expense")
-    .reduce((s, t) => s + t.amount, 0),
+    .reduce((s, t) => s + Number(t.amount), 0),
 );
 const net = computed(() => totalIncome.value - totalExpenses.value);
 

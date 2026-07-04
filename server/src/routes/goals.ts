@@ -29,18 +29,18 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: "asc" },
     });
 
-    const goalsWithProgress = await Promise.all(
-      goals.map(async (goal) => {
-        const current = Number(goal.currentAmount);
-        const target = Number(goal.targetAmount);
+    const goalsWithProgress = goals.map((goal) => {
+      const current = new Decimal(goal.currentAmount);
+      const target = new Decimal(goal.targetAmount);
 
-        return {
-          ...goal,
-          percentage: target > 0 ? Math.round((current / target) * 100) : 0,
-          remainingAmount: target - current,
-        };
-      }),
-    );
+      return {
+        ...goal,
+        percentage: target.isZero()
+          ? 0
+          : Math.round(current.dividedBy(target).times(100).toNumber()),
+        remainingAmount: target.minus(current),
+      };
+    });
     res.json(goalsWithProgress);
   } catch (error) {
     res.status(500).json({
@@ -76,9 +76,11 @@ router.get(
 
       res.json({
         ...goal,
-        percentage: Math.round(
-          currentAmount.dividedBy(targetAmount).times(100).toNumber(),
-        ),
+        percentage: targetAmount.isZero()
+          ? 0
+          : Math.round(
+              currentAmount.dividedBy(targetAmount).times(100).toNumber(),
+            ),
         remainingAmount: targetAmount.minus(currentAmount),
       });
     } catch (error) {
@@ -155,12 +157,17 @@ router.put(
         },
       });
 
+      const putCurrent = new Decimal(goal.currentAmount);
+      const putTarget = new Decimal(goal.targetAmount);
+
       res.json({
         ...goal,
-        percentage: Math.round(
-          currentAmount.dividedBy(targetAmount).times(100).toNumber(),
-        ),
-        remainingAmount: targetAmount.minus(currentAmount),
+        percentage: putTarget.isZero()
+          ? 0
+          : Math.round(
+              putCurrent.dividedBy(putTarget).times(100).toNumber(),
+            ),
+        remainingAmount: putTarget.minus(putCurrent),
       });
     } catch (error) {
       res.status(500).json({
@@ -209,10 +216,15 @@ router.patch(
       const updateTargetAmount = new Decimal(updatedGoal.targetAmount);
 
       res.json({
-        ...goal,
-        percentage: Math.round(
-          updateCurrentAmount.dividedBy(updateTargetAmount).times(100).toNumber(),
-        ),
+        ...updatedGoal,
+        percentage: updateTargetAmount.isZero()
+          ? 0
+          : Math.round(
+              updateCurrentAmount
+                .dividedBy(updateTargetAmount)
+                .times(100)
+                .toNumber(),
+            ),
         remainingAmount: updateTargetAmount.minus(updateCurrentAmount),
       });
     } catch (error) {

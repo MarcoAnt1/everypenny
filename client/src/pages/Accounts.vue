@@ -44,11 +44,11 @@
                 <!-- Balance -->
                 <div>
                     <p class="text-xs text-gray-400">
-                        {{ account.type === 'credit' ? 'Amount Owing' : 'Current Balance' }}
+                        {{ account.type === 'credit_card' ? 'Amount Owing' : 'Current Balance' }}
                     </p>
                     <p 
                         class="text-2xl font-bold"
-                        :class="account.type === 'credit'
+                        :class="account.type === 'credit_card'
                             ? account.balance > 0 ? 'text-red-600' : 'text-green-500'
                             : account.balance >= 0 ? 'text-indigo-600' : 'text-red-500'"
                     >
@@ -57,7 +57,7 @@
                 </div>
 
                 <!-- Credit card extra info -->
-                <div v-if="account.type === 'credit' && account.creditLimit" class="spacy-y-1">
+                <div v-if="account.type === 'credit_card' && account.creditLimit" class="spacy-y-1">
                     <div class="flex justify-between text-xs text-gray-400">
                         <span>Available Credit</span>
                         <span class="font-medium text-green-500">
@@ -154,14 +154,14 @@
                             <option value="" disabled>Select type</option>
                             <option value="checking">Checking</option>
                             <option value="savings">Savings</option>
-                            <option value="credit">Credit Card</option>
+                            <option value="credit_card">Credit Card</option>
                             <option value="investment">Investment</option>
                             <option value="other">Cash</option>
                         </select>
                     </div>
 
                     <!-- Credit Limit (only for credit cards) -->
-                    <div v-if="form.type === 'credit'">
+                    <div v-if="form.type === 'credit_card'">
                         <label class="text-sm text-gray-600 font-medium">Credit Limit</label>
                         <input 
                             v-model="form.creditLimit"
@@ -287,7 +287,7 @@ const loadAccounts = async () => {
 
 // Total Balance
 const totalBalance = computed(() => {
-    return accounts.value.reduce((sum, acc) => sum + acc.balance, 0);
+    return accounts.value.reduce((sum, acc) => sum + Number(acc.balance), 0);
 });
 
 // Modal
@@ -321,7 +321,7 @@ const saveAccount = async () => {
         } else {
             await createAccount({
                 ...form.value,
-                creditLimit: form.value.type === 'credit' ? form.value.creditLimit : null
+                creditLimit: form.value.type === 'credit_card' ? form.value.creditLimit : null
             });
         }
         await loadAccounts();

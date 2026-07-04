@@ -183,13 +183,13 @@ onMounted(async () => {
 
 // Summary cards
 const summaryCards = computed(() => {
-    const totalBalance = accounts.value.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalBalance = accounts.value.reduce((sum, acc) => sum + Number(acc.balance), 0);
     const income = transactions.value
         .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + Number(t.amount), 0);
     const expenses = transactions.value
         .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + Number(t.amount), 0);
     const goalsCount = goals.value.filter(g => g.status === 'active').length;
 
     return [
