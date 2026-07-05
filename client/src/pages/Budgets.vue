@@ -315,7 +315,7 @@
                                 {{ tx.account?.name || '—' }}
                             </td>
                             <td class="py-3 text-right font-semibold text-red-500 whitespace-nowrap">
-                                -{{ formatCurrency(tx.amount) }}
+                                -{{ formatCurrency(Math.abs(Number(tx.amount))) }}
                             </td>
                         </tr>
                     </tbody>

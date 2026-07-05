@@ -265,7 +265,7 @@
                                             class="px-3 py-3 text-right font-semibold whitespace-nowrap"
                                             :class="row.type === 'income' ? 'text-green-500' : 'text-red-500'"    
                                         >
-                                            {{ row.type === 'income' ? '+' : '-' }}{{ formatCurrency(row.amount) }}
+                                            {{ row.type === 'income' ? '+' : '-' }}{{ formatCurrency(Math.abs(Number(row.amount))) }}
                                         </td>
                                     </tr>
                                 </tbody>

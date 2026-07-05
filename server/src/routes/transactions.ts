@@ -7,86 +7,28 @@ import {
   userCanEditTransactionInAccount,
 } from "../helper/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
-import { AccountType, TxType } from "@prisma/client";
+import { TxType } from "@prisma/client";
 
 const router = Router();
 
-type TxSnapshot = {
-  type: TxType;
-  amount: Decimal | number | string;
-  accountId: string;
-  accountType: AccountType;
-  toAccountId?: string | null;
-  toAccountType?: AccountType | null;
-};
-
-
-
-// Returns per-account balance deltas produced by ADDING this transaction to the world.
-// For credit-card accounts, sign is inverted (balance = amount owed, so a charge increases
-// it and a refund decreases it).
-function computeDeltas(tx: TxSnapshot): Map<string, Decimal> {
-  const amt = new Decimal(tx.amount);
-  const deltas = new Map<string, Decimal>();
-
-  const applyTo = (
-    accountId: string,
-    accountType: AccountType,
-    moneyDirection: 1 | -1, // +1 = money enters, -1 = money leaves
-  ) => {
-    const signed = moneyDirection === 1 ? amt : amt.negated();
-    const finalDelta =
-      accountType === AccountType.credit_card ? signed.negated() : signed;
-    const current = deltas.get(accountId) ?? new Decimal(0);
-    deltas.set(accountId, current.plus(finalDelta));
-  };
-
-  if (tx.type === TxType.income) {
-    applyTo(tx.accountId, tx.accountType, 1);
-  } else if (tx.type === TxType.expense) {
-    applyTo(tx.accountId, tx.accountType, -1);
-  } else if (
-    tx.type === TxType.transfer &&
-    tx.toAccountId &&
-    tx.toAccountType
-  ) {
-    applyTo(tx.accountId, tx.accountType, -1);
-    applyTo(tx.toAccountId, tx.toAccountType, 1);
-  }
-
-  return deltas;
+// Sign a positive user-facing amount according to transaction type.
+// Positive = money enters `accountId`. Negative = money leaves.
+function signAmount(type: TxType, positiveAmount: Decimal | number | string): Decimal {
+  const amt = new Decimal(positiveAmount);
+  return type === TxType.expense ? amt.negated() : amt;
 }
 
-// Merge multiple delta maps by summing per-account. Used in PUT (undo old + apply new).
-function mergeDeltas(...maps: Map<string, Decimal>[]): Map<string, Decimal> {
-  const merged = new Map<string, Decimal>();
-  for (const m of maps) {
-    for (const [accountId, delta] of m) {
-      merged.set(
-        accountId,
-        (merged.get(accountId) ?? new Decimal(0)).plus(delta),
-      );
-    }
-  }
-
-  return merged;
-}
-
-// Build the Prisma promises that apply a delta map. Feed the result into a $transaction.
-function deltaOps(deltas: Map<string, Decimal>) {
-  const ops = [];
-  for (const [accountId, delta] of deltas) {
-    if (delta.isZero()) continue;
-
-    ops.push(
+// One or more balance updates as $transaction operations.
+type Delta = { accountId: string; delta: Decimal };
+function deltaOps(deltas: Delta[]) {
+  return deltas
+    .filter((d) => !d.delta.isZero())
+    .map((d) =>
       prisma.account.update({
-        where: { id: accountId },
-        data: { balance: { increment: delta } },
+        where: { id: d.accountId },
+        data: { balance: { increment: d.delta } },
       }),
     );
-  }
-
-  return ops;
 }
 
 // GET all transactions
@@ -221,45 +163,42 @@ router.post("/", async (req: AuthRequest, res: Response) => {
     if (type === TxType.transfer && !toAccountId) {
       res
         .status(400)
-        .json({ error: "Transfer requieres a destination account" });
+        .json({ error: "Transfer requires a destination account" });
       return;
     }
 
     const account = await prisma.account.findUnique({
       where: { id: accountId },
     });
-
-    const toAccount = toAccountId
-      ? await prisma.account.findUnique({ where: { id: toAccountId } })
-      : null;
-
     if (!account) {
-      res.status(400).json({ error: "Account not found" });
-      return;
+      return res.status(400).json({ error: "Account not found" });
     }
 
-    const deltas = computeDeltas({
-      type,
-      amount,
-      accountId,
-      accountType: account.type,
-      toAccountId: toAccount?.id,
-      toAccountType: toAccount?.type,
-    });
+    const includeOpts = {
+      account: true,
+      toAccount: true,
+      category: true,
+      tags: { include: { tag: true } },
+    };
+    const tagCreate = tagIds?.length
+      ? { create: tagIds.map((tagId: string) => ({ tagId })) }
+      : undefined;
 
-    if (type === TxType.transfer && toAccount) {
+    if (type === TxType.transfer) {
+      const toAccount = await prisma.account.findUnique({
+        where: { id: toAccountId },
+      });
+      if (!toAccount) {
+        res.status(400).json({ error: "Destination account not found" });
+        return;
+      }
+
+      const signed = new Decimal(amount);
       const transferGroupId = crypto.randomUUID();
-      const includeOpts = {
-        account: true,
-        toAccount: true,
-        category: true,
-        tags: { include: { tag: true } },
-      };
       const shared = {
         transferGroupId,
         categoryId: categoryId || null,
         description,
-        amount,
         date: new Date(date),
         type,
         status: status || "cleared",
@@ -272,12 +211,8 @@ router.post("/", async (req: AuthRequest, res: Response) => {
             ...shared,
             accountId,
             toAccountId,
-            direction: "out",
-            tags: tagIds?.length
-              ? {
-                  create: tagIds.map((tagId: string) => ({ tagId })),
-                }
-              : undefined,
+            amount: signed.negated(),
+            tags: tagCreate,
           },
           include: includeOpts,
         }),
@@ -287,21 +222,21 @@ router.post("/", async (req: AuthRequest, res: Response) => {
             ...shared,
             accountId: toAccountId,
             toAccountId: accountId,
-            direction: "in",
-            tags: tagIds?.length
-              ? {
-                  create: tagIds.map((tagId: string) => ({ tagId })),
-                }
-              : undefined,
+            amount: signed,
+            tags: tagCreate,
           },
           include: includeOpts,
         }),
-        ...deltaOps(deltas),
+        ...deltaOps([
+          { accountId, delta: signed.negated() },
+          { accountId: toAccountId, delta: signed },
+        ]),
       ]);
 
       return res.status(201).json({ out: outTx, in: inTx });
     }
 
+    const signed = signAmount(type, amount);
     const [transaction] = await prisma.$transaction([
       prisma.transaction.create({
         data: {
@@ -309,25 +244,16 @@ router.post("/", async (req: AuthRequest, res: Response) => {
           categoryId: categoryId || null,
           toAccountId: toAccountId || null,
           description,
-          amount,
+          amount: signed,
           date: new Date(date),
           type,
           status,
           notes,
-          tags: tagIds?.length
-            ? {
-                create: tagIds.map((tagId: string) => ({ tagId })),
-              }
-            : undefined,
+          tags: tagCreate,
         },
-        include: {
-          account: true,
-          toAccount: true,
-          category: true,
-          tags: { include: { tag: true } },
-        },
+        include: includeOpts,
       }),
-      ...deltaOps(deltas),
+      ...deltaOps([{ accountId, delta: signed }]),
     ]);
 
     res.status(201).json(transaction);
@@ -350,7 +276,6 @@ router.put(
         where: { id: transactionId },
         include: { account: true },
       });
-
       if (!existing) {
         return res.status(404).json({ error: "Transaction not found" });
       }
@@ -391,43 +316,25 @@ router.put(
       } = req.body;
 
       const targetAccountId = newAccountId ?? existing.accountId;
-      const newAccount = await prisma.account.findUnique({
+      const targetAccount = await prisma.account.findUnique({
         where: { id: targetAccountId },
       });
-      if (!newAccount) {
+      if (!targetAccount) {
         return res.status(400).json({ error: "Account not found" });
       }
 
-      // Undo old, apply new — may touch two different accounts.
-      const undoDeltas = computeDeltas({
-        type: existing.type,
-        amount: existing.amount,
-        accountId: existing.accountId,
-        accountType: existing.account.type,
-      });
-
-      // Negate to undo.
-      const undoNegated = new Map(
-        [...undoDeltas].map(([id, d]) => [id, d.negated()]),
-      );
-
-      const applyDeltas = computeDeltas({
-        type,
-        amount,
-        accountId: targetAccountId,
-        accountType: newAccount.type,
-      });
-
-      const merged = mergeDeltas(undoNegated, applyDeltas);
+      const newSigned = signAmount(type, amount);
+      const undoOld = new Decimal(existing.amount).negated();
 
       const [transaction] = await prisma.$transaction([
         prisma.transaction.update({
           where: { id: transactionId },
           data: {
+            accountId: targetAccountId,
             categoryId: categoryId || null,
             toAccountId: toAccountId || null,
             description,
-            amount,
+            amount: newSigned,
             date: new Date(date),
             type,
             status,
@@ -445,7 +352,10 @@ router.put(
             tags: { include: { tag: true } },
           },
         }),
-        ...deltaOps(merged),
+        ...deltaOps([
+          { accountId: existing.accountId, delta: undoOld },
+          { accountId: targetAccountId, delta: newSigned },
+        ]),
       ]);
 
       res.json(transaction);
@@ -458,9 +368,6 @@ router.put(
   },
 );
 
-// TODO(balance-rework): Phase B — drop `direction` and make `amount` signed. This
-// collapses computeDeltas to "balance += amount" per row and removes the credit_card
-// sign inversion.
 router.delete(
   "/:id",
   async (req: AuthRequest & Request<{ id: string }>, res: Response) => {
@@ -490,24 +397,9 @@ router.delete(
       if (tx.type === TxType.transfer && tx.transferGroupId) {
         const grouped = await prisma.transaction.findMany({
           where: { transferGroupId: tx.transferGroupId },
-          include: { account: true },
         });
-
-        const outRow = grouped.find((t) => t.direction === "out") ?? grouped[0];
-        const sibling = grouped.find((t) => t.id !== outRow.id);
-
-        const undo = computeDeltas({
-          type: TxType.transfer,
-          amount: outRow.amount,
-          accountId: outRow.accountId,
-          accountType: outRow.account.type,
-          toAccountId: sibling?.accountId,
-          toAccountType: sibling?.account.type,
-        });
-
-        const negated = new Map([...undo].map(([id, d]) => [id, d.negated()]));
-
         const ids = grouped.map((t) => t.id);
+
         await prisma.$transaction([
           prisma.transactionTag.deleteMany({
             where: { transactionId: { in: ids } },
@@ -515,17 +407,14 @@ router.delete(
           prisma.transaction.deleteMany({
             where: { transferGroupId: tx.transferGroupId },
           }),
-          ...deltaOps(negated),
+          ...deltaOps(
+            grouped.map((t) => ({
+              accountId: t.accountId,
+              delta: new Decimal(t.amount).negated(),
+            })),
+          ),
         ]);
       } else {
-        const undo = computeDeltas({
-          type: tx.type,
-          amount: tx.amount,
-          accountId: tx.accountId,
-          accountType: tx.account.type,
-        });
-        const negated = new Map([...undo].map(([id, d]) => [id, d.negated()]));
-
         await prisma.$transaction([
           prisma.transactionTag.deleteMany({
             where: { transactionId },
@@ -533,7 +422,12 @@ router.delete(
           prisma.transaction.delete({
             where: { id: transactionId },
           }),
-          ...deltaOps(negated),
+          ...deltaOps([
+            {
+              accountId: tx.accountId,
+              delta: new Decimal(tx.amount).negated(),
+            },
+          ]),
         ]);
       }
 
