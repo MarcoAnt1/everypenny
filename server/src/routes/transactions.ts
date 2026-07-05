@@ -20,6 +20,8 @@ type TxSnapshot = {
   toAccountType?: AccountType | null;
 };
 
+
+
 // Returns per-account balance deltas produced by ADDING this transaction to the world.
 // For credit-card accounts, sign is inverted (balance = amount owed, so a charge increases
 // it and a refund decreases it).
