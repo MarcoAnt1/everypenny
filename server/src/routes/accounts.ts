@@ -92,13 +92,6 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // await prisma.accountShare.create({
-    //   data: {
-    //     accountId: account.id,
-    //     userId: req.userId!,
-    //   },
-    // });
-
     res.status(201).json(account);
   } catch (err: any) {
     res.status(500).json({

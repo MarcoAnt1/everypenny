@@ -1,4 +1,11 @@
+import { ConnectionStatus } from "@prisma/client";
 import prisma from "../lib/prisma";
+
+type ShareFlag =
+  | "shareAllAccounts"
+  | "shareAllBudgets"
+  | "shareAllCategories"
+  | "shareAllGoals";
 
 export async function userCanAccessAccount(
   userId: string,
@@ -21,7 +28,7 @@ export async function userCanAccessAccount(
 
   const connection = await prisma.connection.findFirst({
     where: {
-      status: "ACCEPTED",
+      status: ConnectionStatus.ACCEPTED,
       shareAllAccounts: true,
       OR: [
         { requesterId: userId, inviteeId: account.ownerId },
@@ -44,6 +51,8 @@ export async function userIsAccountOwner(
   return account?.ownerId === userId;
 }
 
+// Same as userCanAccessAccount for now. Kept as a distinct function so we can
+// tighten write access (e.g. reject VIEWER role) without touching every caller.
 export async function userCanEditTransactionInAccount(
   userId: string,
   accountId: string,
@@ -62,12 +71,13 @@ export async function userCanAccessCategory(
   if (!category) return false;
   if (category.userId === userId) return true;
 
+  if (category.userId === null) return true;
+
   const connectedUserIds = await getConnectedUserIds(
     userId,
     "shareAllCategories",
   );
-
-  return !!category.userId && connectedUserIds.includes(category.userId);
+  return connectedUserIds.includes(category.userId);
 }
 
 export async function userCanAccessBudget(
@@ -117,66 +127,32 @@ export async function userCanAccessTransaction(
 }
 
 export async function getUserAccounts(userId: string) {
-  const ownedAccounts = await prisma.account.findMany({
-    where: { ownerId: userId },
-    include: { accountShares: true, owner: true },
-  });
+  const connectedUserIds = await getConnectedUserIds(
+    userId,
+    "shareAllAccounts",
+  );
 
-  const sharedAccounts = await prisma.account.findMany({
+  return prisma.account.findMany({
     where: {
-      accountShares: {
-        some: { userId },
-      },
+      OR: [
+        { ownerId: userId },
+        { accountShares: { some: { userId } } },
+        ...(connectedUserIds.length
+          ? [{ ownerId: { in: connectedUserIds } }]
+          : []),
+      ],
     },
     include: { accountShares: true, owner: true },
-  });
-
-  const connectedUsers = await prisma.connection.findMany({
-    where: {
-      status: "ACCEPTED",
-      shareAllAccounts: true,
-      OR: [{ requesterId: userId }, { inviteeId: userId }],
-    },
-  });
-
-  const connectedUserIds = connectedUsers
-    .map((conn) =>
-      conn.requesterId === userId ? conn.inviteeId : conn.requesterId,
-    )
-    .filter((id): id is string => !!id);
-
-  const connectedAccounts = connectedUserIds.length
-    ? await prisma.account.findMany({
-        where: { ownerId: { in: connectedUserIds } },
-        include: { accountShares: true, owner: true },
-      })
-    : [];
-
-  const allAccounts = [
-    ...ownedAccounts,
-    ...sharedAccounts,
-    ...connectedAccounts,
-  ];
-  const seen = new Set();
-  return allAccounts.filter((account) => {
-    if (seen.has(account.id)) return false;
-    seen.add(account.id);
-    return true;
+    distinct: ["id"],
   });
 }
 
-export async function getConnectedUserIds(userId: string, shareFlag: string) {
+export async function getConnectedUserIds(userId: string, shareFlag: ShareFlag) {
   const connections = await prisma.connection.findMany({
     where: {
-      status: "ACCEPTED",
+      status: ConnectionStatus.ACCEPTED,
       OR: [{ requesterId: userId }, { inviteeId: userId }],
-      ...(shareFlag === "shareAllAccounts"
-        ? { shareAllAccounts: true }
-        : shareFlag === "shareAllBudgets"
-          ? { shareAllBudgets: true }
-          : shareFlag === "shareAllCategories"
-            ? { shareAllCategories: true }
-            : { shareAllGoals: true }),
+      [shareFlag]: true,
     },
   });
 
