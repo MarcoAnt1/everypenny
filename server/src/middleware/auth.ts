@@ -31,8 +31,9 @@ export const authenticate = (
     ) {
       return res.status(401).json({ error: "Ivalid token" });
     }
-    req.userId = (decoded as { userId: string }).userId;
-    req.userEmail = (decoded as { email?: string }).email;
+    const payload = decoded as { userId: string; email?: string };
+    req.userId = payload.userId;
+    req.userEmail = payload.email;
     next();
   } catch (error: any) {
     res
