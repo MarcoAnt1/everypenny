@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
+import { env } from "../lib/env";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const { JWT_SECRET } = env;
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -19,15 +20,23 @@ export const authenticate = (
     return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.slice(7).trim();
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email
-    next()
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (
+      typeof decoded !== "object" ||
+      decoded === null ||
+      typeof (decoded as any).userId !== "string"
+    ) {
+      return res.status(401).json({ error: "Ivalid token" });
+    }
+    req.userId = (decoded as { userId: string }).userId;
+    req.userEmail = (decoded as { email?: string }).email;
+    next();
   } catch (error: any) {
-    res.status(401).json({ error: "Invalid or experied token", details: error.message });
-    return;
+    res
+      .status(401)
+      .json({ error: "Invalid or expired token", details: error.message });
   }
 };

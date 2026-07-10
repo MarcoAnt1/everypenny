@@ -6,7 +6,8 @@ import {
   userIsAccountOwner,
 } from "../helper/authorization";
 import prisma from "../lib/prisma";
-import { AccountType } from "@prisma/client";
+import { AccountType, ConnectionStatus, ShareRole } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const router = Router();
 
@@ -19,8 +20,9 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       if (account.type === AccountType.credit_card && account.creditLimit) {
         const creditLimit = Number(account.creditLimit);
         const balance = Number(account.balance);
-        const availableCredit = creditLimit - balance;
-        const utilization = Math.round((balance / creditLimit) * 100);
+        const debt = balance < 0 ? Math.abs(balance) : 0;
+        const availableCredit = creditLimit - debt;
+        const utilization = Math.round((debt / creditLimit) * 100);
 
         return { ...account, availableCredit, utilization };
       }
@@ -52,7 +54,6 @@ router.get(
 
       const account = await prisma.account.findUnique({
         where: { id: accountId },
-        include: { transactions: true },
       });
       if (!account) {
         return res.status(404).json({ error: "Account not found" });
@@ -71,6 +72,15 @@ router.get(
 router.post("/", async (req: AuthRequest, res: Response) => {
   try {
     const { name, type, institution, balance, currency } = req.body;
+    if (!name || typeof name !== "string") {
+      return res.status(400).json({ error: "Account name is required" });
+    }
+    if (!Object.values(AccountType).includes(type)) {
+      return res.status(400).json({
+        error: `Invalid account type. Must be one of: ${Object.values(AccountType).join(", ")}`,
+      });
+    }
+
     const account = await prisma.account.create({
       data: {
         ownerId: req.userId!,
@@ -79,13 +89,6 @@ router.post("/", async (req: AuthRequest, res: Response) => {
         institution,
         balance,
         currency,
-      },
-    });
-
-    await prisma.accountShare.create({
-      data: {
-        accountId: account.id,
-        userId: req.userId!,
       },
     });
 
@@ -119,7 +122,7 @@ router.post(
 
       const acceptedConnection = await prisma.connection.findFirst({
         where: {
-          status: "ACCEPTED",
+          status: ConnectionStatus.ACCEPTED,
           OR: [
             { requesterId: req.userId!, inviteeId: userId },
             { requesterId: userId, inviteeId: req.userId! },
@@ -147,7 +150,7 @@ router.post(
         data: {
           accountId: accountId,
           userId,
-          role: "EDITOR",
+          role: ShareRole.EDITOR,
         },
       });
 
@@ -168,17 +171,17 @@ router.put(
     try {
       const accountId = req.params.id;
 
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
-      if (!canAccess) {
+      const isOwner = await userIsAccountOwner(req.userId!, accountId);
+      if (!isOwner) {
         return res
           .status(403)
-          .json({ error: "You do not have access to this account" });
+          .json({ error: "Only account owner can update this account" });
       }
 
-      const { name, type, institution, balance, currency } = req.body;
+      const { name, institution, currency, creditLimit } = req.body;
       const account = await prisma.account.update({
         where: { id: accountId },
-        data: { name, type, institution, balance, currency },
+        data: { name, institution, currency, creditLimit },
       });
       res.json(account);
     } catch (err: any) {
@@ -197,13 +200,6 @@ router.delete(
     try {
       const accountId = req.params.id;
 
-      const canAccess = await userCanAccessAccount(req.userId!, accountId);
-      if (!canAccess) {
-        return res
-          .status(403)
-          .json({ error: "You do not have access to this account" });
-      }
-
       const isOwner = await userIsAccountOwner(req.userId!, accountId);
       if (!isOwner) {
         res.status(403).json({ error: "Only account owner can delete" });
@@ -211,27 +207,38 @@ router.delete(
       }
 
       const transactions = await prisma.transaction.findMany({
-        where: { OR: [{ accountId: accountId }, { toAccountId: accountId }] },
+        where: { OR: [{ accountId }, { toAccountId: accountId }] },
       });
 
-      const transactionIds = transactions.map((t) => t.id);
-      if (transactionIds.length > 0) {
-        await prisma.transactionTag.deleteMany({
-          where: { transactionId: { in: transactionIds } },
-        });
-
-        await prisma.transaction.deleteMany({
-          where: { OR: [{ accountId: accountId }, { toAccountId: accountId }] },
-        });
+      const deltasByAccount = new Map<string, Decimal>();
+      for (const t of transactions) {
+        if (t.accountId === accountId) continue;
+        const current = deltasByAccount.get(t.accountId) ?? new Decimal(0);
+        deltasByAccount.set(
+          t.accountId,
+          current.plus(new Decimal(t.amount).negated()),
+        );
       }
 
-      await prisma.accountShare.deleteMany({
-        where: { accountId },
-      });
+      const balanceOps = [...deltasByAccount].map(([id, delta]) =>
+        prisma.account.update({
+          where: { id },
+          data: { balance: { increment: delta } },
+        }),
+      );
 
-      await prisma.account.delete({
-        where: { id: accountId },
-      });
+      await prisma.$transaction([
+        prisma.transactionTag.deleteMany({
+          where: { transactionId: { in: transactions.map((t) => t.id) } },
+        }),
+        prisma.transaction.deleteMany({
+          where: { OR: [{ accountId }, { toAccountId: accountId }] },
+        }),
+        prisma.account.delete({
+          where: { id: accountId },
+        }),
+        ...balanceOps,
+      ]);
 
       res.status(204).send();
     } catch (err: any) {
