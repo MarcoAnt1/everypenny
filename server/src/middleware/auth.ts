@@ -38,6 +38,6 @@ export const authenticate = (
   } catch (error: any) {
     res
       .status(401)
-      .json({ error: "Invalid or expired token", details: error.message });
+      .json({ error: "Invalid or expired token" });
   }
 };
