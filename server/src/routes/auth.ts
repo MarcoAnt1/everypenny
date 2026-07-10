@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma";
 import rateLimit from "express-rate-limit";
 import { authenticate, AuthRequest } from "../middleware/auth";
+import { normalizeEmail } from "../lib/normalize";
 
 const router = Router();
 const { JWT_SECRET, INVITE_TOKEN } = env;
@@ -14,9 +15,6 @@ const authLimiter = rateLimit({
   max: 10,
   message: { error: "Too many attempts, try again later" },
 });
-
-const normalizeEmail = (raw: unknown): string =>
-  typeof raw === "string" ? raw.trim().toLowerCase() : "";
 
 router.post("/register", authLimiter, async (req: Request, res: Response) => {
   try {
@@ -55,6 +53,11 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
 
     const user = await prisma.user.create({
       data: { name, email, passwordHash },
+    });
+
+    await prisma.connection.updateMany({
+      where: { inviteeEmail: user.email, inviteeId: null },
+      data: { inviteeId: user.id },
     });
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
