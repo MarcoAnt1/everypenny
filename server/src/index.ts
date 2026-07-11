@@ -1,6 +1,7 @@
+import "./lib/load-env";
+import { env } from "./lib/env";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import accountRoutes from "./routes/accounts";
 import transactionRoutes from "./routes/transactions";
@@ -12,23 +13,25 @@ import importRoutes from "./routes/imports";
 import connectionsRouter from "./routes/connections";
 import { authenticate } from "./middleware/auth";
 import { setupSwagger } from "./swagger";
-
-dotenv.config();
+import helmet from "helmet";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.set("trust proxy", 1);
+app.use(helmet());
+const PORT = env.PORT;
 
 setupSwagger(app);
 
-app.use(cors({ 
-  origin: [
-    "http://localhost:5173",
-    "http://192.168.1.114:5173",
-    "https://everypenny-sigma.vercel.app",
-    "https://everypenny-45ky1a2n2-everypenny.vercel.app"
-  ],
-}));
-app.use(express.json());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://192.168.1.114:5173",
+      "https://everypenny-sigma.vercel.app",
+    ],
+  }),
+);
+app.use(express.json({ limit: "100kb" }));
 
 app.use("/api/auth", authRoutes);
 
@@ -45,6 +48,11 @@ app.use("/api/connections", authenticate, connectionsRouter);
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "EveryPenny API is running" });
+});
+
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 app.listen(PORT, () => {
