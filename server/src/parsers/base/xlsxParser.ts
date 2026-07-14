@@ -23,7 +23,7 @@ export abstract class XlsxParser extends BaseStatementParser {
   protected async extractRows(filePath: string): Promise<ParsedTransaction[]> {
     const workbook = XLSX.readFile(filePath);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const matrix: any[][] = XLSX.sheet_to_json(sheet, {
+    const matrix: any[][] = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       defval: "",
     });
@@ -56,8 +56,8 @@ export abstract class XlsxParser extends BaseStatementParser {
       if (dateIdx !== -1 && descIdx !== -1 && amountIdx !== -1) {
         return {
           date: dateIdx,
-          desc: dateIdx,
-          amount: dateIdx,
+          desc: descIdx,
+          amount: amountIdx,
           headerRow: i
         }
       }

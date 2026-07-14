@@ -24,7 +24,7 @@ export class AmexCreditParser extends XlsxParser {
     const rawDesc = row[indexes.desc];
     const rawAmount = row[indexes.amount];
 
-    if (!rawDate || !rawDesc || rawAmount) {
+    if (!rawDate || !rawDesc || !rawAmount) {
       return null;
     }
 
