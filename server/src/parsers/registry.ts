@@ -2,6 +2,7 @@ import { StatementParser } from "./interfaces/statementParser";
 import { AmexCreditParser } from "./banks/amex/credit";
 import { NeoCreditParser } from "./banks/neo/credit";
 import { WealthsimpleCheckingParser } from "./banks/wealthsimple/checking";
+import { CibcCreditParser } from "./banks/cibc/credit";
 
 export enum Bank {
   AMEX = "amex",
@@ -26,6 +27,7 @@ type ParserFactory = () => StatementParser;
 const registry: Record<string, ParserFactory> = {
   [`${Bank.AMEX}:${StatementType.CREDIT_CARD}`]: () => new AmexCreditParser(),
   [`${Bank.NEO}:${StatementType.CREDIT_CARD}`]: () => new NeoCreditParser(),
+  [`${Bank.CIBC}:${StatementType.CREDIT_CARD}`]: () => new CibcCreditParser(),
   [`${Bank.WEALTHSIMPLE}:${StatementType.CHECKING}`]: () =>
     new WealthsimpleCheckingParser(),
 };
