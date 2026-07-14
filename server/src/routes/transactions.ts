@@ -8,28 +8,9 @@ import {
 } from "../helper/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TxType } from "@prisma/client";
+import { signAmount, deltaOps } from "../lib/balance";
 
 const router = Router();
-
-// Sign a positive user-facing amount according to transaction type.
-// Positive = money enters `accountId`. Negative = money leaves.
-function signAmount(type: TxType, positiveAmount: Decimal | number | string): Decimal {
-  const amt = new Decimal(positiveAmount);
-  return type === TxType.expense ? amt.negated() : amt;
-}
-
-// One or more balance updates as $transaction operations.
-type Delta = { accountId: string; delta: Decimal };
-function deltaOps(deltas: Delta[]) {
-  return deltas
-    .filter((d) => !d.delta.isZero())
-    .map((d) =>
-      prisma.account.update({
-        where: { id: d.accountId },
-        data: { balance: { increment: d.delta } },
-      }),
-    );
-}
 
 // GET all transactions
 router.get("/", async (req: AuthRequest, res: Response) => {
