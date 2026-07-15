@@ -5,7 +5,7 @@ import {
   getConnectedUserIds,
   getUserAccounts,
   userCanAccessBudget,
-} from "../helper/authorization";
+} from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TxType, BudgetPeriod, Prisma } from "@prisma/client";
 

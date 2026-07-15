@@ -4,7 +4,7 @@ import { AuthRequest } from "../middleware/auth";
 import {
   getConnectedUserIds,
   userCanAccessGoal,
-} from "../helper/authorization";
+} from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
 
 const router = Router();
