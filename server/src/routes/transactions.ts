@@ -5,10 +5,10 @@ import {
   getUserAccounts,
   userCanAccessTransaction,
   userCanEditTransactionInAccount,
-} from "../helper/authorization";
+} from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TxType } from "@prisma/client";
-import { signAmount, deltaOps } from "../lib/balance";
+import { signAmount, deltaOps } from "../services/balance";
 
 const router = Router();
 

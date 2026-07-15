@@ -23,7 +23,13 @@ export abstract class CsvParser extends BaseStatementParser {
       trim: true,
     });
 
-    return rows
+    return this.parseRecords(rows);
+  }
+
+  // Parse already-parsed CSV records into transactions. Exposed (separate from
+  // file reading) so tests can exercise the logic with in-memory records.
+  public parseRecords(records: Record<string, any>[]): ParsedTransaction[] {
+    return records
       .map((row, i) => this.mapRow(row, i))
       .filter((r): r is ParsedTransaction => r !== null);
   }

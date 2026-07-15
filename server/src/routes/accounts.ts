@@ -4,7 +4,7 @@ import {
   getUserAccounts,
   userCanAccessAccount,
   userIsAccountOwner,
-} from "../helper/authorization";
+} from "../services/authorization";
 import prisma from "../lib/prisma";
 import { AccountType, ConnectionStatus, ShareRole } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";

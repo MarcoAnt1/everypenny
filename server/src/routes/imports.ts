@@ -11,9 +11,9 @@ import {
 } from "../parsers/registry";
 import { AccountType, TxStatus, TxType } from "@prisma/client";
 import { AuthRequest } from "../middleware/auth";
-import { userCanEditTransactionInAccount } from "../helper/authorization";
+import { userCanEditTransactionInAccount } from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
-import { deltaOps, signAmount, Delta } from "../lib/balance";
+import { deltaOps, signAmount, Delta } from "../services/balance";
 
 const router = Router();
 

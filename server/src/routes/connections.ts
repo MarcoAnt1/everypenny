@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
 import { ConnectionStatus } from "@prisma/client";
-import { normalizeEmail } from "../lib/normalize";
+import { normalizeEmail } from "../utils/normalize";
 
 const router = Router();
 

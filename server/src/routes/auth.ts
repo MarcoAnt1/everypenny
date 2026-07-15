@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma";
 import rateLimit from "express-rate-limit";
 import { authenticate, AuthRequest } from "../middleware/auth";
-import { normalizeEmail } from "../lib/normalize";
+import { normalizeEmail } from "../utils/normalize";
 
 const router = Router();
 const { JWT_SECRET, INVITE_TOKEN } = env;
@@ -69,6 +69,7 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
       user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: "Failed to register" });
   }
 });

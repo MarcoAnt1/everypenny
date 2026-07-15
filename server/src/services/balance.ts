@@ -1,6 +1,6 @@
 import { TxType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import prisma from "./prisma";
+import prisma from "../lib/prisma";
 
 // Sign a positive user-facing amount according to transaction type.
 // Positive = money enters `accountId`. Negative = money leaves.
