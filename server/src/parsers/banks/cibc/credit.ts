@@ -3,6 +3,11 @@
 import { TxType } from "@prisma/client";
 import { PdfParser } from "../../base/pdfParser";
 import { ParsedTransaction } from "../../interfaces/parsedTransactions";
+import {
+  StatementPeriod,
+  resolvePeriod,
+  resolveYear,
+} from "../../base/statementPeriod";
 
 // section above it is card payments (money from another account), which we skip.
 const SECTION_START = "Your new charges and credits";
@@ -34,7 +39,13 @@ const SPEND_CATEGORIES = [
 export class CibcCreditParser extends PdfParser {
   protected async extractRows(filePath: string): Promise<ParsedTransaction[]> {
     const text = await this.extractText(filePath);
-    const { year, startMonth } = this.extractPeriod(text);
+    return this.parseText(text);
+  }
+
+  // Parse the extracted PDF text into transactions. Exposed (separate from the
+  // pdfjs extraction) so tests can run against sanitized text fixtures.
+  public parseText(text: string): ParsedTransaction[] {
+    const period = resolvePeriod(text, PERIOD_RE);
 
     const start = text.indexOf(SECTION_START);
     if (start === -1) {
@@ -47,7 +58,7 @@ export class CibcCreditParser extends PdfParser {
     const rows: ParsedTransaction[] = [];
     let rowIndex = 0;
     for (const match of section.matchAll(RECORD_RE)) {
-      const parsed = this.mapMatch(match, rowIndex++, year, startMonth);
+      const parsed = this.mapMatch(match, rowIndex++, period);
       if (parsed) rows.push(parsed);
     }
 
@@ -57,8 +68,7 @@ export class CibcCreditParser extends PdfParser {
   private mapMatch(
     match: RegExpMatchArray,
     rowIndex: number,
-    year: string,
-    startMonth: number | null,
+    period: StatementPeriod | null,
   ): ParsedTransaction | null {
     const txDateRaw = match[1].trim();
     const amount = parseFloat(match[4].replace(/,/g, ""));
@@ -76,7 +86,7 @@ export class CibcCreditParser extends PdfParser {
       }
     }
 
-    const date = this.resolveDate(txDateRaw, year, startMonth);
+    const date = resolveYear(txDateRaw, period);
 
     return {
       rowIndex,
@@ -86,34 +96,5 @@ export class CibcCreditParser extends PdfParser {
       type: amount >= 0 ? TxType.expense : TxType.income,
       valid: !!date,
     };
-  }
-
-  private extractPeriod(text: string): {
-    year: string;
-    startMonth: number | null;
-  } {
-    const match = text.match(PERIOD_RE);
-    const start = match?.[1] || null;
-    const end = match?.[2] || null;
-    const year = end?.match(/\d{4}/)?.[0] || String(new Date().getFullYear());
-    const startMonth = start ? new Date(`${start} ${year}`).getMonth() : null;
-    return { year, startMonth };
-  }
-
-  private resolveDate(
-    txDateRaw: string,
-    year: string,
-    startMonth: number | null,
-  ): string | null {
-    const parsed = new Date(`${txDateRaw} ${year}`);
-    if (isNaN(parsed.getTime())) return null;
-
-    const resolvedYear =
-      startMonth !== null && parsed.getMonth() < startMonth
-        ? String(Number(year) + 1)
-        : year;
-
-    const fullDate = new Date(`${txDateRaw} ${resolvedYear}`);
-    return isNaN(fullDate.getTime()) ? null : fullDate.toISOString();
   }
 }

@@ -28,6 +28,12 @@ export abstract class XlsxParser extends BaseStatementParser {
       defval: "",
     });
 
+    return this.parseMatrix(matrix);
+  }
+
+  // Parse an already-loaded sheet matrix into transactions. Exposed (separate
+  // from file reading) so tests can exercise the logic with in-memory matrices.
+  public parseMatrix(matrix: any[][]): ParsedTransaction[] {
     if (matrix.length === 0) {
       throw new Error("Statement file is empty");
     }
