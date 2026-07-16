@@ -8,6 +8,7 @@ import {
 import prisma from "../lib/prisma";
 import { AccountType, ConnectionStatus, ShareRole } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 const router = Router();
 
@@ -94,10 +95,15 @@ router.post("/", async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(account);
   } catch (err: any) {
-    res.status(500).json({
-      error: "Failed to create account",
-      details: err.message,
-    });
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return res
+        .status(409)
+        .json({ error: "You already have an account with this name" });
+    }
+    res.status(500).json({ error: "Failed to create account" });
   }
 });
 
