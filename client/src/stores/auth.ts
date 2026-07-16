@@ -1,6 +1,13 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { login as loginApi, register as registerApi } from "../api/auth";
+import { login as loginApi, register as registerApi, getMe } from "../api/auth";
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  createdAt?: string;
+}
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem("token"));
@@ -41,5 +48,24 @@ export const useAuthStore = defineStore("auth", () => {
     return res.data;
   };
 
-  return { token, user, isAuthenticated, login, register, logout };
+  const fetchCurrentUser = async () => {
+    if (!token.value) return;
+    try {
+      const res = await getMe();
+      user.value = res.data;
+      localStorage.setItem("user", JSON.stringify(res.data));
+    } catch {
+      logout();
+    }
+  };
+
+  return {
+    token,
+    user,
+    isAuthenticated,
+    login,
+    register,
+    logout,
+    fetchCurrentUser,
+  };
 });

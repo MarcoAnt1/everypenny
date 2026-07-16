@@ -1,8 +1,9 @@
-export const formatCurrency = (amount: number) => {
+export const formatCurrency = (amount: number | string | null | undefined) => {
+  const n = typeof amount === "number" ? amount : Number(amount);
   return new Intl.NumberFormat("en-CA", {
     style: "currency",
     currency: "CAD",
-  }).format(amount);
+  }).format(Number.isFinite(n) ? n : 0);
 };
 
 export const formatDate = (dateString: string) => {
