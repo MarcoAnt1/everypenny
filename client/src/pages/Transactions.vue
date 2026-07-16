@@ -247,15 +247,13 @@
                 <p
                   class="text-xs"
                   :class="
-                    tx.direction === 'in' ? 'text-green-400' : 'text-indigo-400'
+                    Number(tx.amount) >= 0
+                      ? 'text-green-400'
+                      : 'text-indigo-400'
                   "
                 >
-                  {{ tx.direction === "out" ? "← from" : "→ to" }}
-                  {{
-                    tx.direction === "out"
-                      ? tx.Account?.name
-                      : tx.toAccountId.name
-                  }}
+                  {{ Number(tx.amount) >= 0 ? "← from" : "→ to" }}
+                  {{ tx.toAccountId?.name ?? "-" }}
                 </p>
               </div>
               <span v-else>{{ tx.account?.name || "-" }}</span>
@@ -279,20 +277,20 @@
               class="px-6 py-4 text-right font-semibold whitespace-nowrap"
               :class="
                 tx.type === 'transfer'
-                  ? tx.direction === 'in'
+                  ? Number(tx.amount) >= 0
                     ? 'text-green-500'
                     : 'text-indigo-500'
-                  : tx.type === 'income'
+                  : Number(tx.amount) >= 0
                     ? 'text-green-500'
                     : 'text-red-500'
               "
             >
               {{
                 tx.type === "transfer"
-                  ? tx.direction === "in"
+                  ? Number(tx.amount) >= 0
                     ? "↓"
                     : "↑"
-                  : tx.type === "income"
+                  : Number(tx.amount) >= 0
                     ? "+"
                     : "-"
               }}{{ formatCurrency(Math.abs(Number(tx.amount))) }}
@@ -301,15 +299,32 @@
             <!-- Actions -->
             <td class="px-6 py-4 text-center">
               <ActionMenu
-                :actions="[
-                  { label: 'Edit', onClick: () => openModal(tx) },
-                  { label: 'Copy', onClick: () => duplicateTransaction(tx) },
-                  {
-                    label: 'Delete',
-                    danger: true,
-                    onClick: () => confirmDelete(tx),
-                  },
-                ]"
+                :actions="
+                  tx.type === 'transfer'
+                    ? [
+                        {
+                          label: 'Copy',
+                          onClick: () => duplicateTransaction(tx),
+                        },
+                        {
+                          label: 'Delete',
+                          danger: true,
+                          onClick: () => confirmDelete(tx),
+                        },
+                      ]
+                    : [
+                        { label: 'Edit', onClick: () => openModal(tx) },
+                        {
+                          label: 'Copy',
+                          onClick: () => duplicateTransaction(tx),
+                        },
+                        {
+                          label: 'Delete',
+                          danger: true,
+                          onClick: () => confirmDelete(tx),
+                        },
+                      ]
+                "
               />
             </td>
           </tr>
@@ -329,6 +344,13 @@
         <h3 class="text-lg-font-semibold text-gray-800 mb-6">
           {{ editingTransaction ? "Edit Transaction" : "Add Transaction" }}
         </h3>
+
+        <div
+          v-if="error"
+          class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg mb-4"
+        >
+          {{  error }}
+        </div>
 
         <div class="space-y-4">
           <!-- Type -->
@@ -564,6 +586,7 @@
             </button>
             <button
               @click="saveTransaction"
+              :disabled="saving"
               class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
             >
               {{
@@ -827,11 +850,12 @@ const net = computed(() => totalIncome.value - totalExpenses.value);
 
 // Modal
 const openModal = (tx?: any) => {
+  selectedCategoryLabel.value = tx?.category?.name ?? "";
   editingTransaction.value = tx || null;
   form.value = tx
     ? {
         description: tx.description,
-        amount: tx.amount,
+        amount: Math.abs(Number(tx.amount)),
         date: tx.date,
         type: tx.type,
         accountId: tx.accountId,
@@ -846,9 +870,11 @@ const openModal = (tx?: any) => {
 };
 
 const closeModal = () => {
+  selectedCategoryLabel.value = "";
   showModal.value = false;
   editingTransaction.value = null;
   form.value = { ...defaultForm, tagIds: [] };
+  error.value = "";
 };
 
 const toggleTag = (tagId: string) => {
@@ -865,8 +891,27 @@ const onImported = async () => {
   await loadTransactions();
 };
 
-// Save
+const error = ref("");
+
 const saveTransaction = async () => {
+  error.value = "";
+  if (!form.value.accountId) {
+    error.value = "Please select an account";
+    return;
+  }
+  if (!form.value.description.trim()) {
+    error.value = "Description is required";
+    return;
+  }
+  if (!form.value.amount || Number(form.value.amount) <= 0) {
+    error.value = "Amount must be greater than zero";
+    return;
+  }
+  if (form.value.type === "transfer" && !form.value.toAccountId) {
+    error.value = "Transfers need a destination account";
+    return;
+  }
+
   saving.value = true;
   try {
     if (editingTransaction.value) {
@@ -876,8 +921,8 @@ const saveTransaction = async () => {
     }
     await loadTransactions();
     closeModal();
-  } catch (error) {
-    console.error("Error saving transaction:", error);
+  } catch (err: any) {
+    error.value = err.response?.data?.error ?? "Failed to save transaction";
   } finally {
     saving.value = false;
   }
@@ -900,14 +945,14 @@ const deleteTransactionConfirmed = async () => {
 };
 
 const duplicateTransaction = (tx: any) => {
-  if (tx.type === "transfer" && tx.direction === "in") {
+  if (tx.type === "transfer" && Number(tx.amount) >= 0) {
     alert("To duplicate a transfer, use the outgoing record.");
     return;
   }
   editingTransaction.value = null;
   form.value = {
     description: `${tx.description} (copy)`,
-    amount: tx.amount,
+    amount: Math.abs(Number(tx.amount)),
     date: new Date().toISOString().split("T")[0],
     type: tx.type,
     accountId: tx.accountId,
