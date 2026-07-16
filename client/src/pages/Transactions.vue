@@ -122,7 +122,7 @@
           v-for="tag in tags"
           :key="tag.id"
           @click="toggleTagFilter(tag.id)"
-          class="text-s px-3 py-1 rounded-full transition"
+          class="text-xs px-3 py-1 rounded-full transition"
           :class="
             filters.tagIds.includes(tag.id)
               ? 'bg-indigo-600 text-white'
@@ -201,7 +201,7 @@
     >
       <p class="text-4xl mb-4">💸</p>
       <p class="text-lg font-medium">No transactions found</p>
-      <p class="text-sm">Add your first transaction or adujst your filters</p>
+      <p class="text-sm">Add your first transaction or adjust your filters</p>
     </div>
 
     <!-- Transactions Table -->
@@ -243,7 +243,7 @@
             <!-- Account -->
             <td class="px-6 py-4 text-gray-500">
               <div v-if="tx.type === 'transfer'">
-                <p class="txt-sm">{{ tx.account?.name }}</p>
+                <p class="text-sm">{{ tx.account?.name }}</p>
                 <p
                   class="text-xs"
                   :class="
@@ -339,9 +339,9 @@
       @click.self="closeModal"
     >
       <div
-        class="bg-white rounded-xl shodow-xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        class="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
-        <h3 class="text-lg-font-semibold text-gray-800 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-6">
           {{ editingTransaction ? "Edit Transaction" : "Add Transaction" }}
         </h3>
 
@@ -413,9 +413,9 @@
             <label class="text-sm text-gray-600 font-medium">To Account</label>
             <select
               v-model="form.toAccountId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 frocus:ring-indigo-400"
+              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-              <option value="">Select destinatioin account</option>
+              <option value="">Select destination account</option>
               <option
                 v-for="account in accounts.filter(
                   (a) => a.id !== form.accountId,
@@ -501,7 +501,7 @@
                   <div
                     v-for="sub in cat.subcategories"
                     :key="sub.id"
-                    class="text=sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
+                    class="text-sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
                     @click="selectCategory(sub)"
                   >
                     └ {{ sub.name }}
@@ -514,7 +514,7 @@
           <!-- Tags -->
           <div>
             <label class="text-sm text-gray-600 font-medium">Tags</label>
-            <div class="relative mt=1" ref="formTagMenuRef">
+            <div class="relative mt-1" ref="formTagMenuRef">
               <button
                 @click.stop="showFormTagMenu = !showFormTagMenu"
                 type="button"
@@ -536,7 +536,7 @@
                 <label
                   v-for="tag in tags"
                   :key="tag.id"
-                  class="flex items-center gap-2 text-sm px-2 py-1 hover:bg-gray-50 rounded coursor-pointer"
+                  class="flex items-center gap-2 text-sm px-2 py-1 hover:bg-gray-50 rounded cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -563,7 +563,7 @@
 
           <!-- Notes -->
           <div>
-            <label for="Tags" class="text-sm text-gray-600 font-medium"
+            <label for="notes" class="text-sm text-gray-600 font-medium"
               >Notes (optional)</label
             >
             <textarea
@@ -571,7 +571,7 @@
               id="notes"
               v-model="form.notes"
               placeholder="Any extra details..."
-              role="2"
+              rows="2"
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
