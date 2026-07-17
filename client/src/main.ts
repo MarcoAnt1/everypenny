@@ -10,5 +10,7 @@ const app = createApp(App);
 app.use(router);
 app.use(pinia);
 
+// Validate any stored session before mounting, so a stale token doesn't
+// briefly render the app before the first 401 bounces the user to login.
 const auth = useAuthStore();
-auth.fetchCurrentUser().finally(() => app.mount("#app");
+auth.fetchCurrentUser().finally(() => app.mount("#app"));

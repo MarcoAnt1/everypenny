@@ -1,10 +1,14 @@
 <template>
-    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div
+        class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        @click.self="emit('close')"
+    >
         <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
             <p class="text-4xl mb-4">⚠️</p>
-            <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete {{ props.item }}?</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete {{ item }}?</h3>
             <p class="text-sm text-gray-400 mb-6">
-                This will permanently delete <strong>{{ itemDescription }}</strong>.
+                This will permanently delete
+                <strong>{{ itemDescription ?? `this ${item.toLowerCase()}` }}</strong>.
             </p>
             <div class="flex gap-3">
                 <button
@@ -26,7 +30,9 @@
 
 <script setup lang="ts">
 
-const props = defineProps<{ item: string, itemDescription: string }>();
+// itemDescription is optional — callers pass things like `deletingAccount?.name`,
+// which is undefined on the first render before a row is selected.
+defineProps<{ item: string; itemDescription?: string }>();
 const emit = defineEmits(['close', 'deleted']);
 
 </script>
