@@ -6,9 +6,9 @@
         <div class="bg-white rounded-xl shadow-xl w-fit min-w-[600px] max-w-[90vw] max-h-[90vh] flex flex-col">
             
             <!-- Header -->
-            <div class="p-6 border-b flex items center justify-between">
+            <div class="p-6 border-b flex items-center justify-between">
                 <div>
-                    <h3 class="text-lg-font-semibold text-gray-800 mb-6">Import Statement</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-6">Import Statement</h3>
                     <p class="text-sm text-gray-400">{{ stepLabel }}</p>
                 </div>
                 <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 text-xl">
@@ -30,7 +30,7 @@
                                 :class="step > i
                                     ? 'bg-indigo-600 text-white'
                                     : step === i
-                                        ? 'bg-indigo-100 text-indigo-600 border-2 border-inddigo-600'
+                                        ? 'bg-indigo-100 text-indigo-600 border-2 border-indigo-600'
                                         : 'bg-gray-100 text-gray-400'"   
                             >
                                 {{ step > i ? '✓' : i + 1 }}
@@ -51,7 +51,15 @@
             <div class="flex-1 overflow-y-auto p-6">
 
                 <div v-if="step === 0" class="space-y-6">
-                    
+
+                    <!-- Error -->
+                    <div
+                        v-if="error"
+                        class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg"
+                    >
+                        {{ error }}
+                    </div>
+
                     <!-- Account -->
                     <div>
                         <label class="text-sm font-medium text-gray-600">Import to Account</label>
@@ -64,6 +72,39 @@
                                 {{ acc.name }} — {{ formatCurrency(acc.balance) }}
                             </option>
                         </select>
+                    </div>
+
+                    <!-- Bank + Statement Type -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Bank</label>
+                            <select
+                                v-model="form.bank"
+                                @change="onBankChange"
+                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            >
+                                <option value="">Select bank</option>
+                                <option v-for="bank in availableBanks" :key="bank" :value="bank">
+                                    {{ BANK_LABELS[bank] ?? bank }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Statement Type</label>
+                            <select
+                                v-model="form.statementType"
+                                :disabled="!form.bank"
+                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-400"
+                            >
+                                <option value="">
+                                    {{ form.bank ? 'Select type' : 'Pick a bank first' }}
+                                </option>
+                                <option v-for="type in availableTypes" :key="type" :value="type">
+                                    {{ TYPE_LABELS[type] ?? type }}
+                                </option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- File Upload -->
@@ -116,6 +157,22 @@
                     </div>
 
                     <div v-else>
+
+                        <!-- Error -->
+                        <div
+                            v-if="error"
+                            class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg mb-4"
+                        >
+                            {{ error }}
+                        </div>
+
+                        <!-- Rows the parser couldn't read -->
+                        <div
+                            v-if="invalidCount > 0"
+                            class="bg-yellow-50 text-yellow-700 text-sm px-4 py-3 rounded-lg mb-4"
+                        >
+                            ⚠️ {{ invalidCount }} row{{ invalidCount === 1 ? '' : 's' }} couldn't be read and {{ invalidCount === 1 ? 'is' : 'are' }} not shown below.
+                        </div>
 
                         <!-- Summary -->
                         <div class="grid grid-cols-3 gap-3 mb-6">
@@ -213,13 +270,16 @@
                                                 class="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 max-w-32"
                                             >
                                                 <option value="">— None —</option>
-                                                <option
-                                                    v-for="cat in categories"
-                                                    :key="cat.id"
-                                                    :value="cat.id"
-                                                >
-                                                    {{  cat.name }}
-                                                </option>
+                                                <template v-for="cat in categories" :key="cat.id">
+                                                    <option :value="cat.id">{{ cat.name }}</option>
+                                                    <option
+                                                        v-for="sub in cat.subcategories"
+                                                        :key="sub.id"
+                                                        :value="sub.id"
+                                                    >
+                                                        └ {{ sub.name }}
+                                                    </option>
+                                                </template>
                                             </select>
                                         </td>
 
@@ -242,7 +302,7 @@
                                                     <label 
                                                         v-for="tag in tags"
                                                         :key="tag.id"
-                                                        class="flex items-center gap-2 text-xs px-2 py-1 hover:bg-gray-50 rounded coursor-pointer"
+                                                        class="flex items-center gap-2 text-xs px-2 py-1 hover:bg-gray-50 rounded cursor-pointer"
                                                     >
                                                         <input 
                                                             type="checkbox"
@@ -274,7 +334,7 @@
                     </div>
                 </div>
 
-                <!-- Sucess -->
+                <!-- Success -->
                 <div v-if="step === 2" class="text-center py-16">
                     <p class="text-5xl mb-4">🎉</p>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">Import Successful!</h3>
@@ -282,13 +342,19 @@
                         <strong class="text-indigo-600">{{ importedCount }}</strong> transactions imported successfully.
                     </p>
                     <p v-if="skippedCount > 0" class="text-sm text-gray-400 mt-1">
-                        {{ skippedCount }} row were skipped.
+                        {{ skippedCount }} row{{ skippedCount === 1 ? '' : 's' }} were skipped.
                     </p>
+                    <div
+                        v-if="warning"
+                        class="mt-4 mx-auto max-w-md bg-yellow-50 text-yellow-700 text-sm px-4 py-3 rounded-lg"
+                    >
+                        ⚠️ {{ warning }}
+                    </div>
                 </div>
             </div>
         
             <!-- Footer -->
-            <div class="p-6 border-t flex justify-between items center">
+            <div class="p-6 border-t flex justify-between items-center">
                 <button
                     v-if="step > 0 && step < 2"
                     @click="step--"
@@ -311,7 +377,7 @@
                     <button
                         v-if="step === 0"
                         @click="parseFile"
-                        :disabled=" !form.accountId || !form.file || loading"
+                        :disabled="!form.accountId || !form.bank || !form.statementType || !form.file || loading"
                         class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
                     >
                         Parse Statement →
@@ -344,8 +410,13 @@
 
 <script setup lang="ts">
 
-import { ref, computed } from 'vue';
-import { preview, confirmImport as confirmImportApi } from '../api/import';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import {
+    preview,
+    confirmImport as confirmImportApi,
+    getSupported,
+    type SupportedStatement,
+} from '../api/import';
 import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
 import { formatCurrency, formatDate } from '../helper/formatHelper';
@@ -356,22 +427,79 @@ const emit = defineEmits(['close', 'imported']);
 const step = ref(0);
 const loading = ref(false);
 const saving = ref(false);
+const error = ref('');
 
 const importedCount = ref(0);
 const skippedCount = ref(0);
+const invalidCount = ref(0);
+const warning = ref('');
 
 const previewRows = ref<any[]>([]);
 const categories = ref<any[]>([]);
 const tags = ref<any[]>([]);
+const supported = ref<SupportedStatement[]>([]);
 
 const openTagMenu = ref<number | null>(null);
 
 const steps = [ 'Upload', 'Preview & Edit', 'Done'];
 
+// Display names for the backend's Bank / StatementType enum values.
+const BANK_LABELS: Record<string, string> = {
+    amex: 'American Express',
+    neo: 'Neo Financial',
+    wealthsimple: 'Wealthsimple',
+    cibc: 'CIBC',
+    td: 'TD',
+    rbc: 'RBC',
+    bmo: 'BMO',
+    scotiabank: 'Scotiabank',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+    credit_card: 'Credit Card',
+    checking: 'Chequing',
+    savings: 'Savings',
+    investment: 'Investment',
+};
+
 const form = ref({
     accountId: '',
+    bank: '',
+    statementType: '',
     file: null as File | null
 });
+
+onMounted(async () => {
+    document.addEventListener('click', closeTagMenu);
+    try {
+        const res = await getSupported();
+        supported.value = res.data;
+    } catch (err) {
+        error.value = 'Could not load the list of supported banks.';
+    }
+});
+
+onUnmounted(() => document.removeEventListener('click', closeTagMenu));
+
+const closeTagMenu = () => (openTagMenu.value = null);
+
+// Banks that have at least one parser registered.
+const availableBanks = computed(() =>
+    [...new Set(supported.value.map((s) => s.bank))].sort(),
+);
+
+// Statement types available for the chosen bank.
+const availableTypes = computed(() =>
+    supported.value
+        .filter((s) => s.bank === form.value.bank)
+        .map((s) => s.statementType),
+);
+
+const onBankChange = () => {
+    // The previously chosen type may not exist for this bank.
+    form.value.statementType =
+        availableTypes.value.length === 1 ? availableTypes.value[0] : '';
+};
 
 const acceptedFormats = computed(() => {
     return '.pdf,.xls,.xlsx,.csv';
@@ -387,7 +515,9 @@ const stepLabel = computed(() => {
 const selectedRows = computed(() => previewRows.value.filter(r => r.selected));
 const incomeCount = computed(() => previewRows.value.filter(r => r.type === 'income').length);
 const expenseCount = computed(() => previewRows.value.filter(r => r.type === 'expense').length);
-const allSelected = computed(() => previewRows.value.every(r => r.selected));
+const allSelected = computed(
+    () => previewRows.value.length > 0 && previewRows.value.every(r => r.selected),
+);
 
 const onFileChange = (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -399,8 +529,9 @@ const onDrop = (e: DragEvent) => {
 }
 
 const parseFile = async () => {
-    if (!form.value.file) return;
+    if (!form.value.file || !form.value.bank || !form.value.statementType) return;
 
+    error.value = '';
     loading.value = true;
     step.value = 1;
 
@@ -409,10 +540,13 @@ const parseFile = async () => {
         categories.value = catRes.data;
         tags.value = tagRes.data;
 
-        const bankType = props.accounts.find(a => a.id === form.value.accountId).name;
+        const res = await preview(
+            form.value.file,
+            form.value.bank,
+            form.value.statementType,
+        );
 
-        const res = await preview(form.value.file, bankType);
-
+        invalidCount.value = res.data.invalid ?? 0;
         previewRows.value = res.data.rows
             .filter((r: any) => r.valid)
             .map((r: any) => ({
@@ -427,9 +561,10 @@ const parseFile = async () => {
                 toAccountId: r.toAccountId || '',
                 tagIds: [] as string[]
             }));
-    } catch (error: any) {
-        console.error('Parse error:', error);
-        alert('Failed to parse statement. Please check the file format.');
+    } catch (err: any) {
+        error.value =
+            err.response?.data?.error ??
+            'Failed to parse statement. Check the bank, statement type, and file.';
         step.value = 0;
     } finally {
         loading.value = false;
@@ -448,10 +583,12 @@ const toggleRowTag = (row:any, tagId: string) => {
 }
 
 const confirmImport = async () => {
+    error.value = '';
     saving.value = true;
     try {
         const res = await confirmImportApi(
             form.value.accountId,
+            form.value.statementType,
             selectedRows.value.map(r => ({
                 date: r.date,
                 description: r.description,
@@ -465,11 +602,12 @@ const confirmImport = async () => {
         );
         importedCount.value = res.data.imported;
         skippedCount.value = res.data.skipped || 0;
+        warning.value = res.data.warning || '';
         step.value = 2;
         emit('imported');
-    } catch (error) {
-        console.error('Import error:', error);
-        alert('Failed to import transactions.');
+    } catch (err: any) {
+        error.value =
+            err.response?.data?.error ?? 'Failed to import transactions.';
     } finally {
         saving.value = false;
     }
