@@ -555,7 +555,7 @@
             </div>
           </div>
 
-          <CategoryForModal
+          <CategoryFormModal
             v-if="showCategoryModal"
             @close="showCategoryModal = false"
             @saved="onCategorySaved"
@@ -630,11 +630,11 @@ import {
 import { getAccounts } from "../api/accounts";
 import { getCategories } from "../api/categories";
 import { getTags } from "../api/tags";
-import { formatCurrency } from "../helper/formatHelper.ts";
+import { formatCurrency } from "../utils/format";
 import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
-import CategoryForModal from "../components/CategoryForModal.vue";
+import CategoryFormModal from "../components/CategoryFormModal.vue";
 
 const loading = ref(true);
 const saving = ref(false);

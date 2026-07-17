@@ -180,7 +180,7 @@ import { getAccounts } from "../api/accounts";
 import { getTransactions } from "../api/transactions";
 import { getBudgets } from "../api/budgets";
 import { getGoals } from "../api/goals";
-import { formatDate, formatCurrency } from "../helper/formatHelper";
+import { formatDate, formatCurrency } from "../utils/format";
 
 const loading = ref(true);
 const accounts = ref<any[]>([]);

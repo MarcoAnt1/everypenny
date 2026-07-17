@@ -317,7 +317,7 @@ import {
   getAccounts,
   updateAccount,
 } from "../api/accounts";
-import { formatCurrency } from "../helper/formatHelper.ts";
+import { formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 
 const loading = ref(true);

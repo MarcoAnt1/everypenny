@@ -315,7 +315,7 @@ import {
   deleteGoal,
   addFunds,
 } from "../api/goals";
-import { formatDate, formatCurrency } from "../helper/formatHelper.ts";
+import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 
 const loading = ref(true);

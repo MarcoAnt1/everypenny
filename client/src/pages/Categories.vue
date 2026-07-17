@@ -111,7 +111,7 @@
       </ul>
     </div>
 
-    <CategoryForModal
+    <CategoryFormModal
       v-if="showModal"
       :category="editingCategory"
       :parent-id="parentId || undefined"
@@ -134,7 +134,7 @@
 import { ref, computed, onMounted } from "vue";
 import { getCategories, deleteCategory } from "../api/categories";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
-import CategoryForModal from "../components/CategoryForModal.vue";
+import CategoryFormModal from "../components/CategoryFormModal.vue";
 
 const loading = ref(true);
 const categories = ref<any[]>([]);

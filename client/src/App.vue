@@ -11,8 +11,8 @@
 <script setup lang="ts">
 
 import { computed } from 'vue';
-import { useAuthStore } from './stores/auth.ts';
-import AppLayout from './components/AppLayout.vue';
+import { useAuthStore } from './stores/auth';
+import AppLayout from './layouts/AppLayout.vue';
 
 const authStore = useAuthStore();
 const isAuthenticated = computed(() => authStore.isAuthenticated);
