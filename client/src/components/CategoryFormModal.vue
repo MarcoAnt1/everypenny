@@ -1,11 +1,9 @@
 <template>
   <div
     class="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]"
+    @click.self="emit('close')"
   >
-    <div
-      class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md"
-      @click.self="emit('close')"
-    >
+    <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
       <h3 class="text-lg font-semibold text-gray-800 mb-6">
         {{
           category
@@ -16,6 +14,13 @@
         }}
       </h3>
 
+      <div
+        v-if="error"
+        class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg mb-4"
+      >
+        {{ error }}
+      </div>
+
       <div class="space-y-4">
         <!-- Name -->
         <div>
@@ -24,7 +29,7 @@
             v-model="form.name"
             type="text"
             placeholder="e.g. Food"
-            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo 400"
+            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>
 
@@ -32,7 +37,7 @@
         <div>
           <label class="text-sm text-gray-600 font-medium">Icon (emoji)</label>
           <input
-            v-model.number="form.icon"
+            v-model="form.icon"
             type="text"
             placeholder="e.g. 🍔"
             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
@@ -47,7 +52,7 @@
           <p
             class="mt-1 text-sm text-indigo-600 font-medium px-3 py-2 bg-indigo-50 rounded-lg"
           >
-            {{ parentCategoryName }}
+            {{ parentName }}
           </p>
         </div>
 
@@ -62,7 +67,7 @@
           >
             <option value="">None (top level)</option>
             <option v-for="cat in parentOptions" :key="cat.id" :value="cat.id">
-              {{ cat.icom || "📁" }} {{ cat.name }}
+              {{ cat.icon || "📁" }} {{ cat.name }}
             </option>
           </select>
         </div>
@@ -81,11 +86,7 @@
             class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
           >
             {{
-              saving
-                ? "Saving..."
-                : category
-                  ? "Save Changes"
-                  : "Add Category"
+              saving ? "Saving..." : category ? "Save Changes" : "Add Category"
             }}
           </button>
         </div>
@@ -95,7 +96,6 @@
 </template>
 
 <script setup lang="ts">
-
 import { ref, computed, onMounted } from "vue";
 import {
   getCategories,
@@ -104,52 +104,46 @@ import {
 } from "../api/categories";
 
 const props = defineProps<{
-  category?: any
-  parentId?: string
-  parentName?: string
+  category?: any;
+  parentId?: string;
+  parentName?: string;
 }>();
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(["close", "saved"]);
 
 const saving = ref(false);
-const error = ref('');
+const error = ref("");
 const allCategories = ref<any[]>([]);
 
 const form = ref({
-  name: props.category?.name || '',
-  icon: props.category?.icon || '',
-  parentId: props.category?.parentId  || '',
+  name: props.category?.name || "",
+  icon: props.category?.icon || "",
+  parentId: props.category?.parentId || "",
 });
 
 onMounted(async () => {
+  try {
     const res = await getCategories();
     allCategories.value = res.data;
+  } catch (err) {
+    console.error("Error loading categories:", err);
+  }
 });
 
-// Options for parent selector (exlcude self when editing
+// Options for parent selector (exclude self when editing)
 const parentOptions = computed(() =>
-  allCategories.value.filter(
-    (c) => !c.parentId && c.id !== props.category?.id,
-  ),
+  allCategories.value.filter((c) => !c.parentId && c.id !== props.category?.id),
 );
 
-// Parent name for display
-const parentCategoryName = computed(() => {
-  if (!props.category?.parentId.value) return "";
-
-  return allCategories.value.find((c) => c.id === props.category?.parentId.value)?.name || "";
-});
-
-// Save
 const save = async () => {
   if (!form.value.name.trim()) return;
 
-  error.value = '';
+  error.value = "";
   saving.value = true;
   try {
     const payload = {
       ...form.value,
-      parentId: form.value.parentId || null
+      parentId: form.value.parentId || null,
     };
 
     let saved: any;
@@ -161,10 +155,10 @@ const save = async () => {
       saved = res.data;
     }
 
-    emit('saved', saved);
-    emit('close');
+    emit("saved", saved);
+    emit("close");
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Failed to save category';
+    error.value = err.response?.data?.error || "Failed to save category";
   } finally {
     saving.value = false;
   }

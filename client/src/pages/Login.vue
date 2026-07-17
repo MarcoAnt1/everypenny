@@ -10,7 +10,10 @@
       <!-- Tabs -->
       <div class="flex border rounded-lg overflow-hidden mb-6">
         <button
-          @click="mode = 'login'"
+          @click="
+            mode = 'login';
+            error = '';
+          "
           :class="
             mode === 'login'
               ? 'flex-1 py-2 bg-indigo-600 text-white text-sm font-medium'
@@ -20,7 +23,10 @@
           Login
         </button>
         <button
-          @click="mode = 'register'"
+          @click="
+            mode = 'register';
+            error = '';
+          "
           :class="
             mode === 'register'
               ? 'flex-1 py-2 bg-indigo-600 text-white text-sm font-medium'
@@ -40,16 +46,16 @@
       </div>
 
       <!-- Form -->
-      <div class="space-y-4">
+      <form class="space-y-4" @submit.prevent="submit">
         <!-- Invite Token (register only)-->
         <div v-if="mode === 'register'">
           <label class="text-sm font-medium text-gray-600">Invite Token</label>
-          <input 
+          <input
             v-model="form.inviteToken"
             type="text"
-            placeholder="Enter inivte token"
+            placeholder="Enter invite token"
             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
+          />
         </div>
 
         <!-- Name (register only) -->
@@ -58,6 +64,7 @@
           <input
             v-model="form.name"
             type="text"
+            autocomplete="name"
             placeholder="John Doe"
             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
@@ -69,6 +76,7 @@
           <input
             v-model="form.email"
             type="email"
+            autocomplete="email"
             placeholder="john@example.com"
             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
@@ -80,30 +88,32 @@
           <input
             v-model="form.password"
             type="password"
+            :autocomplete="
+              mode === 'register' ? 'new-password' : 'current-password'
+            "
             placeholder="********"
             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            @keyup.enter="submit"
           />
           <p v-if="mode === 'register'" class="text-xs text-gray-400 mt-1">
             Minimum 8 characters
           </p>
         </div>
-      </div>
 
-      <!-- Submit -->
-      <button
-        @click="submit"
-        :disabled="loading"
-        class="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
-      >
-        {{
-          loading
-            ? "Please wait..."
-            : mode === "login"
-              ? "Login"
-              : "Create Account"
-        }}
-      </button>
+        <!-- Submit -->
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
+        >
+          {{
+            loading
+              ? "Please wait..."
+              : mode === "login"
+                ? "Login"
+                : "Create Account"
+          }}
+        </button>
+      </form>
     </div>
   </div>
 </template>
@@ -132,11 +142,14 @@ const submit = async () => {
     return;
   }
 
-  if (!form.value.password || form.value.password.length < 8) {
-    error.value =
-      mode.value === "register"
-        ? "Password must be at least 8 characters"
-        : "Passwword is required";
+  if (mode.value === "register" && form.value.password.length < 8) {
+    error.value = "Password must be at least 8 characters";
+    loading.value = false;
+    return;
+  }
+
+  if (!form.value.password) {
+    error.value = "Password is required";
     loading.value = false;
     return;
   }

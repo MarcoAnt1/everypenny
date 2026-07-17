@@ -6,8 +6,9 @@ import {
   userIsAccountOwner,
 } from "../services/authorization";
 import prisma from "../lib/prisma";
-import { AccountType, ConnectionStatus, ShareRole } from "@prisma/client";
+import { AccountType, ConnectionStatus, ShareRole, TxType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 const router = Router();
 
@@ -71,7 +72,7 @@ router.get(
 // POST create a new account
 router.post("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { name, type, institution, balance, currency } = req.body;
+    const { name, type, institution, balance, creditLimit, currency } = req.body;
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "Account name is required" });
     }
@@ -89,15 +90,21 @@ router.post("/", async (req: AuthRequest, res: Response) => {
         institution,
         balance,
         currency,
+        creditLimit: type === AccountType.credit_card ? creditLimit : null
       },
     });
 
     res.status(201).json(account);
   } catch (err: any) {
-    res.status(500).json({
-      error: "Failed to create account",
-      details: err.message,
-    });
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return res
+        .status(409)
+        .json({ error: "You already have an account with this name" });
+    }
+    res.status(500).json({ error: "Failed to create account" });
   }
 });
 

@@ -22,7 +22,7 @@
       <!-- Global success -->
       <div
         v-if="successMessage"
-        class="bg-red-50 border-green-200 text-green-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2"
+        class="bg-green-50 border-green-200 text-green-600 text-sm px-4 py-3 rounded-lg flex items-center gap-2"
       >
         <span>✅</span>
         <span>{{ successMessage }}</span>
@@ -33,7 +33,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
         <h3 class="text-lg font-semibold text-gray-800">
-          Invite a connections
+          Invite a connection
         </h3>
 
         <!-- Email -->
@@ -153,7 +153,7 @@
               :key="connection.id"
               class="border rounded-lg p-3"
             >
-              <div class="flex items-center jusitify-between gap-3">
+              <div class="flex items-center justify-between gap-3">
                 <div>
                   <p class="font-medium text-gray-700">
                     {{ connection.inviteeEmail }}
@@ -175,7 +175,7 @@
         <!-- Requests -->
         <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
           <h3 class="text-lg font-semibold text-gray-800">
-            Incoming requestes
+            Incoming requests
           </h3>
           <div
             v-if="receivedConnections.length === 0"
@@ -189,7 +189,7 @@
               :key="connection.id"
               class="border rounded-lg p-3"
             >
-              <div class="flex items-center jusitify-between gap-3">
+              <div class="flex items-center justify-between gap-3">
                 <div>
                   <p class="font-medium text-gray-700">
                     {{ connection.requester?.name || connection.inviteeEmail }}
@@ -219,7 +219,7 @@
 
     <!-- Connections Accepted -->
     <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
-      <h3 class="text-lg font-semibold text-gray-800">Accepted connetions</h3>
+      <h3 class="text-lg font-semibold text-gray-800">Accepted connections</h3>
       <div
         v-if="acceptedConnections.length === 0"
         class="text-sm text-gray-400"
@@ -249,7 +249,14 @@
             </span>
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+          <p v-if="!connection.canEditSharing" class="text-xs text-gray-400 mt-3">
+            Only the person who sent the invite can change what's shared.
+          </p>
+
+          <div
+            v-else
+            class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3"
+          >
             <label class="flex items-center gap-2 text-sm text-gray-600">
               <input
                 :checked="connection.shareAllAccounts"
@@ -351,6 +358,8 @@ const acceptedConnections = computed(() =>
       ...conn,
       otherUser:
         conn.requesterId === authStore.user?.id ? conn.invitee : conn.requester,
+      // Only the requester may change sharing preferences (enforced by the API).
+      canEditSharing: conn.requesterId === authStore.user?.id,
     })),
 );
 
@@ -359,15 +368,23 @@ onMounted(async () => {
 });
 
 const loadAccounts = async () => {
-  const response = await getAccounts();
-  accounts.value = response.data;
+  try {
+    const response = await getAccounts();
+    accounts.value = response.data;
+  } catch (err: any) {
+    showMessage("error", "Failed to load accounts");
+  }
 };
 
 const loadConnections = async () => {
-  const response = await getConnections();
-  const { sent, received } = response.data;
-  connectionsReceived.value = [...received];
-  connectionsSent.value = [...sent];
+  try {
+    const response = await getConnections();
+    const { sent, received } = response.data;
+    connectionsReceived.value = [...received];
+    connectionsSent.value = [...sent];
+  } catch (err: any) {
+    showMessage("error", "Failed to load connections");
+  }
 };
 
 const inviteConnection = async () => {
@@ -459,7 +476,7 @@ const acceptConnection = async (id: string) => {
 
 const rejectConnection = async (id: string) => {
   try {
-    await acceptConnectionApi(id);
+    await rejectConnectionApi(id);
     await loadConnections();
     showMessage("success", "Connection rejected!");
   } catch (err: any) {
@@ -468,20 +485,18 @@ const rejectConnection = async (id: string) => {
       err.response?.data?.error ?? "Failed to reject connection",
     );
   }
-  await rejectConnectionApi(id);
-  await loadConnections();
 };
 
 const deleteConnection = async (id: string) => {
   const confirmed = window.confirm(
-    "Are you sure you want to remove this connectoin?",
+    "Are you sure you want to remove this connection?",
   );
   if (!confirmed) return;
 
   try {
     await deleteConnectionApi(id);
     await loadConnections();
-    showMessage("success", "Connection remvoed successfully!");
+    showMessage("success", "Connection removed successfully!");
   } catch (err: any) {
     showMessage(
       "error",
@@ -496,7 +511,7 @@ const showMessage = (type: "success" | "error", message: string) => {
     setTimeout(() => (successMessage.value = ""), 3000);
   } else {
     errorMessage.value = message;
-    setTimeout(() => (successMessage.value = ""), 3000);
+    setTimeout(() => (errorMessage.value = ""), 3000);
   }
 };
 </script>

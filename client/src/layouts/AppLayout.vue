@@ -3,8 +3,8 @@
     <!-- Sidebar -->
     <aside class="w-64 bg-white shadow-md flex flex-col">
       <!-- Logo -->
-      <div class="p6 border-b">
-        <h1 class="text-2x1 font-bold text-indigo-600">💰 Every Penny</h1>
+      <div class="p-6 border-b">
+        <h1 class="text-2xl font-bold text-indigo-600">💰 Every Penny</h1>
         <p class="text-xs text-gray-400 mt-1">Personal Finance Manager</p>
       </div>
 
@@ -14,10 +14,10 @@
           v-for="item in menuItems"
           :key="item.path"
           :to="item.path"
-          class="flex items-center gap-3 px-4 py3 rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-          active-class="bg-indigo-50 text-indigo600 font-semibold"
+          class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+          active-class="bg-indigo-50 text-indigo-600 font-semibold"
         >
-          <span class="text-x1">{{ item.icon }}</span>
+          <span class="text-xl">{{ item.icon }}</span>
           <span>{{ item.label }}</span>
         </RouterLink>
       </nav>
@@ -29,7 +29,7 @@
             {{ authStore.user?.name?.charAt(0).toUpperCase() }}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-700 truncate">{{ authStore.user?.naem }}</p>
+            <p class="text-sm font-medium text-gray-700 truncate">{{ authStore.user?.name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ authStore.user?.email }}</p>
           </div>
         </div>
@@ -48,7 +48,7 @@
       <header
         class="bg-white shadow-sm px-8 py-4 flex items-center justify-between"
       >
-        <h2 class="text-x1 font-semibold text-gray-700">{{ currentPage }}</h2>
+        <h2 class="text-xl font-semibold text-gray-700">{{ currentPage }}</h2>
         <span class="text-sm text-gray-400">{{ today }}</span>
       </header>
 
@@ -62,11 +62,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 const logout = () => {
   authStore.logout();
@@ -86,7 +87,7 @@ const menuItems = [
 ];
 
 const currentPage = computed(() => {
-  const item = menuItems.find((item) => router.getRoutes().filter(r => r.name === item.path));
+  const item = menuItems.find((item) => item.path === route.path);
   return item ? item.label : "EveryPenny";
 });
 

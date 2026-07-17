@@ -61,18 +61,21 @@
               >
                 + Sub
               </button>
-              <button
-                @click="openModal(cat)"
-                class="text-xs text-gray-500 hover:text-gray-700"
-              >
-                Edit
-              </button>
-              <button
-                @click="confirmDelete(cat)"
-                class="text-xs text-red-400 hover:text-red-600"
-              >
-                Delete
-              </button>
+              <template v-if="cat.userId">
+                <button
+                  @click="openModal(cat)"
+                  class="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="confirmDelete(cat)"
+                  class="text-xs text-red-400 hover:text-red-600"
+                >
+                  Delete
+                </button>
+              </template>
+              <span v-else class="text-xs text-gray-300">System</span>
             </div>
           </div>
 
@@ -85,10 +88,10 @@
             >
               <div class="flex items-center gap-2">
                 <span class="text-gray-300">└</span>
-                <span>{{ cat.icon || "📄" }}</span>
+                <span>{{ sub.icon || "📄" }}</span>
                 <span class="text-sm text-gray-600">{{ sub.name }}</span>
               </div>
-              <div class="flex gap-2">
+              <div class="flex gap-2" v-if="sub.userId">
                 <button
                   @click="openModal(sub)"
                   class="text-xs text-gray-500 hover:text-gray-700"
@@ -108,7 +111,7 @@
       </ul>
     </div>
 
-    <CategoryForModal
+    <CategoryFormModal
       v-if="showModal"
       :category="editingCategory"
       :parent-id="parentId || undefined"
@@ -129,12 +132,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import {
-  getCategories,
-  deleteCategory,
-} from "../api/categories";
+import { getCategories, deleteCategory } from "../api/categories";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
-import CategoryForModal from "../components/CategoryForModal.vue";
+import CategoryFormModal from "../components/CategoryFormModal.vue";
 
 const loading = ref(true);
 const categories = ref<any[]>([]);
@@ -143,14 +143,6 @@ const showDeleteConfirm = ref(false);
 const editingCategory = ref<any>(null);
 const deletingCategory = ref<any>(null);
 const parentId = ref<string | null>(null);
-
-const defaultForm = {
-  name: "",
-  icon: "",
-  parentId: "",
-};
-
-const form = ref({ ...defaultForm });
 
 onMounted(async () => await loadCategories());
 
@@ -177,29 +169,17 @@ const parentCategoryName = computed(() => {
 const openModal = (category?: any, presentParentId?: string) => {
   editingCategory.value = category || null;
   parentId.value = presentParentId || null;
-
-  form.value = category
-    ? {
-        name: category.name,
-        icon: category.icon || "",
-        parentId: category.parentId || "",
-      }
-    : {
-        ...defaultForm,
-        parentId: presentParentId || "",
-      };
   showModal.value = true;
 };
 
 const closeModal = () => {
   showModal.value = false;
   editingCategory.value = null;
-  form.value = { ...defaultForm };
 };
 
 // Delete
-const confirmDelete = (goal: any) => {
-  deletingCategory.value = goal;
+const confirmDelete = (category: any) => {
+  deletingCategory.value = category;
   showDeleteConfirm.value = true;
 };
 
@@ -207,9 +187,14 @@ const deleteCategoryConfirmed = async () => {
   if (!deletingCategory.value) {
     return;
   }
-  await deleteCategory(deletingCategory.value.id);
-  await loadCategories();
-  showDeleteConfirm.value = false;
-  deletingCategory.value = null;
+  try {
+    await deleteCategory(deletingCategory.value.id);
+    await loadCategories();
+  } catch (error) {
+    console.error("Error deleting category:", error);
+  } finally {
+    showDeleteConfirm.value = false;
+    deletingCategory.value = null;
+  }
 };
 </script>

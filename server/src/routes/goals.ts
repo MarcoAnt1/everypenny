@@ -164,9 +164,7 @@ router.put(
         ...goal,
         percentage: putTarget.isZero()
           ? 0
-          : Math.round(
-              putCurrent.dividedBy(putTarget).times(100).toNumber(),
-            ),
+          : Math.round(putCurrent.dividedBy(putTarget).times(100).toNumber()),
         remainingAmount: putTarget.minus(putCurrent),
       });
     } catch (error) {
@@ -193,6 +191,15 @@ router.patch(
       }
 
       const { amount } = req.body;
+      if (amount === null || amount === undefined || isNaN(Number(amount))) {
+        return res.status(400).json({ error: "Amount must be a valid number" });
+      }
+      const amountDecimal = new Decimal(amount);
+      if (amountDecimal.lessThanOrEqualTo(0)) {
+        return res
+          .status(400)
+          .json({ error: "Amount must be greater than zero" });
+      }
 
       const goal = await prisma.goal.findUnique({
         where: { id: goalId },
@@ -201,7 +208,7 @@ router.patch(
         return res.status(404).json({ error: "Goal not found" });
       }
 
-      const newAmount = new Decimal(goal.currentAmount).plus(amount);
+      const newAmount = new Decimal(goal.currentAmount).plus(amountDecimal);
       const isCompleted = newAmount.greaterThanOrEqualTo(goal.targetAmount);
 
       const updatedGoal = await prisma.goal.update({

@@ -13,7 +13,12 @@ import { AccountType, TxStatus, TxType } from "@prisma/client";
 import { AuthRequest } from "../middleware/auth";
 import { userCanEditTransactionInAccount } from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
-import { deltaOps, signAmount, Delta } from "../services/balance";
+import {
+  deltaOps,
+  signAmount,
+  mergeDeltas,
+  Delta,
+} from "../services/balance";
 
 const router = Router();
 
@@ -222,20 +227,7 @@ router.post("/confirm", async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const merged = new Map<string, Decimal>();
-    for (const d of deltas) {
-      merged.set(
-        d.accountId,
-        merged.get(d.accountId) ?? new Decimal(0).plus(d.delta),
-      );
-    }
-
-    const mergedDeltas: Delta[] = [...merged].map(([acc, delta]) => ({
-      accountId: acc,
-      delta,
-    }));
-
-    await prisma.$transaction([...ops, ...deltaOps(mergedDeltas)]);
+    await prisma.$transaction([...ops, ...deltaOps(mergeDeltas(deltas))]);
 
     let warning: string | undefined;
     if (

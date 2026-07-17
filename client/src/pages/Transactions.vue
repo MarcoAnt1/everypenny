@@ -122,7 +122,7 @@
           v-for="tag in tags"
           :key="tag.id"
           @click="toggleTagFilter(tag.id)"
-          class="text-s px-3 py-1 rounded-full transition"
+          class="text-xs px-3 py-1 rounded-full transition"
           :class="
             filters.tagIds.includes(tag.id)
               ? 'bg-indigo-600 text-white'
@@ -201,7 +201,7 @@
     >
       <p class="text-4xl mb-4">💸</p>
       <p class="text-lg font-medium">No transactions found</p>
-      <p class="text-sm">Add your first transaction or adujst your filters</p>
+      <p class="text-sm">Add your first transaction or adjust your filters</p>
     </div>
 
     <!-- Transactions Table -->
@@ -243,19 +243,17 @@
             <!-- Account -->
             <td class="px-6 py-4 text-gray-500">
               <div v-if="tx.type === 'transfer'">
-                <p class="txt-sm">{{ tx.account?.name }}</p>
+                <p class="text-sm">{{ tx.account?.name }}</p>
                 <p
                   class="text-xs"
                   :class="
-                    tx.direction === 'in' ? 'text-green-400' : 'text-indigo-400'
+                    Number(tx.amount) >= 0
+                      ? 'text-green-400'
+                      : 'text-indigo-400'
                   "
                 >
-                  {{ tx.direction === "out" ? "← from" : "→ to" }}
-                  {{
-                    tx.direction === "out"
-                      ? tx.Account?.name
-                      : tx.toAccountId.name
-                  }}
+                  {{ Number(tx.amount) >= 0 ? "← from" : "→ to" }}
+                  {{ tx.toAccountId?.name ?? "-" }}
                 </p>
               </div>
               <span v-else>{{ tx.account?.name || "-" }}</span>
@@ -279,20 +277,20 @@
               class="px-6 py-4 text-right font-semibold whitespace-nowrap"
               :class="
                 tx.type === 'transfer'
-                  ? tx.direction === 'in'
+                  ? Number(tx.amount) >= 0
                     ? 'text-green-500'
                     : 'text-indigo-500'
-                  : tx.type === 'income'
+                  : Number(tx.amount) >= 0
                     ? 'text-green-500'
                     : 'text-red-500'
               "
             >
               {{
                 tx.type === "transfer"
-                  ? tx.direction === "in"
+                  ? Number(tx.amount) >= 0
                     ? "↓"
                     : "↑"
-                  : tx.type === "income"
+                  : Number(tx.amount) >= 0
                     ? "+"
                     : "-"
               }}{{ formatCurrency(Math.abs(Number(tx.amount))) }}
@@ -301,15 +299,32 @@
             <!-- Actions -->
             <td class="px-6 py-4 text-center">
               <ActionMenu
-                :actions="[
-                  { label: 'Edit', onClick: () => openModal(tx) },
-                  { label: 'Copy', onClick: () => duplicateTransaction(tx) },
-                  {
-                    label: 'Delete',
-                    danger: true,
-                    onClick: () => confirmDelete(tx),
-                  },
-                ]"
+                :actions="
+                  tx.type === 'transfer'
+                    ? [
+                        {
+                          label: 'Copy',
+                          onClick: () => duplicateTransaction(tx),
+                        },
+                        {
+                          label: 'Delete',
+                          danger: true,
+                          onClick: () => confirmDelete(tx),
+                        },
+                      ]
+                    : [
+                        { label: 'Edit', onClick: () => openModal(tx) },
+                        {
+                          label: 'Copy',
+                          onClick: () => duplicateTransaction(tx),
+                        },
+                        {
+                          label: 'Delete',
+                          danger: true,
+                          onClick: () => confirmDelete(tx),
+                        },
+                      ]
+                "
               />
             </td>
           </tr>
@@ -324,11 +339,18 @@
       @click.self="closeModal"
     >
       <div
-        class="bg-white rounded-xl shodow-xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        class="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
-        <h3 class="text-lg-font-semibold text-gray-800 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-6">
           {{ editingTransaction ? "Edit Transaction" : "Add Transaction" }}
         </h3>
+
+        <div
+          v-if="error"
+          class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg mb-4"
+        >
+          {{  error }}
+        </div>
 
         <div class="space-y-4">
           <!-- Type -->
@@ -391,9 +413,9 @@
             <label class="text-sm text-gray-600 font-medium">To Account</label>
             <select
               v-model="form.toAccountId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 frocus:ring-indigo-400"
+              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-              <option value="">Select destinatioin account</option>
+              <option value="">Select destination account</option>
               <option
                 v-for="account in accounts.filter(
                   (a) => a.id !== form.accountId,
@@ -479,7 +501,7 @@
                   <div
                     v-for="sub in cat.subcategories"
                     :key="sub.id"
-                    class="text=sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
+                    class="text-sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
                     @click="selectCategory(sub)"
                   >
                     └ {{ sub.name }}
@@ -492,7 +514,7 @@
           <!-- Tags -->
           <div>
             <label class="text-sm text-gray-600 font-medium">Tags</label>
-            <div class="relative mt=1" ref="formTagMenuRef">
+            <div class="relative mt-1" ref="formTagMenuRef">
               <button
                 @click.stop="showFormTagMenu = !showFormTagMenu"
                 type="button"
@@ -514,7 +536,7 @@
                 <label
                   v-for="tag in tags"
                   :key="tag.id"
-                  class="flex items-center gap-2 text-sm px-2 py-1 hover:bg-gray-50 rounded coursor-pointer"
+                  class="flex items-center gap-2 text-sm px-2 py-1 hover:bg-gray-50 rounded cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -533,7 +555,7 @@
             </div>
           </div>
 
-          <CategoryForModal
+          <CategoryFormModal
             v-if="showCategoryModal"
             @close="showCategoryModal = false"
             @saved="onCategorySaved"
@@ -541,7 +563,7 @@
 
           <!-- Notes -->
           <div>
-            <label for="Tags" class="text-sm text-gray-600 font-medium"
+            <label for="notes" class="text-sm text-gray-600 font-medium"
               >Notes (optional)</label
             >
             <textarea
@@ -549,7 +571,7 @@
               id="notes"
               v-model="form.notes"
               placeholder="Any extra details..."
-              role="2"
+              rows="2"
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
@@ -564,6 +586,7 @@
             </button>
             <button
               @click="saveTransaction"
+              :disabled="saving"
               class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
             >
               {{
@@ -607,11 +630,11 @@ import {
 import { getAccounts } from "../api/accounts";
 import { getCategories } from "../api/categories";
 import { getTags } from "../api/tags";
-import { formatCurrency } from "../helper/formatHelper.ts";
+import { formatCurrency } from "../utils/format";
 import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
-import CategoryForModal from "../components/CategoryForModal.vue";
+import CategoryFormModal from "../components/CategoryFormModal.vue";
 
 const loading = ref(true);
 const saving = ref(false);
@@ -827,11 +850,12 @@ const net = computed(() => totalIncome.value - totalExpenses.value);
 
 // Modal
 const openModal = (tx?: any) => {
+  selectedCategoryLabel.value = tx?.category?.name ?? "";
   editingTransaction.value = tx || null;
   form.value = tx
     ? {
         description: tx.description,
-        amount: tx.amount,
+        amount: Math.abs(Number(tx.amount)),
         date: tx.date,
         type: tx.type,
         accountId: tx.accountId,
@@ -846,9 +870,11 @@ const openModal = (tx?: any) => {
 };
 
 const closeModal = () => {
+  selectedCategoryLabel.value = "";
   showModal.value = false;
   editingTransaction.value = null;
   form.value = { ...defaultForm, tagIds: [] };
+  error.value = "";
 };
 
 const toggleTag = (tagId: string) => {
@@ -865,8 +891,27 @@ const onImported = async () => {
   await loadTransactions();
 };
 
-// Save
+const error = ref("");
+
 const saveTransaction = async () => {
+  error.value = "";
+  if (!form.value.accountId) {
+    error.value = "Please select an account";
+    return;
+  }
+  if (!form.value.description.trim()) {
+    error.value = "Description is required";
+    return;
+  }
+  if (!form.value.amount || Number(form.value.amount) <= 0) {
+    error.value = "Amount must be greater than zero";
+    return;
+  }
+  if (form.value.type === "transfer" && !form.value.toAccountId) {
+    error.value = "Transfers need a destination account";
+    return;
+  }
+
   saving.value = true;
   try {
     if (editingTransaction.value) {
@@ -876,8 +921,8 @@ const saveTransaction = async () => {
     }
     await loadTransactions();
     closeModal();
-  } catch (error) {
-    console.error("Error saving transaction:", error);
+  } catch (err: any) {
+    error.value = err.response?.data?.error ?? "Failed to save transaction";
   } finally {
     saving.value = false;
   }
@@ -900,14 +945,14 @@ const deleteTransactionConfirmed = async () => {
 };
 
 const duplicateTransaction = (tx: any) => {
-  if (tx.type === "transfer" && tx.direction === "in") {
+  if (tx.type === "transfer" && Number(tx.amount) >= 0) {
     alert("To duplicate a transfer, use the outgoing record.");
     return;
   }
   editingTransaction.value = null;
   form.value = {
     description: `${tx.description} (copy)`,
-    amount: tx.amount,
+    amount: Math.abs(Number(tx.amount)),
     date: new Date().toISOString().split("T")[0],
     type: tx.type,
     accountId: tx.accountId,

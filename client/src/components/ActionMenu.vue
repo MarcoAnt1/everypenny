@@ -8,7 +8,7 @@
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="w-5 h-5"
-        view-box="0 0 24 24"
+        viewBox="0 0 24 24"
         fill="currentColor"
       >
         <circle cx="12" cy="5" r="1.5" />
@@ -57,6 +57,11 @@ const dropDownStyle = ref({});
 
 const menuId = Math.random().toString(36).slice(2);
 
+// Must match the dropdown's `w-28` (7rem) and its rendered row height, so the
+// flip-up check and right-alignment land where the menu actually is.
+const DROPDOWN_WIDTH = 112;
+const ROW_HEIGHT = 30;
+
 const calculatePosition = async () => {
   await nextTick();
   if (!menuRef.value) return;
@@ -64,19 +69,14 @@ const calculatePosition = async () => {
   const rect = menuRef.value.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom;
   const spaceAbove = rect.top;
-  const dropHeight = props.actions.length * 44;
+  const dropHeight = props.actions.length * ROW_HEIGHT;
+  const left = `${rect.right - DROPDOWN_WIDTH}px`;
 
-  if (spaceBelow < dropHeight && spaceAbove > dropHeight) {
-    dropDownStyle.value = {
-      top: `${rect.top - dropHeight}px`,
-      left: `${rect.right - 160}px`,
-    };
-  } else {
-    dropDownStyle.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${rect.right - 160}px`,
-    };
-  }
+  const flipUp = spaceBelow < dropHeight && spaceAbove > dropHeight;
+  dropDownStyle.value = {
+    top: flipUp ? `${rect.top - dropHeight - 4}px` : `${rect.bottom + 4}px`,
+    left,
+  };
 };
 
 const toggle = async () => {
@@ -108,13 +108,21 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 };
 
+// The dropdown is teleported to <body> and positioned `fixed` from a one-time
+// measurement, so any scroll would strand it away from its row. Close instead.
+const handleScroll = () => {
+  if (isOpen.value) isOpen.value = false;
+};
+
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
-  window.addEventListener('close-action-menus', handleCloseOthers);
+  window.addEventListener("close-action-menus", handleCloseOthers);
+  window.addEventListener("scroll", handleScroll, true);
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
-  window.removeEventListener('close-action-menus', handleCloseOthers);
+  window.removeEventListener("close-action-menus", handleCloseOthers);
+  window.removeEventListener("scroll", handleScroll, true);
 });
 </script>

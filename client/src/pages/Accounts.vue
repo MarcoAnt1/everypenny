@@ -58,10 +58,10 @@
             class="text-2xl font-bold"
             :class="
               account.type === 'credit_card'
-                ? account.balance < 0
+                ? Number(account.balance) < 0
                   ? 'text-red-600'
                   : 'text-green-500'
-                : account.balance >= 0
+                : Number(account.balance) >= 0
                   ? 'text-indigo-600'
                   : 'text-red-500'
             "
@@ -79,7 +79,7 @@
         <!-- Credit card extra info -->
         <div
           v-if="account.type === 'credit_card' && account.creditLimit"
-          class="spacy-y-1"
+          class="space-y-1"
         >
           <div class="flex justify-between text-xs text-gray-400">
             <span>Available Credit</span>
@@ -153,6 +153,13 @@
       @click.self="closeModal"
     >
       <div class="bg-white rounded-xl p-8 w-full max-w-md">
+        <div
+          v-if="error"
+          class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lb mb-4"
+        >
+          {{  error }}
+        </div>
+
         <h3 class="text-lg font-semibold text-gray-800 mb-6">
           {{ editingAccount ? "Edit Account" : "Add Account" }}
         </h3>
@@ -168,7 +175,7 @@
               v-model="form.name"
               type="text"
               placeholder="e.g. Main Checking"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus: ring-indigo-400"
+              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
 
@@ -180,6 +187,7 @@
             <select
               id="account-type"
               v-model="form.type"
+              :disabled="!!editingAccount"
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
               <option value="" disabled>Select type</option>
@@ -187,8 +195,11 @@
               <option value="savings">Savings</option>
               <option value="credit_card">Credit Card</option>
               <option value="investment">Investment</option>
-              <option value="other">Cash</option>
+              <option value="cash">Cash</option>
             </select>
+            <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
+              Account type can't be changed after creation.
+            </p>
           </div>
 
           <!-- Credit Limit (only for credit cards) -->
@@ -233,9 +244,13 @@
               v-model.number="form.balance"
               type="number"
               step="0.01"
+              :disabled="!!editingAccount"
               placeholder="0.00"
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
+            <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
+              Balance updates automatically from transactions.
+            </p>
           </div>
 
           <!-- Currency -->
@@ -268,6 +283,7 @@
             </button>
             <button
               @click="saveAccount"
+              :disabled="saving"
               class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
             >
               {{
@@ -301,7 +317,7 @@ import {
   getAccounts,
   updateAccount,
 } from "../api/accounts";
-import { formatCurrency } from "../helper/formatHelper.ts";
+import { formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 
 const loading = ref(true);
@@ -365,10 +381,18 @@ const closeModal = () => {
   showModal.value = false;
   editingAccount.value = null;
   form.value = { ...defaultForm };
+  error.value = "";
 };
 
-// Save
+const error = ref("");
+
 const saveAccount = async () => {
+  error.value = "";
+  if (!form.value.name.trim()) {
+    error.value = "Account name is required";
+    return;
+  }
+
   saving.value = true;
   try {
     if (editingAccount.value) {
@@ -382,8 +406,8 @@ const saveAccount = async () => {
     }
     await loadAccounts();
     closeModal();
-  } catch (error) {
-    console.error("Error saving account:", error);
+  } catch (err: any) {
+    error.value = err.response?.data?.error ?? "Failed to save account";
   } finally {
     saving.value = false;
   }
@@ -412,9 +436,9 @@ const accountIcon = (type: string) => {
   const icons: Record<string, string> = {
     checking: "🏦",
     savings: "💰",
-    credit: "💳",
+    credit_card: "💳",
     investment: "📈",
-    other: "💵",
+    cash: "💵",
   };
   return icons[type] || "🏦";
 };

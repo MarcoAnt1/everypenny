@@ -14,6 +14,18 @@ export function signAmount(
 
 export type Delta = { accountId: string; delta: Decimal };
 
+// Sum deltas per account so each account gets a single balance update instead of
+// one per transaction. Callers that build a delta per row (e.g. statement import)
+// should run the list through this before handing it to `deltaOps`.
+export function mergeDeltas(deltas: Delta[]): Delta[] {
+  const totals = new Map<string, Decimal>();
+  for (const d of deltas) {
+    const running = totals.get(d.accountId) ?? new Decimal(0);
+    totals.set(d.accountId, running.plus(d.delta));
+  }
+  return [...totals].map(([accountId, delta]) => ({ accountId, delta }));
+}
+
 // One or more balance updates as $transaction operations.
 export function deltaOps(deltas: Delta[]) {
   return deltas
