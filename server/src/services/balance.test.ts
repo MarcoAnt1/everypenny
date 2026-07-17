@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { TxType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import { signAmount } from "./balance";
+import { signAmount, mergeDeltas } from "./balance";
 
 describe("signAmount", () => {
   it("negates an expense so it debits the account", () => {
@@ -33,5 +33,46 @@ describe("signAmount", () => {
 
   it("handles zero", () => {
     expect(signAmount(TxType.expense, 0).toString()).toBe("0");
+  });
+});
+
+describe("mergeDeltas", () => {
+  const d = (accountId: string, delta: string) => ({
+    accountId,
+    delta: new Decimal(delta),
+  });
+
+  it("sums every delta for the same account", () => {
+    // Regression: a `??` precedence bug once kept only the FIRST delta per
+    // account, so importing 26 rows moved the balance by just the first one.
+    const merged = mergeDeltas([
+      d("a", "-12.99"),
+      d("a", "-104.96"),
+      d("a", "-18.89"),
+    ]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].accountId).toBe("a");
+    expect(merged[0].delta.toString()).toBe("-136.84");
+  });
+
+  it("keeps accounts separate", () => {
+    const merged = mergeDeltas([
+      d("a", "-100"),
+      d("b", "100"),
+      d("a", "-50"),
+    ]);
+    const byId = Object.fromEntries(
+      merged.map((m) => [m.accountId, m.delta.toString()]),
+    );
+    expect(byId).toEqual({ a: "-150", b: "100" });
+  });
+
+  it("nets opposing deltas on one account", () => {
+    const merged = mergeDeltas([d("a", "-100"), d("a", "100")]);
+    expect(merged[0].delta.toString()).toBe("0");
+  });
+
+  it("returns an empty list for no deltas", () => {
+    expect(mergeDeltas([])).toEqual([]);
   });
 });
