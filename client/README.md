@@ -1,5 +1,22 @@
-# Vue 3 + TypeScript + Vite
+# EveryPenny — Client
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+The Vue 3 + TypeScript + Vite frontend for EveryPenny.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+See the [root README](../README.md) for the full project description, setup, and
+how to run the app and its tests.
+
+## Quick start
+
+```bash
+npm install
+cp .env.example .env   # set VITE_API_URL (defaults to http://localhost:3000)
+npm run dev            # http://localhost:5173
+```
+
+## Scripts
+
+| Command           | What it does                          |
+| ----------------- | ------------------------------------- |
+| `npm run dev`     | Start the Vite dev server.            |
+| `npm run build`   | Type-check and build for production.  |
+| `npm run preview` | Preview the production build locally. |
