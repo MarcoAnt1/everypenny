@@ -10,9 +10,9 @@ export class WealthsimpleCheckingParser extends CsvParser {
     row: Record<string, any>,
     rowIndex: number,
   ): ParsedTransaction | null {
-    const rawDate = row.date;
-    const rawAmount = row.amount;
-    const code = String(row.transaction || "")
+    const rawDate = row.date || row.effective_date;
+    const rawAmount = row.amount || row.net_cash_amount;
+    const code = String(row.transaction || row.activity_sub_type || "")
       .trim()
       .toUpperCase();
     const description = String(row.description || "").trim();
