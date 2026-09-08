@@ -1,5 +1,37 @@
 <template>
   <div class="space-y-8">
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">Dashboard</h2>
+        <p class="text-sm text-gray-400">Your money at a glance · {{ periodLabel }}</p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <!-- Period -->
+        <select
+          v-model="period"
+          class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        >
+          <option value="this_month">This Month</option>
+          <option value="last_month">Last Month</option>
+          <option value="last_3_months">Last 3 Months</option>
+          <option value="ytd">Year to Date</option>
+        </select>
+
+        <!-- Person (only when you share with someone) -->
+        <select
+          v-if="people.length > 1"
+          v-model="ownerId"
+          class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        >
+          <option value="">All People</option>
+          <option v-for="p in people" :key="p.id" :value="p.id">
+            {{ personLabel(p) }}
+          </option>
+        </select>
+      </div>
+    </div>
+
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div
@@ -12,6 +44,89 @@
           <p class="text-sm text-gray-400">{{ card.label }}</p>
           <p class="text-2xl font-bold" :class="card.color">
             {{ card.value }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics: Spending by Category + Income vs Expenses -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Spending by Category -->
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Spending by Category</h3>
+          <span class="text-sm text-gray-400">{{ formatCurrency(expenses) }} total</span>
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-400 py-8">Loading...</div>
+
+        <div
+          v-else-if="topCategories.length === 0"
+          class="text-center text-gray-400 py-8"
+        >
+          No spending in this period.
+        </div>
+
+        <ul v-else class="space-y-4">
+          <li v-for="cat in topCategories" :key="cat.name">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="font-medium text-gray-700">
+                {{ cat.icon }} {{ cat.name }}
+              </span>
+              <span class="text-gray-400">
+                {{ formatCurrency(cat.amount) }} · {{ cat.pct }}%
+              </span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+              <div
+                class="h-2 rounded-full bg-indigo-500 transition-all"
+                :style="{ width: `${cat.pct}%` }"
+              />
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Income vs Expenses (last 6 months) -->
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Income vs Expenses</h3>
+          <div class="flex items-center gap-3 text-xs text-gray-400">
+            <span class="flex items-center gap-1">
+              <span class="w-2.5 h-2.5 rounded-full bg-green-400 inline-block" /> Income
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block" /> Expenses
+            </span>
+          </div>
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-400 py-8">Loading...</div>
+
+        <div v-else>
+          <div class="flex items-end justify-between gap-2">
+            <div
+              v-for="m in monthlyTrend"
+              :key="m.key"
+              class="flex-1 flex flex-col items-center gap-2"
+            >
+              <div class="flex items-end justify-center gap-1 h-36 w-full">
+                <div
+                  class="w-3.5 bg-green-400 rounded-t transition-all"
+                  :style="{ height: `${(m.income / trendMax) * 100}%` }"
+                  :title="`Income: ${formatCurrency(m.income)}`"
+                />
+                <div
+                  class="w-3.5 bg-red-400 rounded-t transition-all"
+                  :style="{ height: `${(m.expense / trendMax) * 100}%` }"
+                  :title="`Expenses: ${formatCurrency(m.expense)}`"
+                />
+              </div>
+              <span class="text-xs text-gray-400">{{ m.label }}</span>
+            </div>
+          </div>
+          <p class="text-xs text-gray-300 mt-3 text-center">
+            Last 6 months{{ ownerId ? ` · ${selectedPersonName}` : "" }}
           </p>
         </div>
       </div>
@@ -180,83 +295,240 @@ import { getAccounts } from "../api/accounts";
 import { getTransactions } from "../api/transactions";
 import { getBudgets } from "../api/budgets";
 import { getGoals } from "../api/goals";
+import { getCategories } from "../api/categories";
+import { useAuthStore } from "../stores/auth";
 import { formatDate, formatCurrency } from "../utils/format";
 
 const loading = ref(true);
 const accounts = ref<any[]>([]);
-const transactions = ref<any[]>([]);
+const transactions = ref<any[]>([]); // trailing 12 months, all people
 const budgets = ref<any[]>([]);
 const goals = ref<any[]>([]);
+const categories = ref<any[]>([]);
 
-// Fetch all data on mount
+const authStore = useAuthStore();
+
+// Controls (both slice client-side — no refetch needed).
+const period = ref("this_month");
+const ownerId = ref("");
+
+const fmt = (d: Date) => d.toISOString().split("T")[0];
+
+// Distinct account owners the user can see — yourself plus anyone who shares
+// their accounts with you (e.g. a partner).
+const people = computed(() => {
+  const map = new Map<string, { id: string; name: string }>();
+  for (const acc of accounts.value) {
+    if (acc.owner?.id) {
+      map.set(acc.owner.id, { id: acc.owner.id, name: acc.owner.name });
+    }
+  }
+  return Array.from(map.values());
+});
+
+const personLabel = (p: { id: string; name: string }) =>
+  p.id === authStore.user?.id ? `${p.name} (you)` : p.name;
+
+const selectedPersonName = computed(
+  () => people.value.find((p) => p.id === ownerId.value)?.name ?? "",
+);
+
+const periodLabel = computed(() => {
+  const labels: Record<string, string> = {
+    this_month: "This Month",
+    last_month: "Last Month",
+    last_3_months: "Last 3 Months",
+    ytd: "Year to Date",
+  };
+  return labels[period.value] ?? "This Month";
+});
+
+// Start/end of the selected period (as YYYY-MM-DD strings for easy comparison
+// against the transactions' string dates).
+const periodRange = computed(() => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  switch (period.value) {
+    case "last_month":
+      return { start: fmt(new Date(y, m - 1, 1)), end: fmt(new Date(y, m, 0)) };
+    case "last_3_months":
+      return { start: fmt(new Date(y, m - 2, 1)), end: fmt(now) };
+    case "ytd":
+      return { start: fmt(new Date(y, 0, 1)), end: fmt(now) };
+    case "this_month":
+    default:
+      return { start: fmt(new Date(y, m, 1)), end: fmt(now) };
+  }
+});
+
+// categoryId -> display category, rolling subcategories up into their parent so
+// e.g. spending under a "Groceries" subcategory counts toward "Groceries".
+const categoryDisplay = computed(() => {
+  const map = new Map<string, { name: string; icon: string }>();
+  for (const parent of categories.value) {
+    const display = { name: parent.name, icon: parent.icon || "📁" };
+    map.set(parent.id, display);
+    for (const sub of parent.subcategories ?? []) {
+      map.set(sub.id, display);
+    }
+  }
+  return map;
+});
+
+const matchesOwner = (t: any) =>
+  !ownerId.value || t.account?.owner?.id === ownerId.value;
+
+// Transactions inside the selected period and person filter.
+const periodTx = computed(() => {
+  const { start, end } = periodRange.value;
+  return transactions.value.filter(
+    (t) => t.date >= start && t.date <= end && matchesOwner(t),
+  );
+});
+
+const visibleAccounts = computed(() =>
+  ownerId.value
+    ? accounts.value.filter((a) => a.owner?.id === ownerId.value)
+    : accounts.value,
+);
+
+const totalBalance = computed(() =>
+  visibleAccounts.value.reduce((sum, acc) => sum + Number(acc.balance), 0),
+);
+const income = computed(() =>
+  periodTx.value
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0),
+);
+const expenses = computed(() =>
+  periodTx.value
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0),
+);
+const net = computed(() => income.value - expenses.value);
+
+const summaryCards = computed(() => [
+  {
+    label: "Total Balance",
+    value: formatCurrency(totalBalance.value),
+    icon: "💰",
+    color: "text-indigo-600",
+  },
+  {
+    label: "Income",
+    value: formatCurrency(income.value),
+    icon: "📈",
+    color: "text-green-500",
+  },
+  {
+    label: "Expenses",
+    value: formatCurrency(expenses.value),
+    icon: "📉",
+    color: "text-red-500",
+  },
+  {
+    label: "Net",
+    value: formatCurrency(net.value),
+    icon: net.value >= 0 ? "🟢" : "🔴",
+    color: net.value >= 0 ? "text-indigo-600" : "text-red-500",
+  },
+]);
+
+// Expense totals grouped by (rolled-up) category, sorted high to low.
+const spendingByCategory = computed(() => {
+  const totals = new Map<string, { name: string; icon: string; amount: number }>();
+  for (const t of periodTx.value) {
+    if (t.type !== "expense") continue;
+    const disp = t.categoryId ? categoryDisplay.value.get(t.categoryId) : undefined;
+    const name = disp?.name ?? "Uncategorized";
+    const icon = disp?.icon ?? "❓";
+    const entry = totals.get(name) ?? { name, icon, amount: 0 };
+    entry.amount += Math.abs(Number(t.amount));
+    totals.set(name, entry);
+  }
+  return Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
+});
+
+// Top 8 categories; the tail is grouped into "Other" so the list stays readable.
+const topCategories = computed(() => {
+  const all = spendingByCategory.value;
+  const total = all.reduce((s, c) => s + c.amount, 0);
+  const withPct = (c: { name: string; icon: string; amount: number }) => ({
+    ...c,
+    pct: total ? Math.round((c.amount / total) * 100) : 0,
+  });
+
+  if (all.length <= 8) return all.map(withPct);
+
+  const top = all.slice(0, 7).map(withPct);
+  const restAmount = all.slice(7).reduce((s, c) => s + c.amount, 0);
+  top.push({
+    name: "Other",
+    icon: "•",
+    amount: restAmount,
+    pct: total ? Math.round((restAmount / total) * 100) : 0,
+  });
+  return top;
+});
+
+// Income/expense totals for each of the last 6 months (person-filtered, but
+// independent of the period selector).
+const monthlyTrend = computed(() => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return {
+      label: d.toLocaleString("en-US", { month: "short" }),
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      income: 0,
+      expense: 0,
+    };
+  });
+  const byKey = new Map(months.map((m) => [m.key, m]));
+
+  for (const t of transactions.value) {
+    if (!matchesOwner(t)) continue;
+    const m = byKey.get(String(t.date).slice(0, 7));
+    if (!m) continue;
+    if (t.type === "income") m.income += Math.abs(Number(t.amount));
+    else if (t.type === "expense") m.expense += Math.abs(Number(t.amount));
+  }
+  return months;
+});
+
+const trendMax = computed(() =>
+  Math.max(1, ...monthlyTrend.value.flatMap((m) => [m.income, m.expense])),
+);
+
+const recentTransactions = computed(() =>
+  transactions.value.filter(matchesOwner).slice(0, 5),
+);
+
 onMounted(async () => {
   try {
     const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .split("T")[0];
-    const endDate = now.toISOString().split("T")[0];
+    // Trailing 12 months covers every period option and the 6-month trend.
+    const startDate = fmt(new Date(now.getFullYear(), now.getMonth() - 11, 1));
+    const endDate = fmt(now);
 
-    const [accRes, txRes, budgetRes, goalRes] = await Promise.all([
+    const [accRes, txRes, budgetRes, goalRes, catRes] = await Promise.all([
       getAccounts(),
       getTransactions({ startDate, endDate }),
       getBudgets(),
       getGoals(),
+      getCategories(),
     ]);
 
     accounts.value = accRes.data;
     transactions.value = txRes.data;
     budgets.value = budgetRes.data;
     goals.value = goalRes.data;
+    categories.value = catRes.data;
   } catch (error) {
     console.error("Error loading dashboard:", error);
   } finally {
     loading.value = false;
   }
 });
-
-// Summary cards
-const summaryCards = computed(() => {
-  const totalBalance = accounts.value.reduce(
-    (sum, acc) => sum + Number(acc.balance),
-    0,
-  );
-  const income = transactions.value
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-  const expenses = transactions.value
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-  const goalsCount = goals.value.filter((g) => g.status === "active").length;
-
-  return [
-    {
-      label: "Total Balance",
-      value: formatCurrency(totalBalance),
-      icon: "💰",
-      color: "text-indigo-600",
-    },
-    {
-      label: "Total Income",
-      value: formatCurrency(income),
-      icon: "📈",
-      color: "text-green-500",
-    },
-    {
-      label: "Total Expenses",
-      value: formatCurrency(expenses),
-      icon: "📉",
-      color: "text-red-500",
-    },
-    {
-      label: "Active Goals",
-      value: String(goalsCount),
-      icon: "🎯",
-      color: "text-yellow-500",
-    },
-  ];
-});
-
-// Last 5 transactions
-const recentTransactions = computed(() => transactions.value.slice(0, 5));
 </script>
