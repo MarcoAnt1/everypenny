@@ -3,6 +3,7 @@ import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth";
 import { ConnectionStatus } from "@prisma/client";
 import { normalizeEmail } from "../utils/normalize";
+import { publicUserSelect } from "../lib/publicUser";
 
 const router = Router();
 
@@ -68,11 +69,17 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     const [sent, received] = await Promise.all([
       prisma.connection.findMany({
         where: { requesterId: req.userId! },
-        include: { requester: true, invitee: true },
+        include: {
+          requester: { select: publicUserSelect },
+          invitee: { select: publicUserSelect },
+        },
       }),
       prisma.connection.findMany({
         where: { inviteeId: req.userId! },
-        include: { requester: true, invitee: true },
+        include: {
+          requester: { select: publicUserSelect },
+          invitee: { select: publicUserSelect },
+        },
       }),
     ]);
 
@@ -115,7 +122,10 @@ router.post(
           status: ConnectionStatus.ACCEPTED,
           inviteeId: req.userId!,
         },
-        include: { requester: true, invitee: true },
+        include: {
+          requester: { select: publicUserSelect },
+          invitee: { select: publicUserSelect },
+        },
       });
 
       res.json(updated);
@@ -157,7 +167,10 @@ router.post(
         data: {
           status: ConnectionStatus.DECLINED,
         },
-        include: { requester: true, invitee: true },
+        include: {
+          requester: { select: publicUserSelect },
+          invitee: { select: publicUserSelect },
+        },
       });
 
       res.json(updated);
@@ -242,7 +255,10 @@ router.put(
               ? shareAllGoals
               : connection.shareAllGoals,
         },
-        include: { requester: true, invitee: true },
+        include: {
+          requester: { select: publicUserSelect },
+          invitee: { select: publicUserSelect },
+        },
       });
 
       res.json(update);
