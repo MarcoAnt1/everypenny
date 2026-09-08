@@ -176,7 +176,7 @@
           <!-- Target Amount -->
           <div>
             <label class="text-sm text-gray-600 font-medium"
-              >Current Amount</label
+              >Target Amount</label
             >
             <input
               v-model.number="form.targetAmount"
