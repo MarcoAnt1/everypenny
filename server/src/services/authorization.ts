@@ -1,5 +1,6 @@
 import { ConnectionStatus } from "@prisma/client";
 import prisma from "../lib/prisma";
+import { publicUserSelect } from "../lib/publicUser";
 
 type ShareFlag =
   | "shareAllAccounts"
@@ -15,7 +16,6 @@ export async function userCanAccessAccount(
     where: { id: accountId },
     include: {
       accountShares: true,
-      owner: true,
     },
   });
 
@@ -142,7 +142,7 @@ export async function getUserAccounts(userId: string) {
           : []),
       ],
     },
-    include: { accountShares: true, owner: true },
+    include: { accountShares: true, owner: { select: publicUserSelect } },
     distinct: ["id"],
   });
 }
