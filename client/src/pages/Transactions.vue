@@ -75,8 +75,27 @@
           class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         >
           <option value="">All Categories</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
+          <template v-for="cat in categories" :key="cat.id">
+            <option :value="cat.id">{{ cat.name }}</option>
+            <option
+              v-for="sub in cat.subcategories"
+              :key="sub.id"
+              :value="sub.id"
+            >
+              └ {{ sub.name }}
+            </option>
+          </template>
+        </select>
+
+        <!-- Person / Owner (only shown when you share with someone) -->
+        <select
+          v-if="people.length > 1"
+          v-model="filters.ownerId"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        >
+          <option value="">All People</option>
+          <option v-for="p in people" :key="p.id" :value="p.id">
+            {{ personLabel(p) }}
           </option>
         </select>
 
@@ -148,6 +167,12 @@
           class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize"
         >
           {{ filters.type }}
+        </span>
+        <span
+          v-if="filters.ownerId"
+          class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
+        >
+          👤 {{ people.find((p) => p.id === filters.ownerId)?.name }}
         </span>
         <span
           v-if="filters.tagIds.length"
@@ -257,6 +282,12 @@
                 </p>
               </div>
               <span v-else>{{ tx.account?.name || "-" }}</span>
+              <p
+                v-if="people.length > 1 && tx.account?.owner"
+                class="text-xs text-gray-400"
+              >
+                👤 {{ personLabel(tx.account.owner) }}
+              </p>
             </td>
 
             <!-- Tags -->
@@ -635,6 +666,7 @@ import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
+import { useAuthStore } from "../stores/auth";
 
 const loading = ref(true);
 const saving = ref(false);
@@ -652,6 +684,21 @@ const formTagMenuRef = ref<HTMLElement | null>(null);
 const showCategoryMenu = ref(false);
 const selectedCategoryLabel = ref("");
 const showCategoryModal = ref(false);
+
+const authStore = useAuthStore();
+
+const people = computed(() => {
+  const map = new Map<string, { id: string; name: string }>();
+  for (const acc of accounts.value) {
+    if (acc.owner?.id) {
+      map.set(acc.owner.id, { id: acc.owner.id, name: acc.owner.name });
+    }
+  }
+  return Array.from(map.values());
+});
+
+const personLabel = (p: { id: string; name: string }) =>
+  p.id === authStore.user?.id ? `${p.name} (you)` : p.name;
 
 const today = () => new Date();
 
@@ -703,6 +750,7 @@ const defaultFilters = () => {
     preset: "this_month",
     type: "",
     accountId: "",
+    ownerId: "",
     categoryId: "",
     startDate,
     endDate,
@@ -746,6 +794,7 @@ const hasActiveFilters = computed(() => {
   return (
     filters.value.type !== "" ||
     filters.value.accountId !== "" ||
+    filters.value.ownerId !== "" ||
     filters.value.categoryId !== "" ||
     filters.value.tagIds.length > 0 ||
     filters.value.preset !== "all"
@@ -788,6 +837,10 @@ const loadTransactions = async () => {
 
     if (filters.value.accountId) {
       params.accountId = filters.value.accountId;
+    }
+
+    if (filters.value.ownerId) {
+      params.ownerId = filters.value.ownerId;
     }
 
     if (filters.value.categoryId) {

@@ -15,7 +15,7 @@ const router = Router();
 // GET all transactions
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { accountId, categoryId, type, startDate, endDate, tagIds } =
+    const { accountId, categoryId, type, startDate, endDate, tagIds, ownerId } =
       req.query;
 
     const validType =
@@ -31,7 +31,11 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       : [];
 
     const userAccounts = await getUserAccounts(req.userId!);
-    const accountIds = userAccounts.map((acc) => acc.id);
+    const ownerFilter =
+      typeof ownerId === "string" && ownerId.length > 0 ? ownerId : undefined;
+    const accountIds = userAccounts
+      .filter((acc) => !ownerFilter || acc.ownerId === ownerFilter)
+      .map((acc) => acc.id);
 
     const transactions = await prisma.transaction.findMany({
       where: {
@@ -55,7 +59,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
         }),
       },
       include: {
-        account: true,
+        account: { include: { owner: { select: { id: true, name: true } } } },
         toAccount: true,
         category: true,
         tags: { include: { tag: true } },
