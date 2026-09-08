@@ -118,7 +118,7 @@ const allCategories = ref<any[]>([]);
 const form = ref({
   name: props.category?.name || "",
   icon: props.category?.icon || "",
-  parentId: props.category?.parentId || "",
+  parentId: props.category?.parentId || props.parentId || "",
 });
 
 onMounted(async () => {
