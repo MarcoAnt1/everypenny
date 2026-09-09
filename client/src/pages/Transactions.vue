@@ -267,7 +267,7 @@
                   "
                 >
                   {{ Number(tx.amount) >= 0 ? "← from" : "→ to" }}
-                  {{ tx.toAccountId?.name ?? "-" }}
+                  {{ tx.externalParty ?? tx.toAccount?.name ?? "outside" }}
                 </p>
               </div>
               <span v-else>{{ tx.account?.name || "-" }}</span>
@@ -428,7 +428,7 @@
             </select>
           </div>
 
-          <!-- Destinatioin Account (only for transfers)-->
+          <!-- Destination Account (only for transfers)-->
           <div v-if="form.type === 'transfer'">
             <label class="text-sm text-gray-600 font-medium">To Account</label>
             <select
@@ -436,6 +436,7 @@
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
               <option value="">Select destination account</option>
+              <option value="external">🌐 Outside account (external)</option>
               <option
                 v-for="account in accounts.filter(
                   (a) => a.id !== form.accountId,
@@ -447,6 +448,50 @@
               </option>
             </select>
           </div>
+
+          <!-- External transfer: direction + outside party -->
+          <template
+            v-if="form.type === 'transfer' && form.toAccountId === 'external'"
+          >
+            <div>
+              <label class="text-sm text-gray-600 font-medium">Direction</label>
+              <div class="flex gap-3 mt-1">
+                <button
+                  type="button"
+                  @click="form.direction = 'out'"
+                  :class="
+                    form.direction === 'out'
+                      ? 'flex-1 bg-indigo-500 text-white py-2 rounded-lg text-sm font-medium'
+                      : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'
+                  "
+                >
+                  ↑ Send out
+                </button>
+                <button
+                  type="button"
+                  @click="form.direction = 'in'"
+                  :class="
+                    form.direction === 'in'
+                      ? 'flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium'
+                      : 'flex-1 border text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50'
+                  "
+                >
+                  ↓ Receive in
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 font-medium">
+                Outside party (optional)
+              </label>
+              <input
+                v-model="form.externalParty"
+                type="text"
+                placeholder="e.g. John, Landlord, external savings"
+                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </div>
+          </template>
 
           <!-- Description -->
           <div>
@@ -817,6 +862,8 @@ const defaultForm = {
   accountId: "",
   categoryId: "",
   toAccountId: "",
+  externalParty: "",
+  direction: "out",
   tagIds: [] as string[],
   notes: "",
   status: "cleared",
@@ -933,7 +980,9 @@ const openModal = (tx?: any) => {
         type: tx.type,
         accountId: tx.accountId,
         categoryId: tx.categoryId || "",
-        toAccountId: tx.toAccountId || "",
+        toAccountId: tx.toAccountId || (tx.externalParty ? "external" : ""),
+        externalParty: tx.externalParty || "",
+        direction: Number(tx.amount) >= 0 ? "in" : "out",
         tagIds: tx.tags?.map((t: any) => t.tagId) || [],
         notes: tx.notes || "",
         status: tx.status,
@@ -986,10 +1035,18 @@ const saveTransaction = async () => {
 
   saving.value = true;
   try {
-    if (editingTransaction.value) {
-      await updateTransaction(editingTransaction.value.id, form.value);
+    const payload: any = { ...form.value };
+    if (payload.type === "transfer" && payload.toAccountId === "external") {
+      payload.toAccountId = null; // one-sided external transfer
     } else {
-      await createTransaction(form.value);
+      delete payload.externalParty;
+      delete payload.direction;
+    }
+
+    if (editingTransaction.value) {
+      await updateTransaction(editingTransaction.value.id, payload);
+    } else {
+      await createTransaction(payload);
     }
     await loadTransactions();
     closeModal();
@@ -1017,7 +1074,9 @@ const deleteTransactionConfirmed = async () => {
 };
 
 const duplicateTransaction = (tx: any) => {
-  if (tx.type === "transfer" && Number(tx.amount) >= 0) {
+  // Only the incoming side of an internal (two-sided) transfer can't be copied
+  // on its own; external transfers are one-sided, so they're fine.
+  if (tx.type === "transfer" && !tx.externalParty && Number(tx.amount) >= 0) {
     alert("To duplicate a transfer, use the outgoing record.");
     return;
   }
@@ -1029,7 +1088,9 @@ const duplicateTransaction = (tx: any) => {
     type: tx.type,
     accountId: tx.accountId,
     categoryId: tx.categoryId || "",
-    toAccountId: tx.toAccountId || "",
+    toAccountId: tx.toAccountId || (tx.externalParty ? "external" : ""),
+    externalParty: tx.externalParty || "",
+    direction: Number(tx.amount) >= 0 ? "in" : "out",
     tagIds: tx.tags?.map((t: any) => t.tagId) || [],
     notes: tx.notes || "",
     status: tx.status,

@@ -134,6 +134,8 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       status,
       notes,
       tagIds,
+      externalParty,
+      direction,
     } = req.body;
 
     const canAccess = await userCanEditTransactionInAccount(
@@ -142,13 +144,6 @@ router.post("/", async (req: AuthRequest, res: Response) => {
     );
     if (!canAccess) {
       res.status(403).json({ error: "You do not have access to this account" });
-      return;
-    }
-
-    if (type === TxType.transfer && !toAccountId) {
-      res
-        .status(400)
-        .json({ error: "Transfer requires a destination account" });
       return;
     }
 
@@ -170,6 +165,33 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       : undefined;
 
     if (type === TxType.transfer) {
+      if (!toAccountId) {
+        const signed =
+          direction === "in"
+            ? new Decimal(amount).abs()
+            : new Decimal(amount).abs().negated();
+        const [transaction] = await prisma.$transaction([
+          prisma.transaction.create({
+            data: {
+              accountId,
+              categoryId: categoryId || null,
+              toAccountId: null,
+              externalParty: externalParty || null,
+              description,
+              amount: signed,
+              date: new Date(date),
+              type: TxType.transfer,
+              status: status || "cleared",
+              notes,
+              tags: tagCreate,
+            },
+            include: includeOpts,
+          }),
+          ...deltaOps([{ accountId, delta: signed }]),
+        ]);
+        return res.status(201).json(transaction);
+      }
+
       const toAccount = await prisma.account.findUnique({
         where: { id: toAccountId },
       });

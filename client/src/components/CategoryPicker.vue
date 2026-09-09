@@ -78,7 +78,6 @@ const emit = defineEmits<{
 const open = ref(false);
 const rootRef = ref<HTMLElement | null>(null);
 
-// Resolve the label for the current value across parents and subcategories.
 const selectedLabel = computed(() => {
   if (!props.modelValue) return "";
   for (const cat of props.categories) {
