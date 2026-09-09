@@ -7,16 +7,7 @@
         <p class="text-sm text-gray-400">Your money at a glance · {{ periodLabel }}</p>
       </div>
       <div class="flex flex-wrap gap-3">
-        <!-- Period -->
-        <select
-          v-model="period"
-          class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="this_month">This Month</option>
-          <option value="last_month">Last Month</option>
-          <option value="last_3_months">Last 3 Months</option>
-          <option value="ytd">Year to Date</option>
-        </select>
+        <PeriodSelector @change="onPeriodChange" />
 
         <!-- Person (only when you share with someone) -->
         <select
@@ -46,6 +37,35 @@
             {{ card.value }}
           </p>
         </div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Avg spend / day</p>
+        <p class="text-lg font-bold text-gray-700">
+          {{ formatCurrency(avgDailySpend) }}
+        </p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Biggest expense</p>
+        <p class="text-lg font-bold text-red-500">
+          {{ formatCurrency(biggestExpense) }}
+        </p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Transactions</p>
+        <p class="text-lg font-bold text-gray-700">{{ txCount }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Savings rate</p>
+        <p
+          class="text-lg font-bold"
+          :class="savingsRate >= 0 ? 'text-green-500' : 'text-red-500'"
+        >
+          {{ savingsRate }}%
+        </p>
       </div>
     </div>
 
@@ -129,6 +149,90 @@
             Last 6 months{{ ownerId ? ` · ${selectedPersonName}` : "" }}
           </p>
         </div>
+      </div>
+    </div>
+
+    <!-- Balances by type + Biggest expenses -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Balances by account type -->
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Balances by Type</h3>
+          <span class="text-sm text-gray-400"
+            >{{ formatCurrency(totalBalance) }} net</span
+          >
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-400 py-8">
+          Loading...
+        </div>
+        <div
+          v-else-if="balancesByType.length === 0"
+          class="text-center text-gray-400 py-8"
+        >
+          No accounts yet.
+        </div>
+
+        <ul v-else class="space-y-4">
+          <li v-for="b in balancesByType" :key="b.type">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="font-medium text-gray-700">
+                {{ b.icon }} {{ b.label }}
+              </span>
+              <span :class="b.total >= 0 ? 'text-gray-600' : 'text-red-500'">
+                {{ formatCurrency(b.total) }}
+              </span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+              <div
+                class="h-2 rounded-full transition-all"
+                :class="b.total >= 0 ? 'bg-indigo-500' : 'bg-red-400'"
+                :style="{
+                  width: `${(Math.abs(b.total) / maxAbsBalance) * 100}%`,
+                }"
+              />
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Biggest expenses -->
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Biggest Expenses</h3>
+          <span class="text-sm text-gray-400">{{ periodLabel }}</span>
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-400 py-8">
+          Loading...
+        </div>
+        <div
+          v-else-if="biggestExpenses.length === 0"
+          class="text-center text-gray-400 py-8"
+        >
+          No expenses in this period.
+        </div>
+
+        <ul v-else class="space-y-3">
+          <li
+            v-for="tx in biggestExpenses"
+            :key="tx.id"
+            class="flex items-center justify-between py-2 border-b last:border-0"
+          >
+            <div>
+              <p class="text-sm font-medium text-gray-700">
+                {{ tx.description }}
+              </p>
+              <p class="text-xs text-gray-400">
+                {{ tx.category?.name ?? "Uncategorized" }} ·
+                {{ formatDate(tx.date) }}
+              </p>
+            </div>
+            <span class="text-sm font-semibold text-red-500">
+              -{{ formatCurrency(Math.abs(Number(tx.amount))) }}
+            </span>
+          </li>
+        </ul>
       </div>
     </div>
 
@@ -298,6 +402,8 @@ import { getGoals } from "../api/goals";
 import { getCategories } from "../api/categories";
 import { useAuthStore } from "../stores/auth";
 import { formatDate, formatCurrency } from "../utils/format";
+import PeriodSelector from "../components/PeriodSelector.vue";
+import { type PeriodRange } from "../utils/PeriodRange";
 
 const loading = ref(true);
 const accounts = ref<any[]>([]);
@@ -308,14 +414,36 @@ const categories = ref<any[]>([]);
 
 const authStore = useAuthStore();
 
-// Controls (both slice client-side — no refetch needed).
-const period = ref("this_month");
+const period = ref<PeriodRange | null>(null);
 const ownerId = ref("");
 
 const fmt = (d: Date) => d.toISOString().split("T")[0];
 
-// Distinct account owners the user can see — yourself plus anyone who shares
-// their accounts with you (e.g. a partner).
+// Fetch transactions covering the selected period AND the trailing 6 months
+// (the Income vs Expenses chart always shows the last 6 months).
+const loadTransactions = async () => {
+  const now = new Date();
+  const sixMonthsAgo = fmt(new Date(now.getFullYear(), now.getMonth() - 5, 1));
+  const today = fmt(now);
+  const start =
+    period.value && period.value.start < sixMonthsAgo
+      ? period.value.start
+      : sixMonthsAgo;
+  const end =
+    period.value && period.value.end > today ? period.value.end : today;
+  const res = await getTransactions({ startDate: start, endDate: end });
+  transactions.value = res.data;
+};
+
+// Guards the PeriodSelector's initial @change (fired during mount) so we don't
+// fetch twice — the first load happens in onMounted.
+let initialized = false;
+
+const onPeriodChange = (p: PeriodRange) => {
+  period.value = p;
+  if (initialized) loadTransactions();
+};
+
 const people = computed(() => {
   const map = new Map<string, { id: string; name: string }>();
   for (const acc of accounts.value) {
@@ -333,37 +461,13 @@ const selectedPersonName = computed(
   () => people.value.find((p) => p.id === ownerId.value)?.name ?? "",
 );
 
-const periodLabel = computed(() => {
-  const labels: Record<string, string> = {
-    this_month: "This Month",
-    last_month: "Last Month",
-    last_3_months: "Last 3 Months",
-    ytd: "Year to Date",
-  };
-  return labels[period.value] ?? "This Month";
-});
+const periodLabel = computed(() => period.value?.label ?? "");
 
-// Start/end of the selected period (as YYYY-MM-DD strings for easy comparison
-// against the transactions' string dates).
-const periodRange = computed(() => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  switch (period.value) {
-    case "last_month":
-      return { start: fmt(new Date(y, m - 1, 1)), end: fmt(new Date(y, m, 0)) };
-    case "last_3_months":
-      return { start: fmt(new Date(y, m - 2, 1)), end: fmt(now) };
-    case "ytd":
-      return { start: fmt(new Date(y, 0, 1)), end: fmt(now) };
-    case "this_month":
-    default:
-      return { start: fmt(new Date(y, m, 1)), end: fmt(now) };
-  }
-});
+const periodRange = computed(() => ({
+  start: period.value?.start ?? "",
+  end: period.value?.end ?? "",
+}));
 
-// categoryId -> display category, rolling subcategories up into their parent so
-// e.g. spending under a "Groceries" subcategory counts toward "Groceries".
 const categoryDisplay = computed(() => {
   const map = new Map<string, { name: string; icon: string }>();
   for (const parent of categories.value) {
@@ -379,7 +483,6 @@ const categoryDisplay = computed(() => {
 const matchesOwner = (t: any) =>
   !ownerId.value || t.account?.owner?.id === ownerId.value;
 
-// Transactions inside the selected period and person filter.
 const periodTx = computed(() => {
   const { start, end } = periodRange.value;
   return transactions.value.filter(
@@ -435,7 +538,6 @@ const summaryCards = computed(() => [
   },
 ]);
 
-// Expense totals grouped by (rolled-up) category, sorted high to low.
 const spendingByCategory = computed(() => {
   const totals = new Map<string, { name: string; icon: string; amount: number }>();
   for (const t of periodTx.value) {
@@ -450,7 +552,6 @@ const spendingByCategory = computed(() => {
   return Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
 });
 
-// Top 8 categories; the tail is grouped into "Other" so the list stays readable.
 const topCategories = computed(() => {
   const all = spendingByCategory.value;
   const total = all.reduce((s, c) => s + c.amount, 0);
@@ -472,8 +573,6 @@ const topCategories = computed(() => {
   return top;
 });
 
-// Income/expense totals for each of the last 6 months (person-filtered, but
-// independent of the period selector).
 const monthlyTrend = computed(() => {
   const now = new Date();
   const months = Array.from({ length: 6 }, (_, i) => {
@@ -505,30 +604,84 @@ const recentTransactions = computed(() =>
   transactions.value.filter(matchesOwner).slice(0, 5),
 );
 
+// --- Insights ---
+const daysInPeriod = computed(() => {
+  const { start, end } = periodRange.value;
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return Math.max(1, Math.round(ms / 86_400_000) + 1);
+});
+const avgDailySpend = computed(() => expenses.value / daysInPeriod.value);
+const biggestExpense = computed(() => {
+  const amounts = periodTx.value
+    .filter((t) => t.type === "expense")
+    .map((t) => Math.abs(Number(t.amount)));
+  return amounts.length ? Math.max(...amounts) : 0;
+});
+const txCount = computed(() => periodTx.value.length);
+const savingsRate = computed(() =>
+  income.value > 0 ? Math.round((net.value / income.value) * 100) : 0,
+);
+
+// Largest individual expenses in the selected period.
+const biggestExpenses = computed(() =>
+  periodTx.value
+    .filter((t) => t.type === "expense")
+    .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
+    .slice(0, 5),
+);
+
+// Net balance grouped by account type (person-filtered like the rest).
+const TYPE_LABELS: Record<string, string> = {
+  checking: "Checking",
+  savings: "Savings",
+  credit_card: "Credit Card",
+  investment: "Investment",
+  cash: "Cash",
+};
+const TYPE_ICONS: Record<string, string> = {
+  checking: "🏦",
+  savings: "💰",
+  credit_card: "💳",
+  investment: "📈",
+  cash: "💵",
+};
+const balancesByType = computed(() => {
+  const totals = new Map<string, number>();
+  for (const a of visibleAccounts.value) {
+    totals.set(a.type, (totals.get(a.type) ?? 0) + Number(a.balance));
+  }
+  return Array.from(totals.entries())
+    .map(([type, total]) => ({
+      type,
+      label: TYPE_LABELS[type] ?? type,
+      icon: TYPE_ICONS[type] ?? "🏦",
+      total,
+    }))
+    .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+});
+const maxAbsBalance = computed(() =>
+  Math.max(1, ...balancesByType.value.map((b) => Math.abs(b.total))),
+);
+
 onMounted(async () => {
   try {
-    const now = new Date();
-    // Trailing 12 months covers every period option and the 6-month trend.
-    const startDate = fmt(new Date(now.getFullYear(), now.getMonth() - 11, 1));
-    const endDate = fmt(now);
-
-    const [accRes, txRes, budgetRes, goalRes, catRes] = await Promise.all([
+    const [accRes, budgetRes, goalRes, catRes] = await Promise.all([
       getAccounts(),
-      getTransactions({ startDate, endDate }),
       getBudgets(),
       getGoals(),
       getCategories(),
     ]);
-
     accounts.value = accRes.data;
-    transactions.value = txRes.data;
     budgets.value = budgetRes.data;
     goals.value = goalRes.data;
     categories.value = catRes.data;
+    // period is already set by PeriodSelector's initial @change emit.
+    await loadTransactions();
   } catch (error) {
     console.error("Error loading dashboard:", error);
   } finally {
     loading.value = false;
+    initialized = true;
   }
 });
 </script>

@@ -35,12 +35,26 @@
         class="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4"
       >
         <!-- Account Header -->
-        <div class="flex items-center justify-between">
+        <div class="flex items-start justify-between">
           <div>
             <p class="font-semibold text-gray-800">{{ account.name }}</p>
             <p class="text-xs text-gray-400 capitalize">{{ account.type }}</p>
           </div>
-          <span class="text-2xl">{{ accountIcon(account.type) }}</span>
+          <div class="flex flex-col items-end gap-1">
+            <span class="text-2xl">{{ accountIcon(account.type) }}</span>
+            <span
+              v-if="!isMine(account)"
+              class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full whitespace-nowrap"
+            >
+              👤 {{ account.owner?.name }}
+            </span>
+            <span
+              v-else-if="isSharedOut(account)"
+              class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full whitespace-nowrap"
+            >
+              🔗 Shared
+            </span>
+          </div>
         </div>
 
         <!-- Balance -->
@@ -113,18 +127,23 @@
 
         <!-- Actions -->
         <div class="flex gap-2 pt-2 border-t">
-          <button
-            @click="openModal(account)"
-            class="flex-1 text-sm text-indigo-600 hover:bg-indigo-50 py-1 rounded transition"
-          >
-            Edit
-          </button>
-          <button
-            @click="confirmDelete(account)"
-            class="flex-1 text-sm text-red-500 hover:bg-red-50 py-1 rounded transition"
-          >
-            Delete
-          </button>
+          <template v-if="isMine(account)">
+            <button
+              @click="openModal(account)"
+              class="flex-1 text-sm text-indigo-600 hover:bg-indigo-50 py-1 rounded transition"
+            >
+              Edit
+            </button>
+            <button
+              @click="confirmDelete(account)"
+              class="flex-1 text-sm text-red-500 hover:bg-red-50 py-1 rounded transition"
+            >
+              Delete
+            </button>
+          </template>
+          <p v-else class="flex-1 text-center text-xs text-gray-400 py-1">
+            Shared by {{ account.owner?.name }} · view only
+          </p>
         </div>
       </div>
     </div>
@@ -150,7 +169,7 @@
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="closeModal"
+      @mousedown.self="closeModal"
     >
       <div class="bg-white rounded-xl p-8 w-full max-w-md">
         <div
@@ -319,6 +338,18 @@ import {
 } from "../api/accounts";
 import { formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import { useAuthStore } from "../stores/auth";
+
+const authStore = useAuthStore();
+
+// An account is "mine" when I own it; otherwise it's shared with me by a
+// connected user (e.g. a partner).
+const isMine = (account: any) =>
+  !account.ownerId || account.ownerId === authStore.user?.id;
+
+// One of my accounts that I've shared out to someone else.
+const isSharedOut = (account: any) =>
+  isMine(account) && (account.accountShares?.length ?? 0) > 0;
 
 const loading = ref(true);
 const saving = ref(false);

@@ -24,8 +24,16 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm p-4 space-y-4">
-      <!-- Row 1 - Date presets + account + type + category -->
+      <!-- Row 1 - Search + date presets + account + type + category -->
       <div class="flex flex-wrap gap-3">
+        <!-- Search -->
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search description or amount…"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 flex-1 min-w-[200px]"
+        />
+
         <!-- Date Preset -->
         <select
           v-model="filters.preset"
@@ -68,24 +76,12 @@
         </select>
 
         <!-- Category -->
-        <select
-          name=""
-          id=""
+        <CategoryPicker
           v-model="filters.categoryId"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All Categories</option>
-          <template v-for="cat in categories" :key="cat.id">
-            <option :value="cat.id">{{ cat.name }}</option>
-            <option
-              v-for="sub in cat.subcategories"
-              :key="sub.id"
-              :value="sub.id"
-            >
-              └ {{ sub.name }}
-            </option>
-          </template>
-        </select>
+          :categories="categories"
+          placeholder="All Categories"
+          class="w-48"
+        />
 
         <!-- Person / Owner (only shown when you share with someone) -->
         <select
@@ -99,14 +95,7 @@
           </option>
         </select>
 
-        <!-- Apply + Clear-->
-        <button
-          @click="applyFilters"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm"
-        >
-          Apply
-        </button>
-
+        <!-- Clear -->
         <button
           @click="clearFilters"
           class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
@@ -184,8 +173,8 @@
         </span>
         <span class="text-gray-300">·</span>
         <span
-          >{{ transactions.length }} transaction{{
-            transactions.length !== 1 ? "s" : ""
+          >{{ visibleTransactions.length }} transaction{{
+            visibleTransactions.length !== 1 ? "s" : ""
           }}</span
         >
       </div>
@@ -221,7 +210,7 @@
 
     <!-- Empty -->
     <div
-      v-else-if="transactions.length === 0"
+      v-else-if="visibleTransactions.length === 0"
       class="text-center text-gray-400 py-16"
     >
       <p class="text-4xl mb-4">💸</p>
@@ -245,7 +234,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           <tr
-            v-for="tx in transactions"
+            v-for="tx in visibleTransactions"
             :key="tx.id"
             class="hover:bg-gray-50 transition"
           >
@@ -367,7 +356,7 @@
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="closeModal"
+      @mousedown.self="closeModal"
     >
       <div
         class="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto"
@@ -496,50 +485,16 @@
           </div>
 
           <!-- Category -->
-          <div class="relative">
+          <div>
             <label class="text-sm text-gray-600 font-medium">Category</label>
-            <button
-              type="button"
-              @click="showCategoryMenu = !showCategoryMenu"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              {{ selectedCategoryLabel || "Select category" }}
-            </button>
-            <button
-              @click="showCategoryModal = true"
-              type="button"
-              class="absolute bottom-1 right-1 border rounded-lg px-2 py-1 text-sm text-indigo-600 hover:bg-indigo-50 transition whitespace-nowrap"
-              title="Add new category"
-            >
-              +
-            </button>
-
-            <div
-              v-if="showCategoryMenu"
-              class="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto"
-            >
-              <div v-for="cat in categories" :key="cat.id" class="px-2">
-                <!-- Parent -->
-                <div
-                  class="font-medium text-gray-700 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
-                  @click="selectCategory(cat)"
-                >
-                  {{ cat.name }}
-                </div>
-
-                <!-- Children -->
-                <div class="ml-4">
-                  <div
-                    v-for="sub in cat.subcategories"
-                    :key="sub.id"
-                    class="text-sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
-                    @click="selectCategory(sub)"
-                  >
-                    └ {{ sub.name }}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <CategoryPicker
+              v-model="form.categoryId"
+              :categories="categories"
+              placeholder="Select category"
+              allow-create
+              class="mt-1"
+              @create="showCategoryModal = true"
+            />
           </div>
 
           <!-- Tags -->
@@ -651,7 +606,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   getTransactions,
   createTransaction,
@@ -666,6 +621,7 @@ import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
+import CategoryPicker from "../components/CategoryPicker.vue";
 import { useAuthStore } from "../stores/auth";
 
 const loading = ref(true);
@@ -681,8 +637,6 @@ const editingTransaction = ref<any>(null);
 const deletingTransaction = ref<any>(null);
 const showFormTagMenu = ref(false);
 const formTagMenuRef = ref<HTMLElement | null>(null);
-const showCategoryMenu = ref(false);
-const selectedCategoryLabel = ref("");
 const showCategoryModal = ref(false);
 
 const authStore = useAuthStore();
@@ -759,6 +713,59 @@ const defaultFilters = () => {
 };
 
 const filters = ref(defaultFilters());
+const search = ref("");
+
+const STORAGE_KEY = "everypenny:transactionFilters";
+
+const loadSavedFilters = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveFilters = () => {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...filters.value, search: search.value }),
+    );
+  } catch {
+    // storage may be unavailable (private mode, etc.) — ignore
+  }
+};
+
+const savedFilters = loadSavedFilters();
+if (savedFilters) {
+  filters.value = {
+    ...defaultFilters(),
+    ...savedFilters,
+    tagIds: savedFilters.tagIds ?? [],
+  };
+  if (filters.value.preset !== "custom") {
+    const { startDate, endDate } = getPresetDates(filters.value.preset);
+    filters.value.startDate = startDate;
+    filters.value.endDate = endDate;
+  }
+  search.value = savedFilters.search ?? "";
+}
+
+let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+const scheduleReload = () => {
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => loadTransactions(), 150);
+};
+watch(
+  filters,
+  () => {
+    scheduleReload();
+    saveFilters();
+  },
+  { deep: true },
+);
+watch(search, saveFilters);
 
 const onPresetChange = () => {
   if (filters.value.preset !== "custom") {
@@ -792,6 +799,7 @@ const dataRangeLabel = computed(() => {
 
 const hasActiveFilters = computed(() => {
   return (
+    search.value.trim() !== "" ||
     filters.value.type !== "" ||
     filters.value.accountId !== "" ||
     filters.value.ownerId !== "" ||
@@ -882,20 +890,33 @@ const loadTags = async () => {
 };
 
 // Filters
-const applyFilters = () => loadTransactions();
 const clearFilters = () => {
   filters.value = defaultFilters();
-  loadTransactions();
+  search.value = "";
+  // the filters watcher triggers the reload
 };
+
+// Client-side search over the loaded transactions — matches the description,
+// notes, or amount. Instant, no refetch.
+const visibleTransactions = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return transactions.value;
+  return transactions.value.filter((t) => {
+    const desc = String(t.description ?? "").toLowerCase();
+    const notes = String(t.notes ?? "").toLowerCase();
+    const amount = String(Math.abs(Number(t.amount)));
+    return desc.includes(q) || notes.includes(q) || amount.includes(q);
+  });
+});
 
 // Summary
 const totalIncome = computed(() =>
-  transactions.value
+  visibleTransactions.value
     .filter((t) => t.type === "income")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0),
 );
 const totalExpenses = computed(() =>
-  transactions.value
+  visibleTransactions.value
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0),
 );
@@ -903,7 +924,6 @@ const net = computed(() => totalIncome.value - totalExpenses.value);
 
 // Modal
 const openModal = (tx?: any) => {
-  selectedCategoryLabel.value = tx?.category?.name ?? "";
   editingTransaction.value = tx || null;
   form.value = tx
     ? {
@@ -923,7 +943,6 @@ const openModal = (tx?: any) => {
 };
 
 const closeModal = () => {
-  selectedCategoryLabel.value = "";
   showModal.value = false;
   editingTransaction.value = null;
   form.value = { ...defaultForm, tagIds: [] };
@@ -1026,12 +1045,6 @@ const handleClickOutSideTags = (e: MouseEvent) => {
   ) {
     showFormTagMenu.value = false;
   }
-};
-
-const selectCategory = (item: any) => {
-  form.value.categoryId = item.id;
-  selectedCategoryLabel.value = item.name;
-  showCategoryMenu.value = false;
 };
 
 const onCategorySaved = async (newCategory: any) => {
