@@ -49,6 +49,35 @@
       </div>
     </div>
 
+    <!-- Insights -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Avg spend / day</p>
+        <p class="text-lg font-bold text-gray-700">
+          {{ formatCurrency(avgDailySpend) }}
+        </p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Biggest expense</p>
+        <p class="text-lg font-bold text-red-500">
+          {{ formatCurrency(biggestExpense) }}
+        </p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Transactions</p>
+        <p class="text-lg font-bold text-gray-700">{{ txCount }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <p class="text-xs text-gray-400">Savings rate</p>
+        <p
+          class="text-lg font-bold"
+          :class="savingsRate >= 0 ? 'text-green-500' : 'text-red-500'"
+        >
+          {{ savingsRate }}%
+        </p>
+      </div>
+    </div>
+
     <!-- Analytics: Spending by Category + Income vs Expenses -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Spending by Category -->
@@ -129,6 +158,90 @@
             Last 6 months{{ ownerId ? ` · ${selectedPersonName}` : "" }}
           </p>
         </div>
+      </div>
+    </div>
+
+    <!-- Balances by type + Biggest expenses -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Balances by account type -->
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Balances by Type</h3>
+          <span class="text-sm text-gray-400"
+            >{{ formatCurrency(totalBalance) }} net</span
+          >
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-400 py-8">
+          Loading...
+        </div>
+        <div
+          v-else-if="balancesByType.length === 0"
+          class="text-center text-gray-400 py-8"
+        >
+          No accounts yet.
+        </div>
+
+        <ul v-else class="space-y-4">
+          <li v-for="b in balancesByType" :key="b.type">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="font-medium text-gray-700">
+                {{ b.icon }} {{ b.label }}
+              </span>
+              <span :class="b.total >= 0 ? 'text-gray-600' : 'text-red-500'">
+                {{ formatCurrency(b.total) }}
+              </span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+              <div
+                class="h-2 rounded-full transition-all"
+                :class="b.total >= 0 ? 'bg-indigo-500' : 'bg-red-400'"
+                :style="{
+                  width: `${(Math.abs(b.total) / maxAbsBalance) * 100}%`,
+                }"
+              />
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Biggest expenses -->
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Biggest Expenses</h3>
+          <span class="text-sm text-gray-400">{{ periodLabel }}</span>
+        </div>
+
+        <div v-if="loading" class="text-center text-gray-400 py-8">
+          Loading...
+        </div>
+        <div
+          v-else-if="biggestExpenses.length === 0"
+          class="text-center text-gray-400 py-8"
+        >
+          No expenses in this period.
+        </div>
+
+        <ul v-else class="space-y-3">
+          <li
+            v-for="tx in biggestExpenses"
+            :key="tx.id"
+            class="flex items-center justify-between py-2 border-b last:border-0"
+          >
+            <div>
+              <p class="text-sm font-medium text-gray-700">
+                {{ tx.description }}
+              </p>
+              <p class="text-xs text-gray-400">
+                {{ tx.category?.name ?? "Uncategorized" }} ·
+                {{ formatDate(tx.date) }}
+              </p>
+            </div>
+            <span class="text-sm font-semibold text-red-500">
+              -{{ formatCurrency(Math.abs(Number(tx.amount))) }}
+            </span>
+          </li>
+        </ul>
       </div>
     </div>
 
@@ -503,6 +616,65 @@ const trendMax = computed(() =>
 
 const recentTransactions = computed(() =>
   transactions.value.filter(matchesOwner).slice(0, 5),
+);
+
+// --- Insights ---
+const daysInPeriod = computed(() => {
+  const { start, end } = periodRange.value;
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return Math.max(1, Math.round(ms / 86_400_000) + 1);
+});
+const avgDailySpend = computed(() => expenses.value / daysInPeriod.value);
+const biggestExpense = computed(() => {
+  const amounts = periodTx.value
+    .filter((t) => t.type === "expense")
+    .map((t) => Math.abs(Number(t.amount)));
+  return amounts.length ? Math.max(...amounts) : 0;
+});
+const txCount = computed(() => periodTx.value.length);
+const savingsRate = computed(() =>
+  income.value > 0 ? Math.round((net.value / income.value) * 100) : 0,
+);
+
+// Largest individual expenses in the selected period.
+const biggestExpenses = computed(() =>
+  periodTx.value
+    .filter((t) => t.type === "expense")
+    .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
+    .slice(0, 5),
+);
+
+// Net balance grouped by account type (person-filtered like the rest).
+const TYPE_LABELS: Record<string, string> = {
+  checking: "Checking",
+  savings: "Savings",
+  credit_card: "Credit Card",
+  investment: "Investment",
+  cash: "Cash",
+};
+const TYPE_ICONS: Record<string, string> = {
+  checking: "🏦",
+  savings: "💰",
+  credit_card: "💳",
+  investment: "📈",
+  cash: "💵",
+};
+const balancesByType = computed(() => {
+  const totals = new Map<string, number>();
+  for (const a of visibleAccounts.value) {
+    totals.set(a.type, (totals.get(a.type) ?? 0) + Number(a.balance));
+  }
+  return Array.from(totals.entries())
+    .map(([type, total]) => ({
+      type,
+      label: TYPE_LABELS[type] ?? type,
+      icon: TYPE_ICONS[type] ?? "🏦",
+      total,
+    }))
+    .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+});
+const maxAbsBalance = computed(() =>
+  Math.max(1, ...balancesByType.value.map((b) => Math.abs(b.total))),
 );
 
 onMounted(async () => {
