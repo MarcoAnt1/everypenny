@@ -37,18 +37,27 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       (account) => account.id,
     );
 
+    const qStart =
+      typeof req.query.startDate === "string" ? req.query.startDate : undefined;
+    const qEnd =
+      typeof req.query.endDate === "string" ? req.query.endDate : undefined;
+    const useRange = !!(qStart && qEnd);
+
     // Calculate spent amount for each budget
     const budgetsWithSpent = await Promise.all(
       budgets.map(async (budget) => {
         const now = new Date();
-        const startDate = periodStartDate(budget.period, now);
+        const start = useRange
+          ? new Date(qStart!)
+          : periodStartDate(budget.period, now);
+        const end = useRange ? new Date(qEnd!) : now;
 
         const spending = await prisma.transaction.aggregate({
           where: {
             accountId: { in: accessibleAccountIds },
             categoryId: budget.categoryId,
             type: TxType.expense,
-            date: { gte: startDate, lte: now },
+            date: { gte: start, lte: end },
           },
           _sum: { amount: true },
         });
@@ -129,7 +138,12 @@ router.get(
       }
 
       const now = new Date();
-      const startDate = periodStartDate(budget.period, now);
+      const qStart =
+        typeof req.query.startDate === "string" ? req.query.startDate : undefined;
+      const qEnd =
+        typeof req.query.endDate === "string" ? req.query.endDate : undefined;
+      const start = qStart && qEnd ? new Date(qStart) : periodStartDate(budget.period, now);
+      const end = qStart && qEnd ? new Date(qEnd) : now;
 
       const accessibleAccounts = await getUserAccounts(req.userId!);
       const accessibleAccountIds = accessibleAccounts.map(
@@ -141,7 +155,7 @@ router.get(
           accountId: { in: accessibleAccountIds },
           categoryId: budget.categoryId,
           type: TxType.expense,
-          date: { gte: startDate, lte: now },
+          date: { gte: start, lte: end },
         },
         include: {
           account: true,

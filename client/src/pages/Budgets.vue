@@ -1,17 +1,23 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Budgets</h2>
-        <p class="text-sm text-gray-400">Monitor your spending limits</p>
+        <p class="text-sm text-gray-400">
+          Spending for
+          <span class="font-medium text-gray-600">{{ periodLabel }}</span>
+        </p>
       </div>
-      <button
-        @click="openModal()"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-      >
-        + Add Budget
-      </button>
+      <div class="flex flex-wrap items-center gap-3">
+        <PeriodSelector @change="onPeriodChange" />
+        <button
+          @click="openModal()"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+        >
+          + Add Budget
+        </button>
+      </div>
     </div>
 
     <!-- Summary Strip -->
@@ -411,6 +417,14 @@ import {
 import { getCategories } from "../api/categories";
 import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import PeriodSelector from "../components/PeriodSelector.vue";
+
+interface PeriodRange {
+  start: string;
+  end: string;
+  label: string;
+  granularity: string;
+}
 
 const loading = ref(true);
 const loadingTransactions = ref(false);
@@ -426,6 +440,14 @@ const selectedBudget = ref<any>(null);
 const editingBudget = ref<any>(null);
 const deletingBudget = ref<any>(null);
 
+const period = ref<PeriodRange | null>(null);
+const periodLabel = computed(() => period.value?.label ?? "");
+
+const onPeriodChange = (p: PeriodRange) => {
+  period.value = p;
+  loadBudgets();
+};
+
 const defaultForm = {
   name: "",
   categoryId: "",
@@ -436,13 +458,17 @@ const defaultForm = {
 const form = ref({ ...defaultForm });
 
 onMounted(async () => {
-  await Promise.all([loadBudgets(), loadCategories()]);
+  // Budgets load from the PeriodSelector's initial @change emit.
+  await loadCategories();
 });
 
 const loadBudgets = async () => {
   loading.value = true;
   try {
-    const res = await getBudgets();
+    const params = period.value
+      ? { startDate: period.value.start, endDate: period.value.end }
+      : undefined;
+    const res = await getBudgets(params);
     budgets.value = res.data;
   } catch (error) {
     console.error("Error loading budgets:", error);
@@ -494,7 +520,10 @@ const openTransactionsModal = async (budget: any) => {
   budgetTransactionsTotal.value = 0;
 
   try {
-    const res = await getBudgetTransactions(budget.id);
+    const params = period.value
+      ? { startDate: period.value.start, endDate: period.value.end }
+      : undefined;
+    const res = await getBudgetTransactions(budget.id, params);
     budgetTransactions.value = res.data.transactions;
     budgetTransactionsTotal.value = Number(res.data.total);
   } catch (err) {
