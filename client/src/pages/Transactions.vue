@@ -24,8 +24,16 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm p-4 space-y-4">
-      <!-- Row 1 - Date presets + account + type + category -->
+      <!-- Row 1 - Search + date presets + account + type + category -->
       <div class="flex flex-wrap gap-3">
+        <!-- Search -->
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search description or amount…"
+          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 flex-1 min-w-[200px]"
+        />
+
         <!-- Date Preset -->
         <select
           v-model="filters.preset"
@@ -99,14 +107,7 @@
           </option>
         </select>
 
-        <!-- Apply + Clear-->
-        <button
-          @click="applyFilters"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm"
-        >
-          Apply
-        </button>
-
+        <!-- Clear -->
         <button
           @click="clearFilters"
           class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
@@ -184,8 +185,8 @@
         </span>
         <span class="text-gray-300">·</span>
         <span
-          >{{ transactions.length }} transaction{{
-            transactions.length !== 1 ? "s" : ""
+          >{{ visibleTransactions.length }} transaction{{
+            visibleTransactions.length !== 1 ? "s" : ""
           }}</span
         >
       </div>
@@ -221,7 +222,7 @@
 
     <!-- Empty -->
     <div
-      v-else-if="transactions.length === 0"
+      v-else-if="visibleTransactions.length === 0"
       class="text-center text-gray-400 py-16"
     >
       <p class="text-4xl mb-4">💸</p>
@@ -245,7 +246,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           <tr
-            v-for="tx in transactions"
+            v-for="tx in visibleTransactions"
             :key="tx.id"
             class="hover:bg-gray-50 transition"
           >
@@ -651,7 +652,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   getTransactions,
   createTransaction,
@@ -759,6 +760,59 @@ const defaultFilters = () => {
 };
 
 const filters = ref(defaultFilters());
+const search = ref("");
+
+const STORAGE_KEY = "everypenny:transactionFilters";
+
+const loadSavedFilters = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveFilters = () => {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...filters.value, search: search.value }),
+    );
+  } catch {
+    // storage may be unavailable (private mode, etc.) — ignore
+  }
+};
+
+const savedFilters = loadSavedFilters();
+if (savedFilters) {
+  filters.value = {
+    ...defaultFilters(),
+    ...savedFilters,
+    tagIds: savedFilters.tagIds ?? [],
+  };
+  if (filters.value.preset !== "custom") {
+    const { startDate, endDate } = getPresetDates(filters.value.preset);
+    filters.value.startDate = startDate;
+    filters.value.endDate = endDate;
+  }
+  search.value = savedFilters.search ?? "";
+}
+
+let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+const scheduleReload = () => {
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => loadTransactions(), 150);
+};
+watch(
+  filters,
+  () => {
+    scheduleReload();
+    saveFilters();
+  },
+  { deep: true },
+);
+watch(search, saveFilters);
 
 const onPresetChange = () => {
   if (filters.value.preset !== "custom") {
@@ -792,6 +846,7 @@ const dataRangeLabel = computed(() => {
 
 const hasActiveFilters = computed(() => {
   return (
+    search.value.trim() !== "" ||
     filters.value.type !== "" ||
     filters.value.accountId !== "" ||
     filters.value.ownerId !== "" ||
@@ -882,20 +937,33 @@ const loadTags = async () => {
 };
 
 // Filters
-const applyFilters = () => loadTransactions();
 const clearFilters = () => {
   filters.value = defaultFilters();
-  loadTransactions();
+  search.value = "";
+  // the filters watcher triggers the reload
 };
+
+// Client-side search over the loaded transactions — matches the description,
+// notes, or amount. Instant, no refetch.
+const visibleTransactions = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return transactions.value;
+  return transactions.value.filter((t) => {
+    const desc = String(t.description ?? "").toLowerCase();
+    const notes = String(t.notes ?? "").toLowerCase();
+    const amount = String(Math.abs(Number(t.amount)));
+    return desc.includes(q) || notes.includes(q) || amount.includes(q);
+  });
+});
 
 // Summary
 const totalIncome = computed(() =>
-  transactions.value
+  visibleTransactions.value
     .filter((t) => t.type === "income")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0),
 );
 const totalExpenses = computed(() =>
-  transactions.value
+  visibleTransactions.value
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0),
 );
