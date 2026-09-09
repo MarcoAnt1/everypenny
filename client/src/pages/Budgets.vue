@@ -157,7 +157,7 @@
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="closeModal"
+      @mousedown.self="closeModal"
     >
       <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
         <h3 class="text-lg font-semibold text-gray-800 mb-6">
@@ -272,7 +272,7 @@
   <div
     v-if="showTransactionsModal"
     class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-    @click.self="showTransactionsModal = false"
+    @mousedown.self="showTransactionsModal = false"
   >
     <div
       class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col"

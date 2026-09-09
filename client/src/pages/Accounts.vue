@@ -169,7 +169,7 @@
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="closeModal"
+      @mousedown.self="closeModal"
     >
       <div class="bg-white rounded-xl p-8 w-full max-w-md">
         <div

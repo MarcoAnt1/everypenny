@@ -1,7 +1,7 @@
 <template>
     <div
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-        @click.self="$emit('close')"
+        @mousedown.self="$emit('close')"
     >
         <div class="bg-white rounded-xl shadow-xl w-fit min-w-[600px] max-w-[90vw] max-h-[90vh] flex flex-col">
             
