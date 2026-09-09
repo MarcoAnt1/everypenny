@@ -141,6 +141,7 @@ model Transaction {
   type            TxType
   status          TxStatus     @default(cleared)
   notes           String?
+  externalParty   String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
