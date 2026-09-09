@@ -409,13 +409,7 @@ import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import PeriodSelector from "../components/PeriodSelector.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
-
-interface PeriodRange {
-  start: string;
-  end: string;
-  label: string;
-  granularity: string;
-}
+import { type PeriodRange } from "../utils/PeriodRange";
 
 const loading = ref(true);
 const loadingTransactions = ref(false);

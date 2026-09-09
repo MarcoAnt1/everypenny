@@ -7,16 +7,7 @@
         <p class="text-sm text-gray-400">Your money at a glance · {{ periodLabel }}</p>
       </div>
       <div class="flex flex-wrap gap-3">
-        <!-- Period -->
-        <select
-          v-model="period"
-          class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="this_month">This Month</option>
-          <option value="last_month">Last Month</option>
-          <option value="last_3_months">Last 3 Months</option>
-          <option value="ytd">Year to Date</option>
-        </select>
+        <PeriodSelector @change="onPeriodChange" />
 
         <!-- Person (only when you share with someone) -->
         <select
@@ -411,6 +402,8 @@ import { getGoals } from "../api/goals";
 import { getCategories } from "../api/categories";
 import { useAuthStore } from "../stores/auth";
 import { formatDate, formatCurrency } from "../utils/format";
+import PeriodSelector from "../components/PeriodSelector.vue";
+import { type PeriodRange } from "../utils/PeriodRange";
 
 const loading = ref(true);
 const accounts = ref<any[]>([]);
@@ -421,14 +414,36 @@ const categories = ref<any[]>([]);
 
 const authStore = useAuthStore();
 
-// Controls (both slice client-side — no refetch needed).
-const period = ref("this_month");
+const period = ref<PeriodRange | null>(null);
 const ownerId = ref("");
 
 const fmt = (d: Date) => d.toISOString().split("T")[0];
 
-// Distinct account owners the user can see — yourself plus anyone who shares
-// their accounts with you (e.g. a partner).
+// Fetch transactions covering the selected period AND the trailing 6 months
+// (the Income vs Expenses chart always shows the last 6 months).
+const loadTransactions = async () => {
+  const now = new Date();
+  const sixMonthsAgo = fmt(new Date(now.getFullYear(), now.getMonth() - 5, 1));
+  const today = fmt(now);
+  const start =
+    period.value && period.value.start < sixMonthsAgo
+      ? period.value.start
+      : sixMonthsAgo;
+  const end =
+    period.value && period.value.end > today ? period.value.end : today;
+  const res = await getTransactions({ startDate: start, endDate: end });
+  transactions.value = res.data;
+};
+
+// Guards the PeriodSelector's initial @change (fired during mount) so we don't
+// fetch twice — the first load happens in onMounted.
+let initialized = false;
+
+const onPeriodChange = (p: PeriodRange) => {
+  period.value = p;
+  if (initialized) loadTransactions();
+};
+
 const people = computed(() => {
   const map = new Map<string, { id: string; name: string }>();
   for (const acc of accounts.value) {
@@ -446,37 +461,13 @@ const selectedPersonName = computed(
   () => people.value.find((p) => p.id === ownerId.value)?.name ?? "",
 );
 
-const periodLabel = computed(() => {
-  const labels: Record<string, string> = {
-    this_month: "This Month",
-    last_month: "Last Month",
-    last_3_months: "Last 3 Months",
-    ytd: "Year to Date",
-  };
-  return labels[period.value] ?? "This Month";
-});
+const periodLabel = computed(() => period.value?.label ?? "");
 
-// Start/end of the selected period (as YYYY-MM-DD strings for easy comparison
-// against the transactions' string dates).
-const periodRange = computed(() => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  switch (period.value) {
-    case "last_month":
-      return { start: fmt(new Date(y, m - 1, 1)), end: fmt(new Date(y, m, 0)) };
-    case "last_3_months":
-      return { start: fmt(new Date(y, m - 2, 1)), end: fmt(now) };
-    case "ytd":
-      return { start: fmt(new Date(y, 0, 1)), end: fmt(now) };
-    case "this_month":
-    default:
-      return { start: fmt(new Date(y, m, 1)), end: fmt(now) };
-  }
-});
+const periodRange = computed(() => ({
+  start: period.value?.start ?? "",
+  end: period.value?.end ?? "",
+}));
 
-// categoryId -> display category, rolling subcategories up into their parent so
-// e.g. spending under a "Groceries" subcategory counts toward "Groceries".
 const categoryDisplay = computed(() => {
   const map = new Map<string, { name: string; icon: string }>();
   for (const parent of categories.value) {
@@ -492,7 +483,6 @@ const categoryDisplay = computed(() => {
 const matchesOwner = (t: any) =>
   !ownerId.value || t.account?.owner?.id === ownerId.value;
 
-// Transactions inside the selected period and person filter.
 const periodTx = computed(() => {
   const { start, end } = periodRange.value;
   return transactions.value.filter(
@@ -548,7 +538,6 @@ const summaryCards = computed(() => [
   },
 ]);
 
-// Expense totals grouped by (rolled-up) category, sorted high to low.
 const spendingByCategory = computed(() => {
   const totals = new Map<string, { name: string; icon: string; amount: number }>();
   for (const t of periodTx.value) {
@@ -563,7 +552,6 @@ const spendingByCategory = computed(() => {
   return Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
 });
 
-// Top 8 categories; the tail is grouped into "Other" so the list stays readable.
 const topCategories = computed(() => {
   const all = spendingByCategory.value;
   const total = all.reduce((s, c) => s + c.amount, 0);
@@ -585,8 +573,6 @@ const topCategories = computed(() => {
   return top;
 });
 
-// Income/expense totals for each of the last 6 months (person-filtered, but
-// independent of the period selector).
 const monthlyTrend = computed(() => {
   const now = new Date();
   const months = Array.from({ length: 6 }, (_, i) => {
@@ -679,28 +665,23 @@ const maxAbsBalance = computed(() =>
 
 onMounted(async () => {
   try {
-    const now = new Date();
-    // Trailing 12 months covers every period option and the 6-month trend.
-    const startDate = fmt(new Date(now.getFullYear(), now.getMonth() - 11, 1));
-    const endDate = fmt(now);
-
-    const [accRes, txRes, budgetRes, goalRes, catRes] = await Promise.all([
+    const [accRes, budgetRes, goalRes, catRes] = await Promise.all([
       getAccounts(),
-      getTransactions({ startDate, endDate }),
       getBudgets(),
       getGoals(),
       getCategories(),
     ]);
-
     accounts.value = accRes.data;
-    transactions.value = txRes.data;
     budgets.value = budgetRes.data;
     goals.value = goalRes.data;
     categories.value = catRes.data;
+    // period is already set by PeriodSelector's initial @change emit.
+    await loadTransactions();
   } catch (error) {
     console.error("Error loading dashboard:", error);
   } finally {
     loading.value = false;
+    initialized = true;
   }
 });
 </script>
