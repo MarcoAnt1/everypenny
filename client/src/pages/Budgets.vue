@@ -186,22 +186,12 @@
           <!-- Category -->
           <div>
             <label class="text-sm text-gray-600 font-medium">Category</label>
-            <select
+            <CategoryPicker
               v-model="form.categoryId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="">Select category</option>
-              <template v-for="cat in categories" :key="cat.id">
-                <option :value="cat.id">{{ cat.name }}</option>
-                <option
-                  v-for="sub in cat.subcategories"
-                  :key="sub.id"
-                  :value="sub.id"
-                >
-                  └ {{ sub.name }}
-                </option>
-              </template>
-            </select>
+              :categories="categories"
+              placeholder="Select category"
+              class="mt-1"
+            />
           </div>
 
           <!-- Amount -->
@@ -418,6 +408,7 @@ import { getCategories } from "../api/categories";
 import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import PeriodSelector from "../components/PeriodSelector.vue";
+import CategoryPicker from "../components/CategoryPicker.vue";
 
 interface PeriodRange {
   start: string;

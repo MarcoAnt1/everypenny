@@ -76,24 +76,12 @@
         </select>
 
         <!-- Category -->
-        <select
-          name=""
-          id=""
+        <CategoryPicker
           v-model="filters.categoryId"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All Categories</option>
-          <template v-for="cat in categories" :key="cat.id">
-            <option :value="cat.id">{{ cat.name }}</option>
-            <option
-              v-for="sub in cat.subcategories"
-              :key="sub.id"
-              :value="sub.id"
-            >
-              └ {{ sub.name }}
-            </option>
-          </template>
-        </select>
+          :categories="categories"
+          placeholder="All Categories"
+          class="w-48"
+        />
 
         <!-- Person / Owner (only shown when you share with someone) -->
         <select
@@ -497,50 +485,16 @@
           </div>
 
           <!-- Category -->
-          <div class="relative">
+          <div>
             <label class="text-sm text-gray-600 font-medium">Category</label>
-            <button
-              type="button"
-              @click="showCategoryMenu = !showCategoryMenu"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              {{ selectedCategoryLabel || "Select category" }}
-            </button>
-            <button
-              @click="showCategoryModal = true"
-              type="button"
-              class="absolute bottom-1 right-1 border rounded-lg px-2 py-1 text-sm text-indigo-600 hover:bg-indigo-50 transition whitespace-nowrap"
-              title="Add new category"
-            >
-              +
-            </button>
-
-            <div
-              v-if="showCategoryMenu"
-              class="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto"
-            >
-              <div v-for="cat in categories" :key="cat.id" class="px-2">
-                <!-- Parent -->
-                <div
-                  class="font-medium text-gray-700 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
-                  @click="selectCategory(cat)"
-                >
-                  {{ cat.name }}
-                </div>
-
-                <!-- Children -->
-                <div class="ml-4">
-                  <div
-                    v-for="sub in cat.subcategories"
-                    :key="sub.id"
-                    class="text-sm text-gray-600 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
-                    @click="selectCategory(sub)"
-                  >
-                    └ {{ sub.name }}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <CategoryPicker
+              v-model="form.categoryId"
+              :categories="categories"
+              placeholder="Select category"
+              allow-create
+              class="mt-1"
+              @create="showCategoryModal = true"
+            />
           </div>
 
           <!-- Tags -->
@@ -667,6 +621,7 @@ import ImportStatementModal from "../components/ImportStatementModal.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
+import CategoryPicker from "../components/CategoryPicker.vue";
 import { useAuthStore } from "../stores/auth";
 
 const loading = ref(true);
@@ -682,8 +637,6 @@ const editingTransaction = ref<any>(null);
 const deletingTransaction = ref<any>(null);
 const showFormTagMenu = ref(false);
 const formTagMenuRef = ref<HTMLElement | null>(null);
-const showCategoryMenu = ref(false);
-const selectedCategoryLabel = ref("");
 const showCategoryModal = ref(false);
 
 const authStore = useAuthStore();
@@ -971,7 +924,6 @@ const net = computed(() => totalIncome.value - totalExpenses.value);
 
 // Modal
 const openModal = (tx?: any) => {
-  selectedCategoryLabel.value = tx?.category?.name ?? "";
   editingTransaction.value = tx || null;
   form.value = tx
     ? {
@@ -991,7 +943,6 @@ const openModal = (tx?: any) => {
 };
 
 const closeModal = () => {
-  selectedCategoryLabel.value = "";
   showModal.value = false;
   editingTransaction.value = null;
   form.value = { ...defaultForm, tagIds: [] };
@@ -1094,12 +1045,6 @@ const handleClickOutSideTags = (e: MouseEvent) => {
   ) {
     showFormTagMenu.value = false;
   }
-};
-
-const selectCategory = (item: any) => {
-  form.value.categoryId = item.id;
-  selectedCategoryLabel.value = item.name;
-  showCategoryMenu.value = false;
 };
 
 const onCategorySaved = async (newCategory: any) => {
