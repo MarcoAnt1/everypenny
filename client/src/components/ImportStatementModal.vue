@@ -224,9 +224,13 @@
                                             {{ formatDate(row.date) }}
                                         </td>
 
-                                        <!-- Description -->
-                                        <td class="px-3 py-2 text-gray-700 max-w-xs truncate">
-                                            {{ row.description }}
+                                        <!-- Description (editable) -->
+                                        <td class="px-3 py-2">
+                                            <input
+                                                v-model="row.description"
+                                                type="text"
+                                                class="w-full min-w-40 border rounded px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                            />
                                         </td>
 
                                         <!-- Type toggle -->
