@@ -301,6 +301,7 @@
 
                                                 <div
                                                     v-if="openTagMenu === i"
+                                                    @click.stop
                                                     class="absolute z-50 mt-1 w-40 bg-white border rounded-lg shadow-lg p-2 space-y-1"
                                                 >
                                                     <label 
