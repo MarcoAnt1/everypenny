@@ -41,7 +41,11 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       where: {
         accountId: { in: accountIds },
         ...(accountId && { accountId: String(accountId) }),
-        ...(categoryId && { categoryId: String(categoryId) }),
+        ...(categoryId === "none"
+          ? { categoryId: null }
+          : categoryId
+            ? { categoryId: String(categoryId) }
+            : {}),
         ...(validType && { type: validType }),
         ...(startDate &&
           endDate && {

@@ -80,6 +80,7 @@
           v-model="filters.categoryId"
           :categories="categories"
           placeholder="All Categories"
+          include-uncategorized
           class="w-48"
         />
 
