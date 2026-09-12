@@ -312,32 +312,15 @@
             <!-- Actions -->
             <td class="px-6 py-4 text-center">
               <ActionMenu
-                :actions="
-                  tx.type === 'transfer'
-                    ? [
-                        {
-                          label: 'Copy',
-                          onClick: () => duplicateTransaction(tx),
-                        },
-                        {
-                          label: 'Delete',
-                          danger: true,
-                          onClick: () => confirmDelete(tx),
-                        },
-                      ]
-                    : [
-                        { label: 'Edit', onClick: () => openModal(tx) },
-                        {
-                          label: 'Copy',
-                          onClick: () => duplicateTransaction(tx),
-                        },
-                        {
-                          label: 'Delete',
-                          danger: true,
-                          onClick: () => confirmDelete(tx),
-                        },
-                      ]
-                "
+                :actions="[
+                  { label: 'Edit', onClick: () => openModal(tx) },
+                  { label: 'Copy', onClick: () => duplicateTransaction(tx) },
+                  {
+                    label: 'Delete',
+                    danger: true,
+                    onClick: () => confirmDelete(tx),
+                  },
+                ]"
               />
             </td>
           </tr>
@@ -983,25 +966,47 @@ const totalExpenses = computed(() =>
 );
 const net = computed(() => totalIncome.value - totalExpenses.value);
 
+const transferPerspective = (tx: any) => {
+  if (tx.externalParty) {
+    return {
+      accountId: tx.accountId,
+      toAccountId: "external",
+      direction: Number(tx.amount) >= 0 ? "in" : "out",
+    };
+  }
+  if (tx.type === "transfer" && tx.toAccountId) {
+    const outgoing = Number(tx.amount) < 0;
+    return {
+      accountId: outgoing ? tx.accountId : tx.toAccountId,
+      toAccountId: outgoing ? tx.toAccountId : tx.accountId,
+      direction: "out",
+    };
+  }
+  return { accountId: tx.accountId, toAccountId: "", direction: "out" };
+};
+
 // Modal
 const openModal = (tx?: any) => {
   editingTransaction.value = tx || null;
-  form.value = tx
-    ? {
-        description: tx.description,
-        amount: Math.abs(Number(tx.amount)),
-        date: tx.date,
-        type: tx.type,
-        accountId: tx.accountId,
-        categoryId: tx.categoryId || "",
-        toAccountId: tx.toAccountId || (tx.externalParty ? "external" : ""),
-        externalParty: tx.externalParty || "",
-        direction: Number(tx.amount) >= 0 ? "in" : "out",
-        tagIds: tx.tags?.map((t: any) => t.tagId) || [],
-        notes: tx.notes || "",
-        status: tx.status,
-      }
-    : { ...defaultForm, tagIds: [] };
+  if (tx) {
+    const p = transferPerspective(tx);
+    form.value = {
+      description: tx.description,
+      amount: Math.abs(Number(tx.amount)),
+      date: tx.date,
+      type: tx.type,
+      accountId: p.accountId,
+      categoryId: tx.categoryId || "",
+      toAccountId: p.toAccountId,
+      externalParty: tx.externalParty || "",
+      direction: p.direction,
+      tagIds: tx.tags?.map((t: any) => t.tagId) || [],
+      notes: tx.notes || "",
+      status: tx.status,
+    };
+  } else {
+    form.value = { ...defaultForm, tagIds: [] };
+  }
   showModal.value = true;
 };
 

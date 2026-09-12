@@ -8,7 +8,7 @@ import {
 } from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
 import { TxType } from "@prisma/client";
-import { signAmount, deltaOps } from "../services/balance";
+import { signAmount, deltaOps, mergeDeltas, Delta } from "../services/balance";
 
 const router = Router();
 
@@ -314,18 +314,6 @@ router.put(
           .json({ error: "You do not have access to this transaction" });
       }
 
-      // Editing a transfer via this endpoint is not supported in Phase A — too many
-      // edge cases (sibling row, matching amounts). Delete + recreate instead.
-      if (
-        existing.type === TxType.transfer ||
-        req.body.type === TxType.transfer
-      ) {
-        return res.status(400).json({
-          error:
-            "Editing transfer is not supported. Delete and recreate instead.",
-        });
-      }
-
       const {
         categoryId,
         toAccountId,
@@ -336,6 +324,8 @@ router.put(
         status,
         notes,
         tagIds,
+        externalParty,
+        direction,
         accountId: newAccountId,
       } = req.body;
 
@@ -346,43 +336,187 @@ router.put(
       if (!targetAccount) {
         return res.status(400).json({ error: "Account not found" });
       }
+      if (
+        !(await userCanEditTransactionInAccount(req.userId!, targetAccountId))
+      ) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this account" });
+      }
 
-      const newSigned = signAmount(type, amount);
-      const undoOld = new Decimal(existing.amount).negated();
+      const includeOpts = {
+        account: true,
+        toAccount: true,
+        category: true,
+        tags: { include: { tag: true } },
+      };
+      const tagCreate = tagIds?.length
+        ? { create: tagIds.map((tagId: string) => ({ tagId })) }
+        : undefined;
 
-      const [transaction] = await prisma.$transaction([
-        prisma.transaction.update({
-          where: { id: transactionId },
-          data: {
-            accountId: targetAccountId,
-            categoryId: categoryId || null,
-            toAccountId: toAccountId || null,
-            description,
-            amount: newSigned,
-            date: new Date(date),
-            type,
-            status,
-            notes,
-            tags: tagIds?.length
-              ? {
-                  create: tagIds.map((tagId: string) => ({ tagId })),
-                }
-              : undefined,
-          },
-          include: {
-            account: true,
-            toAccount: true,
-            category: true,
-            tags: { include: { tag: true } },
-          },
+      if (existing.type !== TxType.transfer && type !== TxType.transfer) {
+        const newSigned = signAmount(type, amount);
+        const undoOld = new Decimal(existing.amount).negated();
+
+        const [transaction] = await prisma.$transaction([
+          prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+              accountId: targetAccountId,
+              categoryId: categoryId || null,
+              toAccountId: null,
+              externalParty: null,
+              description,
+              amount: newSigned,
+              date: new Date(date),
+              type,
+              status,
+              notes,
+              tags: tagCreate,
+            },
+            include: includeOpts,
+          }),
+          ...deltaOps([
+            { accountId: existing.accountId, delta: undoOld },
+            { accountId: targetAccountId, delta: newSigned },
+          ]),
+        ]);
+
+        return res.json(transaction);
+      }
+
+      const oldRows = existing.transferGroupId
+        ? await prisma.transaction.findMany({
+            where: { transferGroupId: existing.transferGroupId },
+          })
+        : [existing];
+      const oldIds = oldRows.map((r) => r.id);
+      const reverseDeltas: Delta[] = oldRows.map((r) => ({
+        accountId: r.accountId,
+        delta: new Decimal(r.amount).negated(),
+      }));
+
+      const createOps: any[] = [];
+      const newDeltas: Delta[] = [];
+
+      if (type === TxType.transfer && !toAccountId) {
+        // External (one-sided) transfer.
+        const signed =
+          direction === "in"
+            ? new Decimal(amount).abs()
+            : new Decimal(amount).abs().negated();
+        createOps.push(
+          prisma.transaction.create({
+            data: {
+              accountId: targetAccountId,
+              categoryId: categoryId || null,
+              toAccountId: null,
+              externalParty: externalParty || null,
+              description,
+              amount: signed,
+              date: new Date(date),
+              type: TxType.transfer,
+              status: status || "cleared",
+              notes,
+              tags: tagCreate,
+            },
+            include: includeOpts,
+          }),
+        );
+        newDeltas.push({ accountId: targetAccountId, delta: signed });
+      } else if (type === TxType.transfer) {
+        // Internal (two-sided) transfer.
+        const ok = await userCanEditTransactionInAccount(
+          req.userId!,
+          toAccountId,
+        );
+        if (!ok) {
+          return res.status(403).json({
+            error: "You do not have access to the destination account",
+          });
+        }
+        const toAccount = await prisma.account.findUnique({
+          where: { id: toAccountId },
+        });
+        if (!toAccount) {
+          return res
+            .status(400)
+            .json({ error: "Destination account not found" });
+        }
+        const signed = new Decimal(amount);
+        const transferGroupId = crypto.randomUUID();
+        const shared = {
+          transferGroupId,
+          categoryId: categoryId || null,
+          description,
+          date: new Date(date),
+          type: TxType.transfer,
+          status: status || "cleared",
+          notes,
+        };
+        createOps.push(
+          prisma.transaction.create({
+            data: {
+              ...shared,
+              accountId: targetAccountId,
+              toAccountId,
+              amount: signed.negated(),
+              tags: tagCreate,
+            },
+            include: includeOpts,
+          }),
+          prisma.transaction.create({
+            data: {
+              ...shared,
+              accountId: toAccountId,
+              toAccountId: targetAccountId,
+              amount: signed,
+              tags: tagCreate,
+            },
+            include: includeOpts,
+          }),
+        );
+        newDeltas.push(
+          { accountId: targetAccountId, delta: signed.negated() },
+          { accountId: toAccountId, delta: signed },
+        );
+      } else {
+        // Converting a transfer into a plain income/expense.
+        const signed = signAmount(type, amount);
+        createOps.push(
+          prisma.transaction.create({
+            data: {
+              accountId: targetAccountId,
+              categoryId: categoryId || null,
+              toAccountId: null,
+              externalParty: null,
+              description,
+              amount: signed,
+              date: new Date(date),
+              type,
+              status: status || "cleared",
+              notes,
+              tags: tagCreate,
+            },
+            include: includeOpts,
+          }),
+        );
+        newDeltas.push({ accountId: targetAccountId, delta: signed });
+      }
+
+      const results = await prisma.$transaction([
+        prisma.transactionTag.deleteMany({
+          where: { transactionId: { in: oldIds } },
         }),
-        ...deltaOps([
-          { accountId: existing.accountId, delta: undoOld },
-          { accountId: targetAccountId, delta: newSigned },
-        ]),
+        prisma.transaction.deleteMany({ where: { id: { in: oldIds } } }),
+        ...createOps,
+        ...deltaOps(mergeDeltas([...reverseDeltas, ...newDeltas])),
       ]);
 
-      res.json(transaction);
+      const created = results.slice(2, 2 + createOps.length);
+      res.json(
+        created.length === 1 ? created[0] : { out: created[0], in: created[1] },
+      );
     } catch (error) {
       res.status(500).json({
         error: "Failed to update transaction",
