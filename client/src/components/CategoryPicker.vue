@@ -32,6 +32,15 @@
         {{ placeholder }}
       </div>
 
+      <!-- Uncategorized (no category) -->
+      <div
+        v-if="includeUncategorized"
+        class="text-gray-500 px-4 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
+        @click="select('none')"
+      >
+        Uncategorized
+      </div>
+
       <div v-for="cat in categories" :key="cat.id" class="px-2">
         <!-- Parent -->
         <div
@@ -66,8 +75,14 @@ const props = withDefaults(
     categories: any[];
     placeholder?: string;
     allowCreate?: boolean;
+    // Adds an "Uncategorized" choice (value "none") — useful for filtering.
+    includeUncategorized?: boolean;
   }>(),
-  { placeholder: "Select category", allowCreate: false },
+  {
+    placeholder: "Select category",
+    allowCreate: false,
+    includeUncategorized: false,
+  },
 );
 
 const emit = defineEmits<{
@@ -80,6 +95,7 @@ const rootRef = ref<HTMLElement | null>(null);
 
 const selectedLabel = computed(() => {
   if (!props.modelValue) return "";
+  if (props.modelValue === "none") return "Uncategorized";
   for (const cat of props.categories) {
     if (cat.id === props.modelValue) return cat.name;
     const sub = cat.subcategories?.find((s: any) => s.id === props.modelValue);

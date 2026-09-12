@@ -60,25 +60,18 @@
           <option value="transfer">Transfer</option>
         </select>
 
-        <!-- Account -->
-        <select
-          v-model="filters.accountId"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All Accounts</option>
-          <option
-            v-for="account in accounts"
-            :key="account.id"
-            :value="account.id"
-          >
-            {{ account.name }}
-          </option>
-        </select>
+        <!-- Account (multi-select) -->
+        <MultiSelect
+          v-model="filters.accountIds"
+          :options="accountOptions"
+          placeholder="All Accounts"
+          class="w-44"
+        />
 
-        <!-- Category -->
-        <CategoryPicker
-          v-model="filters.categoryId"
-          :categories="categories"
+        <!-- Category (multi-select, incl. Uncategorized) -->
+        <MultiSelect
+          v-model="filters.categoryIds"
+          :options="categoryOptions"
           placeholder="All Categories"
           class="w-48"
         />
@@ -181,7 +174,7 @@
     </div>
 
     <!-- Summary Strip -->
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl shadow-sm p-4 text-center">
         <p class="text-xs text-gray-400">Income</p>
         <p class="text-xl font-bold text-green-500">
@@ -192,6 +185,16 @@
         <p class="text-xs text-gray-400">Expenses</p>
         <p class="text-xl font-bold text-red-500">
           {{ formatCurrency(totalExpenses) }}
+        </p>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-sm p-4 text-center"
+        title="Net moved via transfers in this view (internal transfers cancel out)"
+      >
+        <p class="text-xs text-gray-400">Transfers</p>
+        <p class="text-xl font-bold text-indigo-500">
+          {{ totalTransfers >= 0 ? "+" : "-"
+          }}{{ formatCurrency(Math.abs(totalTransfers)) }}
         </p>
       </div>
       <div class="bg-white rounded-xl shadow-sm p-4 text-center">
@@ -319,32 +322,15 @@
             <!-- Actions -->
             <td class="px-6 py-4 text-center">
               <ActionMenu
-                :actions="
-                  tx.type === 'transfer'
-                    ? [
-                        {
-                          label: 'Copy',
-                          onClick: () => duplicateTransaction(tx),
-                        },
-                        {
-                          label: 'Delete',
-                          danger: true,
-                          onClick: () => confirmDelete(tx),
-                        },
-                      ]
-                    : [
-                        { label: 'Edit', onClick: () => openModal(tx) },
-                        {
-                          label: 'Copy',
-                          onClick: () => duplicateTransaction(tx),
-                        },
-                        {
-                          label: 'Delete',
-                          danger: true,
-                          onClick: () => confirmDelete(tx),
-                        },
-                      ]
-                "
+                :actions="[
+                  { label: 'Edit', onClick: () => openModal(tx) },
+                  { label: 'Copy', onClick: () => duplicateTransaction(tx) },
+                  {
+                    label: 'Delete',
+                    danger: true,
+                    onClick: () => confirmDelete(tx),
+                  },
+                ]"
               />
             </td>
           </tr>
@@ -667,6 +653,7 @@ import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
+import MultiSelect from "../components/MultiSelect.vue";
 import { useAuthStore } from "../stores/auth";
 
 const loading = ref(true);
@@ -698,6 +685,24 @@ const people = computed(() => {
 
 const personLabel = (p: { id: string; name: string }) =>
   p.id === authStore.user?.id ? `${p.name} (you)` : p.name;
+
+// Options for the multi-select filters.
+const accountOptions = computed(() =>
+  accounts.value.map((a) => ({ value: a.id, label: a.name })),
+);
+
+const categoryOptions = computed(() => {
+  const opts: { value: string; label: string; indent?: boolean }[] = [
+    { value: "none", label: "Uncategorized" },
+  ];
+  for (const cat of categories.value) {
+    opts.push({ value: cat.id, label: cat.name });
+    for (const sub of cat.subcategories ?? []) {
+      opts.push({ value: sub.id, label: sub.name, indent: true });
+    }
+  }
+  return opts;
+});
 
 const today = () => new Date();
 
@@ -748,9 +753,9 @@ const defaultFilters = () => {
   return {
     preset: "this_month",
     type: "",
-    accountId: "",
+    accountIds: [] as string[],
     ownerId: "",
-    categoryId: "",
+    categoryIds: [] as string[],
     startDate,
     endDate,
     tagIds: [] as string[],
@@ -788,6 +793,8 @@ if (savedFilters) {
     ...defaultFilters(),
     ...savedFilters,
     tagIds: savedFilters.tagIds ?? [],
+    accountIds: savedFilters.accountIds ?? [],
+    categoryIds: savedFilters.categoryIds ?? [],
   };
   if (filters.value.preset !== "custom") {
     const { startDate, endDate } = getPresetDates(filters.value.preset);
@@ -846,9 +853,9 @@ const hasActiveFilters = computed(() => {
   return (
     search.value.trim() !== "" ||
     filters.value.type !== "" ||
-    filters.value.accountId !== "" ||
+    filters.value.accountIds.length > 0 ||
     filters.value.ownerId !== "" ||
-    filters.value.categoryId !== "" ||
+    filters.value.categoryIds.length > 0 ||
     filters.value.tagIds.length > 0 ||
     filters.value.preset !== "all"
   );
@@ -890,16 +897,16 @@ const loadTransactions = async () => {
       params.type = filters.value.type;
     }
 
-    if (filters.value.accountId) {
-      params.accountId = filters.value.accountId;
+    if (filters.value.accountIds.length > 0) {
+      params.accountIds = filters.value.accountIds;
     }
 
     if (filters.value.ownerId) {
       params.ownerId = filters.value.ownerId;
     }
 
-    if (filters.value.categoryId) {
-      params.categoryId = filters.value.categoryId;
+    if (filters.value.categoryIds.length > 0) {
+      params.categoryIds = filters.value.categoryIds;
     }
 
     if (filters.value.startDate) {
@@ -969,25 +976,55 @@ const totalExpenses = computed(() =>
 );
 const net = computed(() => totalIncome.value - totalExpenses.value);
 
+// Net transfer flow in the current view. Internal transfers (both sides visible)
+// cancel out, so this surfaces the net moved to/from outside accounts.
+const totalTransfers = computed(() =>
+  visibleTransactions.value
+    .filter((t) => t.type === "transfer")
+    .reduce((s, t) => s + Number(t.amount), 0),
+);
+
+const transferPerspective = (tx: any) => {
+  if (tx.externalParty) {
+    return {
+      accountId: tx.accountId,
+      toAccountId: "external",
+      direction: Number(tx.amount) >= 0 ? "in" : "out",
+    };
+  }
+  if (tx.type === "transfer" && tx.toAccountId) {
+    const outgoing = Number(tx.amount) < 0;
+    return {
+      accountId: outgoing ? tx.accountId : tx.toAccountId,
+      toAccountId: outgoing ? tx.toAccountId : tx.accountId,
+      direction: "out",
+    };
+  }
+  return { accountId: tx.accountId, toAccountId: "", direction: "out" };
+};
+
 // Modal
 const openModal = (tx?: any) => {
   editingTransaction.value = tx || null;
-  form.value = tx
-    ? {
-        description: tx.description,
-        amount: Math.abs(Number(tx.amount)),
-        date: tx.date,
-        type: tx.type,
-        accountId: tx.accountId,
-        categoryId: tx.categoryId || "",
-        toAccountId: tx.toAccountId || (tx.externalParty ? "external" : ""),
-        externalParty: tx.externalParty || "",
-        direction: Number(tx.amount) >= 0 ? "in" : "out",
-        tagIds: tx.tags?.map((t: any) => t.tagId) || [],
-        notes: tx.notes || "",
-        status: tx.status,
-      }
-    : { ...defaultForm, tagIds: [] };
+  if (tx) {
+    const p = transferPerspective(tx);
+    form.value = {
+      description: tx.description,
+      amount: Math.abs(Number(tx.amount)),
+      date: tx.date,
+      type: tx.type,
+      accountId: p.accountId,
+      categoryId: tx.categoryId || "",
+      toAccountId: p.toAccountId,
+      externalParty: tx.externalParty || "",
+      direction: p.direction,
+      tagIds: tx.tags?.map((t: any) => t.tagId) || [],
+      notes: tx.notes || "",
+      status: tx.status,
+    };
+  } else {
+    form.value = { ...defaultForm, tagIds: [] };
+  }
   showModal.value = true;
 };
 
