@@ -174,7 +174,7 @@
     </div>
 
     <!-- Summary Strip -->
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl shadow-sm p-4 text-center">
         <p class="text-xs text-gray-400">Income</p>
         <p class="text-xl font-bold text-green-500">
@@ -185,6 +185,16 @@
         <p class="text-xs text-gray-400">Expenses</p>
         <p class="text-xl font-bold text-red-500">
           {{ formatCurrency(totalExpenses) }}
+        </p>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-sm p-4 text-center"
+        title="Net moved via transfers in this view (internal transfers cancel out)"
+      >
+        <p class="text-xs text-gray-400">Transfers</p>
+        <p class="text-xl font-bold text-indigo-500">
+          {{ totalTransfers >= 0 ? "+" : "-"
+          }}{{ formatCurrency(Math.abs(totalTransfers)) }}
         </p>
       </div>
       <div class="bg-white rounded-xl shadow-sm p-4 text-center">
@@ -965,6 +975,14 @@ const totalExpenses = computed(() =>
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0),
 );
 const net = computed(() => totalIncome.value - totalExpenses.value);
+
+// Net transfer flow in the current view. Internal transfers (both sides visible)
+// cancel out, so this surfaces the net moved to/from outside accounts.
+const totalTransfers = computed(() =>
+  visibleTransactions.value
+    .filter((t) => t.type === "transfer")
+    .reduce((s, t) => s + Number(t.amount), 0),
+);
 
 const transferPerspective = (tx: any) => {
   if (tx.externalParty) {
