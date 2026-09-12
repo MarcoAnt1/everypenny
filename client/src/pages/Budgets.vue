@@ -190,9 +190,17 @@
               v-model="form.categoryId"
               :categories="categories"
               placeholder="Select category"
+              allow-create
               class="mt-1"
+              @create="showCategoryModal = true"
             />
           </div>
+
+          <CategoryFormModal
+            v-if="showCategoryModal"
+            @close="showCategoryModal = false"
+            @saved="onCategorySaved"
+          />
 
           <!-- Amount -->
           <div>
@@ -409,6 +417,7 @@ import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import PeriodSelector from "../components/PeriodSelector.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
+import CategoryFormModal from "../components/CategoryFormModal.vue";
 import { type PeriodRange } from "../utils/PeriodRange";
 
 const loading = ref(true);
@@ -424,6 +433,7 @@ const showTransactionsModal = ref(false);
 const selectedBudget = ref<any>(null);
 const editingBudget = ref<any>(null);
 const deletingBudget = ref<any>(null);
+const showCategoryModal = ref(false);
 
 const period = ref<PeriodRange | null>(null);
 const periodLabel = computed(() => period.value?.label ?? "");
@@ -465,6 +475,12 @@ const loadBudgets = async () => {
 const loadCategories = async () => {
   const res = await getCategories();
   categories.value = res.data;
+};
+
+const onCategorySaved = async (newCategory: any) => {
+  await loadCategories();
+  form.value.categoryId = newCategory.id;
+  showCategoryModal.value = false;
 };
 
 // Summary
