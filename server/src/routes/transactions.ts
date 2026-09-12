@@ -15,8 +15,14 @@ const router = Router();
 // GET all transactions
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { accountId, categoryId, type, startDate, endDate, tagIds, ownerId } =
-      req.query;
+    const { type, startDate, endDate, ownerId } = req.query;
+
+    const toArray = (v: unknown): string[] =>
+      Array.isArray(v) ? (v as string[]) : typeof v === "string" && v ? [v] : [];
+
+    const selectedAccountIds = toArray(req.query.accountIds);
+    const categoryIds = toArray(req.query.categoryIds);
+    const tagIdArray = toArray(req.query.tagIds);
 
     const validType =
       typeof type === "string" &&
@@ -24,28 +30,35 @@ router.get("/", async (req: AuthRequest, res: Response) => {
         ? (type as TxType)
         : undefined;
 
-    const tagIdArray = tagIds
-      ? Array.isArray(tagIds)
-        ? (tagIds as string[])
-        : [tagIds as string]
-      : [];
-
     const userAccounts = await getUserAccounts(req.userId!);
     const ownerFilter =
       typeof ownerId === "string" && ownerId.length > 0 ? ownerId : undefined;
-    const accountIds = userAccounts
+    const accessibleIds = userAccounts
       .filter((acc) => !ownerFilter || acc.ownerId === ownerFilter)
       .map((acc) => acc.id);
+    // Intersect the selected accounts with accessible ones (keeps access scope).
+    const accountIds = selectedAccountIds.length
+      ? accessibleIds.filter((id) => selectedAccountIds.includes(id))
+      : accessibleIds;
+
+    // Category filter: a list that may include the "none" (uncategorized) sentinel.
+    const realCategoryIds = categoryIds.filter((id) => id !== "none");
+    const categoryWhere =
+      categoryIds.length === 0
+        ? undefined
+        : {
+            OR: [
+              ...(realCategoryIds.length
+                ? [{ categoryId: { in: realCategoryIds } }]
+                : []),
+              ...(categoryIds.includes("none") ? [{ categoryId: null }] : []),
+            ],
+          };
 
     const transactions = await prisma.transaction.findMany({
       where: {
         accountId: { in: accountIds },
-        ...(accountId && { accountId: String(accountId) }),
-        ...(categoryId === "none"
-          ? { categoryId: null }
-          : categoryId
-            ? { categoryId: String(categoryId) }
-            : {}),
+        ...(categoryWhere ?? {}),
         ...(validType && { type: validType }),
         ...(startDate &&
           endDate && {

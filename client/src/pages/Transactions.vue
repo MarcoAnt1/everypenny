@@ -60,27 +60,19 @@
           <option value="transfer">Transfer</option>
         </select>
 
-        <!-- Account -->
-        <select
-          v-model="filters.accountId"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All Accounts</option>
-          <option
-            v-for="account in accounts"
-            :key="account.id"
-            :value="account.id"
-          >
-            {{ account.name }}
-          </option>
-        </select>
+        <!-- Account (multi-select) -->
+        <MultiSelect
+          v-model="filters.accountIds"
+          :options="accountOptions"
+          placeholder="All Accounts"
+          class="w-44"
+        />
 
-        <!-- Category -->
-        <CategoryPicker
-          v-model="filters.categoryId"
-          :categories="categories"
+        <!-- Category (multi-select, incl. Uncategorized) -->
+        <MultiSelect
+          v-model="filters.categoryIds"
+          :options="categoryOptions"
           placeholder="All Categories"
-          include-uncategorized
           class="w-48"
         />
 
@@ -668,6 +660,7 @@ import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
+import MultiSelect from "../components/MultiSelect.vue";
 import { useAuthStore } from "../stores/auth";
 
 const loading = ref(true);
@@ -699,6 +692,24 @@ const people = computed(() => {
 
 const personLabel = (p: { id: string; name: string }) =>
   p.id === authStore.user?.id ? `${p.name} (you)` : p.name;
+
+// Options for the multi-select filters.
+const accountOptions = computed(() =>
+  accounts.value.map((a) => ({ value: a.id, label: a.name })),
+);
+
+const categoryOptions = computed(() => {
+  const opts: { value: string; label: string; indent?: boolean }[] = [
+    { value: "none", label: "Uncategorized" },
+  ];
+  for (const cat of categories.value) {
+    opts.push({ value: cat.id, label: cat.name });
+    for (const sub of cat.subcategories ?? []) {
+      opts.push({ value: sub.id, label: sub.name, indent: true });
+    }
+  }
+  return opts;
+});
 
 const today = () => new Date();
 
@@ -749,9 +760,9 @@ const defaultFilters = () => {
   return {
     preset: "this_month",
     type: "",
-    accountId: "",
+    accountIds: [] as string[],
     ownerId: "",
-    categoryId: "",
+    categoryIds: [] as string[],
     startDate,
     endDate,
     tagIds: [] as string[],
@@ -789,6 +800,8 @@ if (savedFilters) {
     ...defaultFilters(),
     ...savedFilters,
     tagIds: savedFilters.tagIds ?? [],
+    accountIds: savedFilters.accountIds ?? [],
+    categoryIds: savedFilters.categoryIds ?? [],
   };
   if (filters.value.preset !== "custom") {
     const { startDate, endDate } = getPresetDates(filters.value.preset);
@@ -847,9 +860,9 @@ const hasActiveFilters = computed(() => {
   return (
     search.value.trim() !== "" ||
     filters.value.type !== "" ||
-    filters.value.accountId !== "" ||
+    filters.value.accountIds.length > 0 ||
     filters.value.ownerId !== "" ||
-    filters.value.categoryId !== "" ||
+    filters.value.categoryIds.length > 0 ||
     filters.value.tagIds.length > 0 ||
     filters.value.preset !== "all"
   );
@@ -891,16 +904,16 @@ const loadTransactions = async () => {
       params.type = filters.value.type;
     }
 
-    if (filters.value.accountId) {
-      params.accountId = filters.value.accountId;
+    if (filters.value.accountIds.length > 0) {
+      params.accountIds = filters.value.accountIds;
     }
 
     if (filters.value.ownerId) {
       params.ownerId = filters.value.ownerId;
     }
 
-    if (filters.value.categoryId) {
-      params.categoryId = filters.value.categoryId;
+    if (filters.value.categoryIds.length > 0) {
+      params.categoryIds = filters.value.categoryIds;
     }
 
     if (filters.value.startDate) {
