@@ -215,14 +215,11 @@
           <div>
             <div v-if="editingGoal">
               <label class="text-sm text-gray-600 font-medium">Status</label>
-              <select
+              <Dropdown
                 v-model="form.status"
-                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              >
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                :options="statusOptions"
+                class="w-full mt-1"
+              />
             </div>
           </div>
 
@@ -317,6 +314,13 @@ import {
 } from "../api/goals";
 import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import Dropdown from "../components/Dropdown.vue";
+
+const statusOptions = [
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
 const loading = ref(true);
 const saving = ref(false);

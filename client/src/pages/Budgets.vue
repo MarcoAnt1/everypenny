@@ -219,14 +219,11 @@
           <!-- Period -->
           <div>
             <label class="text-sm text-gray-600 font-medium">Period</label>
-            <select
+            <Dropdown
               v-model="form.period"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-            </select>
+              :options="budgetPeriodOptions"
+              class="w-full mt-1"
+            />
           </div>
 
           <!-- Actions -->
@@ -418,7 +415,14 @@ import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import PeriodSelector from "../components/PeriodSelector.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
+import Dropdown from "../components/Dropdown.vue";
 import { type PeriodRange } from "../utils/PeriodRange";
+
+const budgetPeriodOptions = [
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+];
 
 const loading = ref(true);
 const loadingTransactions = ref(false);

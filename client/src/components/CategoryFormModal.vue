@@ -61,15 +61,12 @@
           <label class="text-sm text-gray-600 font-medium"
             >Parent Category (optional)</label
           >
-          <select
+          <Dropdown
             v-model="form.parentId"
-            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">None (top level)</option>
-            <option v-for="cat in parentOptions" :key="cat.id" :value="cat.id">
-              {{ cat.icon || "📁" }} {{ cat.name }}
-            </option>
-          </select>
+            :options="parentSelectOptions"
+            placeholder="None (top level)"
+            class="w-full mt-1"
+          />
         </div>
 
         <!-- Actions -->
@@ -102,6 +99,7 @@ import {
   createCategory,
   updateCategory,
 } from "../api/categories";
+import Dropdown from "./Dropdown.vue";
 
 const props = defineProps<{
   category?: any;
@@ -134,6 +132,13 @@ onMounted(async () => {
 const parentOptions = computed(() =>
   allCategories.value.filter((c) => !c.parentId && c.id !== props.category?.id),
 );
+const parentSelectOptions = computed(() => [
+  { value: "", label: "None (top level)" },
+  ...parentOptions.value.map((c) => ({
+    value: c.id,
+    label: `${c.icon || "📁"} ${c.name}`,
+  })),
+]);
 
 const save = async () => {
   if (!form.value.name.trim()) return;
