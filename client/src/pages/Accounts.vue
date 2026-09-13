@@ -203,19 +203,13 @@
             <label for="account-type" class="text-sm text-gray-600 font-medium"
               >Account Type</label
             >
-            <select
-              id="account-type"
+            <Dropdown
               v-model="form.type"
+              :options="accountTypeOptions"
               :disabled="!!editingAccount"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="" disabled>Select type</option>
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-              <option value="credit_card">Credit Card</option>
-              <option value="investment">Investment</option>
-              <option value="cash">Cash</option>
-            </select>
+              placeholder="Select type"
+              class="w-full mt-1"
+            />
             <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
               Account type can't be changed after creation.
             </p>
@@ -279,17 +273,12 @@
               class="text-sm text-gray-600 font-medium"
               >Currency</label
             >
-            <select
-              id="account-currency"
+            <Dropdown
               v-model="form.currency"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="" disabled>Select currency</option>
-              <option value="USD">USD - US Dollar</option>
-              <option value="CAD">CAD - Canadian Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="GBP">GBP - British Pound</option>
-            </select>
+              :options="currencyOptions"
+              placeholder="Select currency"
+              class="w-full mt-1"
+            />
           </div>
 
           <!-- Actions -->
@@ -338,7 +327,22 @@ import {
 } from "../api/accounts";
 import { formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import Dropdown from "../components/Dropdown.vue";
 import { useAuthStore } from "../stores/auth";
+
+const accountTypeOptions = [
+  { value: "checking", label: "Checking" },
+  { value: "savings", label: "Savings" },
+  { value: "credit_card", label: "Credit Card" },
+  { value: "investment", label: "Investment" },
+  { value: "cash", label: "Cash" },
+];
+const currencyOptions = [
+  { value: "USD", label: "USD - US Dollar" },
+  { value: "CAD", label: "CAD - Canadian Dollar" },
+  { value: "EUR", label: "EUR - Euro" },
+  { value: "GBP", label: "GBP - British Pound" },
+];
 
 const authStore = useAuthStore();
 

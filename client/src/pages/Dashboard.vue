@@ -10,16 +10,12 @@
         <PeriodSelector @change="onPeriodChange" />
 
         <!-- Person (only when you share with someone) -->
-        <select
+        <Dropdown
           v-if="people.length > 1"
           v-model="ownerId"
-          class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All People</option>
-          <option v-for="p in people" :key="p.id" :value="p.id">
-            {{ personLabel(p) }}
-          </option>
-        </select>
+          :options="personOptions"
+          class="w-40"
+        />
       </div>
     </div>
 
@@ -403,6 +399,7 @@ import { getCategories } from "../api/categories";
 import { useAuthStore } from "../stores/auth";
 import { formatDate, formatCurrency } from "../utils/format";
 import PeriodSelector from "../components/PeriodSelector.vue";
+import Dropdown from "../components/Dropdown.vue";
 import { type PeriodRange } from "../utils/PeriodRange";
 
 const loading = ref(true);
@@ -460,6 +457,11 @@ const personLabel = (p: { id: string; name: string }) =>
 const selectedPersonName = computed(
   () => people.value.find((p) => p.id === ownerId.value)?.name ?? "",
 );
+
+const personOptions = computed(() => [
+  { value: "", label: "All People" },
+  ...people.value.map((p) => ({ value: p.id, label: personLabel(p) })),
+]);
 
 const periodLabel = computed(() => period.value?.label ?? "");
 

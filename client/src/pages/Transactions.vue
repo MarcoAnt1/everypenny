@@ -35,30 +35,15 @@
         />
 
         <!-- Date Preset -->
-        <select
-          v-model="filters.preset"
-          @change="onPresetChange"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="this_month">This Month</option>
-          <option value="last_month">Last Month</option>
-          <option value="ytd">Year to Date</option>
-          <option value="this_year">This Year</option>
-          <option value="last_year">Last Year</option>
-          <option value="all">All Time</option>
-          <option value="custom">Custom Range</option>
-        </select>
+        <Dropdown
+          :model-value="filters.preset"
+          :options="presetOptions"
+          class="w-36"
+          @update:model-value="onPresetSelect"
+        />
 
         <!-- Type -->
-        <select
-          v-model="filters.type"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All Types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-          <option value="transfer">Transfer</option>
-        </select>
+        <Dropdown v-model="filters.type" :options="typeOptions" class="w-32" />
 
         <!-- Account (multi-select) -->
         <MultiSelect
@@ -77,16 +62,12 @@
         />
 
         <!-- Person / Owner (only shown when you share with someone) -->
-        <select
+        <Dropdown
           v-if="people.length > 1"
           v-model="filters.ownerId"
-          class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        >
-          <option value="">All People</option>
-          <option v-for="p in people" :key="p.id" :value="p.id">
-            {{ personLabel(p) }}
-          </option>
-        </select>
+          :options="personOptions"
+          class="w-40"
+        />
 
         <!-- Clear -->
         <button
@@ -399,40 +380,23 @@
           <!-- Account -->
           <div>
             <label class="text-sm text-gray-600 font-medium">Account</label>
-            <select
+            <Dropdown
               v-model="form.accountId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="">Select account</option>
-              <option
-                v-for="account in accounts"
-                :key="account.id"
-                :value="account.id"
-              >
-                {{ account.name }}
-              </option>
-            </select>
+              :options="accountOptions"
+              placeholder="Select account"
+              class="w-full mt-1"
+            />
           </div>
 
           <!-- Destination Account (only for transfers)-->
           <div v-if="form.type === 'transfer'">
             <label class="text-sm text-gray-600 font-medium">To Account</label>
-            <select
+            <Dropdown
               v-model="form.toAccountId"
-              class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="">Select destination account</option>
-              <option value="external">🌐 Outside account (external)</option>
-              <option
-                v-for="account in accounts.filter(
-                  (a) => a.id !== form.accountId,
-                )"
-                :key="account.id"
-                :value="account.id"
-              >
-                {{ account.name }}
-              </option>
-            </select>
+              :options="toAccountOptions"
+              placeholder="Select destination account"
+              class="w-full mt-1"
+            />
           </div>
 
           <!-- External transfer: direction + outside party -->
@@ -654,6 +618,7 @@ import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
 import MultiSelect from "../components/MultiSelect.vue";
+import Dropdown from "../components/Dropdown.vue";
 import { useAuthStore } from "../stores/auth";
 
 const loading = ref(true);
@@ -685,6 +650,27 @@ const people = computed(() => {
 
 const personLabel = (p: { id: string; name: string }) =>
   p.id === authStore.user?.id ? `${p.name} (you)` : p.name;
+
+// Options for the single-select dropdowns.
+const presetOptions = [
+  { value: "this_month", label: "This Month" },
+  { value: "last_month", label: "Last Month" },
+  { value: "ytd", label: "Year to Date" },
+  { value: "this_year", label: "This Year" },
+  { value: "last_year", label: "Last Year" },
+  { value: "all", label: "All Time" },
+  { value: "custom", label: "Custom Range" },
+];
+const typeOptions = [
+  { value: "", label: "All Types" },
+  { value: "income", label: "Income" },
+  { value: "expense", label: "Expense" },
+  { value: "transfer", label: "Transfer" },
+];
+const personOptions = computed(() => [
+  { value: "", label: "All People" },
+  ...people.value.map((p) => ({ value: p.id, label: personLabel(p) })),
+]);
 
 // Options for the multi-select filters.
 const accountOptions = computed(() =>
@@ -827,6 +813,11 @@ const onPresetChange = () => {
   }
 };
 
+const onPresetSelect = (value: string) => {
+  filters.value.preset = value;
+  onPresetChange();
+};
+
 const toggleTagFilter = (tagId: string) => {
   const idx = filters.value.tagIds.indexOf(tagId);
   if (idx === -1) {
@@ -877,6 +868,15 @@ const defaultForm = {
 };
 
 const form = ref({ ...defaultForm, tagIds: [] as string[] });
+
+// Destination options for a transfer: the Outside option plus every account
+// except the source.
+const toAccountOptions = computed(() => [
+  { value: "external", label: "🌐 Outside account (external)" },
+  ...accounts.value
+    .filter((a) => a.id !== form.value.accountId)
+    .map((a) => ({ value: a.id, label: a.name })),
+]);
 
 onMounted(async () => {
   document.addEventListener("click", handleClickOutSideTags);

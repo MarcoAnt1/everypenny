@@ -63,47 +63,36 @@
                     <!-- Account -->
                     <div>
                         <label class="text-sm font-medium text-gray-600">Import to Account</label>
-                        <select
+                        <Dropdown
                             v-model="form.accountId"
-                            class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                        >
-                            <option value="">Select account</option>
-                            <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-                                {{ acc.name }} — {{ formatCurrency(acc.balance) }}
-                            </option>
-                        </select>
+                            :options="importAccountOptions"
+                            placeholder="Select account"
+                            class="w-full mt-1"
+                        />
                     </div>
 
                     <!-- Bank + Statement Type -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm font-medium text-gray-600">Bank</label>
-                            <select
-                                v-model="form.bank"
-                                @change="onBankChange"
-                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                            >
-                                <option value="">Select bank</option>
-                                <option v-for="bank in availableBanks" :key="bank" :value="bank">
-                                    {{ BANK_LABELS[bank] ?? bank }}
-                                </option>
-                            </select>
+                            <Dropdown
+                                :model-value="form.bank"
+                                :options="bankOptions"
+                                placeholder="Select bank"
+                                class="w-full mt-1"
+                                @update:model-value="onBankSelect"
+                            />
                         </div>
 
                         <div>
                             <label class="text-sm font-medium text-gray-600">Statement Type</label>
-                            <select
+                            <Dropdown
                                 v-model="form.statementType"
+                                :options="statementTypeOptions"
                                 :disabled="!form.bank"
-                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-400"
-                            >
-                                <option value="">
-                                    {{ form.bank ? 'Select type' : 'Pick a bank first' }}
-                                </option>
-                                <option v-for="type in availableTypes" :key="type" :value="type">
-                                    {{ TYPE_LABELS[type] ?? type }}
-                                </option>
-                            </select>
+                                :placeholder="form.bank ? 'Select type' : 'Pick a bank first'"
+                                class="w-full mt-1"
+                            />
                         </div>
                     </div>
 
@@ -425,6 +414,7 @@ import {
 import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
 import { formatCurrency, formatDate } from '../utils/format';
+import Dropdown from './Dropdown.vue';
 
 const props = defineProps<{ accounts: any[] }>();
 const emit = defineEmits(['close', 'imported']);
@@ -504,6 +494,23 @@ const onBankChange = () => {
     // The previously chosen type may not exist for this bank.
     form.value.statementType =
         availableTypes.value.length === 1 ? availableTypes.value[0] : '';
+};
+
+const importAccountOptions = computed(() =>
+    props.accounts.map((a) => ({
+        value: a.id,
+        label: `${a.name} — ${formatCurrency(a.balance)}`,
+    })),
+);
+const bankOptions = computed(() =>
+    availableBanks.value.map((b) => ({ value: b, label: BANK_LABELS[b] ?? b })),
+);
+const statementTypeOptions = computed(() =>
+    availableTypes.value.map((t) => ({ value: t, label: TYPE_LABELS[t] ?? t })),
+);
+const onBankSelect = (value: string) => {
+    form.value.bank = value;
+    onBankChange();
 };
 
 const acceptedFormats = computed(() => {

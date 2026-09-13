@@ -92,38 +92,24 @@
           <div class="space-y-3">
             <div>
               <label class="text-sm text-gray-600 font-medium">Account</label>
-              <select
+              <Dropdown
                 v-model="shareForm.accountId"
-                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              >
-                <option value="" disabled>Select an account</option>
-                <option
-                  v-for="account in accounts"
-                  :key="account.id"
-                  :value="account.id"
-                >
-                  {{ account.name }}
-                </option>
-              </select>
+                :options="shareAccountOptions"
+                placeholder="Select an account"
+                class="w-full mt-1"
+              />
             </div>
 
             <div>
               <label class="text-sm text-gray-600 font-medium"
                 >Accepted connection</label
               >
-              <select
+              <Dropdown
                 v-model="shareForm.userId"
-                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              >
-                <option value="" disabled>Select a connection</option>
-                <option
-                  v-for="connection in acceptedConnections"
-                  :key="connection.id"
-                  :value="connection.otherUser?.id"
-                >
-                  {{ connection.otherUser?.name || connection.inviteeEmail }}
-                </option>
-              </select>
+                :options="shareUserOptions"
+                placeholder="Select a connection"
+                class="w-full mt-1"
+              />
             </div>
 
             <button
@@ -317,6 +303,7 @@ import {
   getConnections,
   updateConnection,
 } from "../api/connections";
+import Dropdown from "../components/Dropdown.vue";
 
 const authStore = useAuthStore();
 
@@ -361,6 +348,16 @@ const acceptedConnections = computed(() =>
       // Only the requester may change sharing preferences (enforced by the API).
       canEditSharing: conn.requesterId === authStore.user?.id,
     })),
+);
+
+const shareAccountOptions = computed(() =>
+  accounts.value.map((a) => ({ value: a.id, label: a.name })),
+);
+const shareUserOptions = computed(() =>
+  acceptedConnections.value.map((c) => ({
+    value: c.otherUser?.id ?? "",
+    label: c.otherUser?.name || c.inviteeEmail,
+  })),
 );
 
 onMounted(async () => {

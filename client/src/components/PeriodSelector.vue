@@ -1,46 +1,44 @@
 <template>
   <div class="flex flex-wrap items-center gap-3">
     <!-- Granularity -->
-    <select
+    <Dropdown
       v-if="granularities.length > 1"
       v-model="granularity"
-      class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-    >
-      <option v-for="g in granularities" :key="g" :value="g">
-        {{ granularityLabel(g) }}
-      </option>
-    </select>
+      :options="granularityOptions"
+      class="w-32"
+    />
 
     <!-- Month -->
-    <select
+    <Dropdown
       v-if="granularity === 'month'"
-      v-model.number="month"
-      class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-    >
-      <option v-for="(m, i) in MONTHS" :key="i" :value="i">{{ m }}</option>
-    </select>
+      :model-value="String(month)"
+      :options="monthOptions"
+      class="w-36"
+      @update:model-value="(v) => (month = Number(v))"
+    />
 
     <!-- Quarter -->
-    <select
+    <Dropdown
       v-if="granularity === 'quarter'"
-      v-model.number="quarter"
-      class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-    >
-      <option v-for="(q, i) in QUARTERS" :key="i" :value="i">{{ q }}</option>
-    </select>
+      :model-value="String(quarter)"
+      :options="quarterOptions"
+      class="w-24"
+      @update:model-value="(v) => (quarter = Number(v))"
+    />
 
     <!-- Year -->
-    <select
-      v-model.number="year"
-      class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-    >
-      <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-    </select>
+    <Dropdown
+      :model-value="String(year)"
+      :options="yearOptions"
+      class="w-28"
+      @update:model-value="(v) => (year = Number(v))"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import Dropdown from "./Dropdown.vue";
 
 interface PeriodRange {
   start: string; // YYYY-MM-DD (inclusive)
@@ -80,6 +78,15 @@ const years = computed(() => {
 });
 
 const granularityLabel = (g: string) => g.charAt(0).toUpperCase() + g.slice(1);
+
+const granularityOptions = computed(() =>
+  props.granularities.map((g) => ({ value: g, label: granularityLabel(g) })),
+);
+const monthOptions = MONTHS.map((m, i) => ({ value: String(i), label: m }));
+const quarterOptions = QUARTERS.map((q, i) => ({ value: String(i), label: q }));
+const yearOptions = computed(() =>
+  years.value.map((y) => ({ value: String(y), label: String(y) })),
+);
 
 const toStr = (d: Date) => {
   const y = d.getFullYear();
