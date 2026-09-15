@@ -239,41 +239,24 @@
 
                                         <!-- To Account (Only relevant for transfers)-->
                                         <td class="px-3 py-2">
-                                            <select
+                                            <Dropdown
                                                 v-if="row.type === 'transfer'"
                                                 v-model="row.toAccountId"
-                                                class="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                                            >
-                                                <option value="">- Save as expense -</option>
-                                                <option
-                                                    v-for="acc in props.accounts.filter(a => a.id !== form.accountId)"
-                                                    :key="acc.id"
-                                                    :value="acc.id"
-                                                >
-                                                    {{ acc.name }}
-                                                </option>
-                                            </select>
+                                                :options="rowToAccountOptions"
+                                                placeholder="- Save as expense -"
+                                                class="min-w-40"
+                                            />
                                             <span v-else class="text-gray-300">-</span>
                                         </td>
 
-                                        <!-- Category toggle -->
+                                        <!-- Category -->
                                         <td class="px-3 py-2">
-                                            <select
+                                            <CategoryPicker
                                                 v-model="row.categoryId"
-                                                class="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 max-w-32"
-                                            >
-                                                <option value="">— None —</option>
-                                                <template v-for="cat in categories" :key="cat.id">
-                                                    <option :value="cat.id">{{ cat.name }}</option>
-                                                    <option
-                                                        v-for="sub in cat.subcategories"
-                                                        :key="sub.id"
-                                                        :value="sub.id"
-                                                    >
-                                                        └ {{ sub.name }}
-                                                    </option>
-                                                </template>
-                                            </select>
+                                                :categories="categories"
+                                                placeholder="— None —"
+                                                class="min-w-44"
+                                            />
                                         </td>
 
                                         <!-- Tag toggle -->
@@ -415,6 +398,7 @@ import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
 import { formatCurrency, formatDate } from '../utils/format';
 import Dropdown from './Dropdown.vue';
+import CategoryPicker from './CategoryPicker.vue';
 
 const props = defineProps<{ accounts: any[] }>();
 const emit = defineEmits(['close', 'imported']);
@@ -512,6 +496,13 @@ const onBankSelect = (value: string) => {
     form.value.bank = value;
     onBankChange();
 };
+
+const rowToAccountOptions = computed(() => [
+    { value: '', label: '- Save as expense -' },
+    ...props.accounts
+        .filter((a) => a.id !== form.value.accountId)
+        .map((a) => ({ value: a.id, label: a.name })),
+]);
 
 const acceptedFormats = computed(() => {
     return '.pdf,.xls,.xlsx,.csv';
