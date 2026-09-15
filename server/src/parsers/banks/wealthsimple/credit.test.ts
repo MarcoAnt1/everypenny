@@ -14,9 +14,14 @@ const records: Record<string, any>[] = [
 describe("WealthsimpleCreditParser", () => {
   const rows = new WealthsimpleCreditParser().parseRecords(records);
 
-  it("parses purchases and refunds but skips card payments", () => {
-    expect(rows).toHaveLength(3);
-    expect(rows.some((r) => /payment received/i.test(r.description))).toBe(false);
+  it("parses purchases, refunds, and payments", () => {
+    expect(rows).toHaveLength(4);
+  });
+
+  it("classifies a card payment as income (money in)", () => {
+    const payment = rows.find((r) => /payment received/i.test(r.description));
+    expect(payment?.type).toBe(TxType.income); // negative amount = money in
+    expect(payment?.amount).toBe(500);
   });
 
   it("classifies a purchase as an expense", () => {
@@ -40,6 +45,6 @@ describe("WealthsimpleCreditParser", () => {
       ...records,
       { transaction_date: "2026-08-25", post_date: "2026-08-26", type: "Purchase", details: "n/a", amount: "", currency: "CAD" },
     ]);
-    expect(withGap).toHaveLength(3); // the empty-amount row is dropped
+    expect(withGap).toHaveLength(4); // the empty-amount row is dropped
   });
 });

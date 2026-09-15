@@ -3,8 +3,6 @@ import { parseDateString } from "../../../utils/date";
 import { XlsxColumnIndexes, XlsxParser } from "../../base/xlsxParser";
 import { ParsedTransaction } from "../../interfaces/parsedTransactions";
 
-const SKIP_DESCRIPTIONS = ["payment received", "online payment"];
-
 export class AmexCreditParser extends XlsxParser {
   protected dateHeaders = ["date", "transaction date", "data"];
   protected descHeaders = [
@@ -29,10 +27,6 @@ export class AmexCreditParser extends XlsxParser {
     }
 
     const description = String(rawDesc).trim();
-    const lowerDesc = description.toLowerCase();
-    if (SKIP_DESCRIPTIONS.some((skip) => lowerDesc.includes(skip))) {
-      return null;
-    }
 
     const amount = parseFloat(String(rawAmount).replace(/[^0-9.-]/g, ""));
     if (isNaN(amount) || amount === 0) {

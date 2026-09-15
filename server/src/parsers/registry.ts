@@ -1,6 +1,7 @@
 import { StatementParser } from "./interfaces/statementParser";
 import { AmexCreditParser } from "./banks/amex/credit";
 import { NeoCreditParser } from "./banks/neo/credit";
+import { NeoCheckingParser } from "./banks/neo/checking";
 import { WealthsimpleCheckingParser } from "./banks/wealthsimple/checking";
 import { WealthsimpleCreditParser } from "./banks/wealthsimple/credit";
 import { CibcCreditParser } from "./banks/cibc/credit";
@@ -28,6 +29,7 @@ type ParserFactory = () => StatementParser;
 const registry: Record<string, ParserFactory> = {
   [`${Bank.AMEX}:${StatementType.CREDIT_CARD}`]: () => new AmexCreditParser(),
   [`${Bank.NEO}:${StatementType.CREDIT_CARD}`]: () => new NeoCreditParser(),
+  [`${Bank.NEO}:${StatementType.CHECKING}`]: () => new NeoCheckingParser(),
   [`${Bank.CIBC}:${StatementType.CREDIT_CARD}`]: () => new CibcCreditParser(),
   [`${Bank.WEALTHSIMPLE}:${StatementType.CHECKING}`]: () =>
     new WealthsimpleCheckingParser(),
