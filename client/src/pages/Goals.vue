@@ -315,6 +315,9 @@ import {
 import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import Dropdown from "../components/Dropdown.vue";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const statusOptions = [
   { value: "active", label: "Active" },
@@ -353,6 +356,7 @@ const loadGoals = async () => {
     goals.value = res.data;
   } catch (error) {
     console.error("Error loading goals:", error);
+    toast.error("Failed to load goals.");
   } finally {
     loading.value = false;
   }
@@ -407,6 +411,7 @@ const saveGoal = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save goal";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }
@@ -445,6 +450,7 @@ const submitAddFunds = async () => {
     fundingGoal.value = null;
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to add funds";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }

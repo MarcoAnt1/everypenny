@@ -620,6 +620,9 @@ import CategoryPicker from "../components/CategoryPicker.vue";
 import MultiSelect from "../components/MultiSelect.vue";
 import Dropdown from "../components/Dropdown.vue";
 import { useAuthStore } from "../stores/auth";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const loading = ref(true);
 const saving = ref(false);
@@ -925,6 +928,7 @@ const loadTransactions = async () => {
     transactions.value = res.data;
   } catch (error) {
     console.error("Error loading transactions:", error);
+    toast.error("Failed to load transactions.");
   } finally {
     loading.value = false;
   }
@@ -1089,6 +1093,7 @@ const saveTransaction = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save transaction";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }

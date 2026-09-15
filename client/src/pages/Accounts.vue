@@ -329,6 +329,9 @@ import { formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import Dropdown from "../components/Dropdown.vue";
 import { useAuthStore } from "../stores/auth";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const accountTypeOptions = [
   { value: "checking", label: "Checking" },
@@ -386,6 +389,7 @@ const loadAccounts = async () => {
     accounts.value = res.data;
   } catch (error) {
     console.error("Error loading accounts:", error);
+    toast.error("Failed to load accounts.");
   } finally {
     loading.value = false;
   }
@@ -443,6 +447,7 @@ const saveAccount = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save account";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }
@@ -461,6 +466,7 @@ const deleteAccountConfirmed = async () => {
     await loadAccounts();
   } catch (error) {
     console.error("Error deleting account:", error);
+    toast.error("Failed to delete the account.");
   } finally {
     showDeleteConfirm.value = false;
     deletingAccount.value = null;

@@ -135,6 +135,9 @@ import { ref, computed, onMounted } from "vue";
 import { getCategories, deleteCategory } from "../api/categories";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const loading = ref(true);
 const categories = ref<any[]>([]);
@@ -153,6 +156,7 @@ const loadCategories = async () => {
     categories.value = res.data;
   } catch (error) {
     console.error("Error loading categories:", error);
+    toast.error("Failed to load categories.");
   } finally {
     loading.value = false;
   }
@@ -192,6 +196,7 @@ const deleteCategoryConfirmed = async () => {
     await loadCategories();
   } catch (error) {
     console.error("Error deleting category:", error);
+    toast.error("Failed to delete the category.");
   } finally {
     showDeleteConfirm.value = false;
     deletingCategory.value = null;

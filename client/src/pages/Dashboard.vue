@@ -400,6 +400,7 @@ import { useAuthStore } from "../stores/auth";
 import { formatDate, formatCurrency } from "../utils/format";
 import PeriodSelector from "../components/PeriodSelector.vue";
 import Dropdown from "../components/Dropdown.vue";
+import { useToastStore } from "../stores/toast";
 import { type PeriodRange } from "../utils/PeriodRange";
 
 const loading = ref(true);
@@ -410,6 +411,7 @@ const goals = ref<any[]>([]);
 const categories = ref<any[]>([]);
 
 const authStore = useAuthStore();
+const toast = useToastStore();
 
 const period = ref<PeriodRange | null>(null);
 const ownerId = ref("");
@@ -681,6 +683,7 @@ onMounted(async () => {
     await loadTransactions();
   } catch (error) {
     console.error("Error loading dashboard:", error);
+    toast.error("Failed to load the dashboard.");
   } finally {
     loading.value = false;
     initialized = true;

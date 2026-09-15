@@ -399,6 +399,9 @@ import { getTags } from '../api/tags';
 import { formatCurrency, formatDate } from '../utils/format';
 import Dropdown from './Dropdown.vue';
 import CategoryPicker from './CategoryPicker.vue';
+import { useToastStore } from '../stores/toast';
+
+const toast = useToastStore();
 
 const props = defineProps<{ accounts: any[] }>();
 const emit = defineEmits(['close', 'imported']);
@@ -568,6 +571,7 @@ const parseFile = async () => {
         error.value =
             err.response?.data?.error ??
             'Failed to parse statement. Check the bank, statement type, and file.';
+        toast.error(error.value);
         step.value = 0;
     } finally {
         loading.value = false;
@@ -608,9 +612,13 @@ const confirmImport = async () => {
         warning.value = res.data.warning || '';
         step.value = 2;
         emit('imported');
+        toast.success(
+            `${importedCount.value} transaction${importedCount.value === 1 ? '' : 's'} imported`,
+        );
     } catch (err: any) {
         error.value =
             err.response?.data?.error ?? 'Failed to import transactions.';
+        toast.error(error.value);
     } finally {
         saving.value = false;
     }

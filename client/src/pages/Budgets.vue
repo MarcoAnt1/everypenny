@@ -417,6 +417,9 @@ import CategoryPicker from "../components/CategoryPicker.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
 import Dropdown from "../components/Dropdown.vue";
 import { type PeriodRange } from "../utils/PeriodRange";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const budgetPeriodOptions = [
   { value: "monthly", label: "Monthly" },
@@ -471,6 +474,7 @@ const loadBudgets = async () => {
     budgets.value = res.data;
   } catch (error) {
     console.error("Error loading budgets:", error);
+    toast.error("Failed to load budgets.");
   } finally {
     loading.value = false;
   }
@@ -532,7 +536,8 @@ const openTransactionsModal = async (budget: any) => {
     budgetTransactions.value = res.data.transactions;
     budgetTransactionsTotal.value = Number(res.data.total);
   } catch (err) {
-    console.error('Error loading budget transactions:', err)
+    console.error('Error loading budget transactions:', err);
+    toast.error("Failed to load budget transactions.");
   }
   
   finally {
@@ -555,6 +560,7 @@ const saveBudget = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save budget";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }

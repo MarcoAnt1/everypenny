@@ -184,6 +184,9 @@
 import { ref, computed, onMounted } from "vue";
 import { getTags, createTag, updateTag, deleteTag } from "../api/tags";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const loading = ref(true);
 const saving = ref(false);
@@ -220,6 +223,7 @@ const loadTags = async () => {
     tags.value = res.data;
   } catch (error) {
     console.error("Error loading tags:", error);
+    toast.error("Failed to load tags.");
   } finally {
     loading.value = false;
   }
@@ -267,6 +271,7 @@ const saveTag = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save tag";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }
@@ -287,6 +292,7 @@ const deleteTagConfirmed = async () => {
     await loadTags();
   } catch (error) {
     console.error("Error deleting tag:", error);
+    toast.error("Failed to delete the tag.");
   } finally {
     showDeleteConfirm.value = false;
     deletingTag.value = null;
