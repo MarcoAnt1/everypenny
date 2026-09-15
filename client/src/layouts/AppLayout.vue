@@ -1,12 +1,21 @@
 <template>
   <div class="flex h-screen bg-gray-100">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md flex flex-col">
+    <aside
+      class="bg-white shadow-md flex flex-col transition-all duration-200 ease-in-out"
+      :class="collapsed ? 'w-20' : 'w-64'"
+    >
       <!-- Logo -->
-      <div class="p-6 border-b">
-        <h1 class="text-2xl font-bold text-indigo-600">💰 Every Penny</h1>
-        <p class="text-xs text-gray-400 mt-1">Personal Finance Manager</p>
+      <div class="p-6 border-b flex items-center" :class="collapsed ? 'justify-center' : ''">
+        <h1 v-if="!collapsed" class="text-2xl font-bold text-indigo-600 whitespace-nowrap">
+          💰 Every Penny
+        </h1>
+        <span v-else class="text-2xl" title="Every Penny">💰</span>
+        <p v-if="!collapsed" class="sr-only">Personal Finance Manager</p>
       </div>
+      <p v-if="!collapsed" class="px-6 text-xs text-gray-400 -mt-4 mb-2">
+        Personal Finance Manager
+      </p>
 
       <!-- Navigation -->
       <nav class="flex-1 p-4 space-y-1">
@@ -15,20 +24,28 @@
           :key="item.path"
           :to="item.path"
           class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+          :class="collapsed ? 'justify-center' : ''"
           active-class="bg-indigo-50 text-indigo-600 font-semibold"
+          :title="collapsed ? item.label : ''"
         >
           <span class="text-xl">{{ item.icon }}</span>
-          <span>{{ item.label }}</span>
+          <span v-if="!collapsed">{{ item.label }}</span>
         </RouterLink>
       </nav>
 
       <!-- Footer -->
       <div class="p-4 border-t">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+        <div
+          class="flex items-center gap-3 mb-3"
+          :class="collapsed ? 'justify-center' : ''"
+        >
+          <div
+            class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0"
+            :title="collapsed ? authStore.user?.name : ''"
+          >
             {{ authStore.user?.name?.charAt(0).toUpperCase() }}
           </div>
-          <div class="flex-1 min-w-0">
+          <div v-if="!collapsed" class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-700 truncate">{{ authStore.user?.name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ authStore.user?.email }}</p>
           </div>
@@ -36,8 +53,9 @@
         <button
           @click="logout"
           class="w-full text-sm text-red-500 hover:bg-red-50 py-1.5 rounded-lg transition"
+          :title="collapsed ? 'Sign Out' : ''"
         >
-          Sign Out
+          {{ collapsed ? "⎋" : "Sign Out" }}
         </button>
       </div>
     </aside>
@@ -48,7 +66,26 @@
       <header
         class="bg-white shadow-sm px-8 py-4 flex items-center justify-between"
       >
-        <h2 class="text-xl font-semibold text-gray-700">{{ currentPage }}</h2>
+        <div class="flex items-center gap-4">
+          <button
+            @click="toggleSidebar"
+            class="text-gray-500 hover:text-indigo-600 hover:bg-gray-100 p-2 rounded-lg transition"
+            :title="collapsed ? 'Expand menu' : 'Collapse menu'"
+            aria-label="Toggle sidebar"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h2 class="text-xl font-semibold text-gray-700">{{ currentPage }}</h2>
+        </div>
         <span class="text-sm text-gray-400">{{ today }}</span>
       </header>
 
@@ -61,13 +98,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+
+const SIDEBAR_KEY = "everypenny.sidebarCollapsed";
+
+const collapsed = ref(loadCollapsed());
+
+function loadCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+const toggleSidebar = () => {
+  collapsed.value = !collapsed.value;
+  try {
+    localStorage.setItem(SIDEBAR_KEY, String(collapsed.value));
+  } catch {
+    // ignore persistence failures
+  }
+};
 
 const logout = () => {
   authStore.logout();
