@@ -13,7 +13,7 @@
         <PeriodSelector @change="onPeriodChange" />
         <button
           @click="openModal()"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          class="btn-primary"
         >
           + Add Budget
         </button>
@@ -230,7 +230,7 @@
           <div class="flex gap-3 mt-6">
             <button
               @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+              class="flex-1 btn-secondary"
             >
               Cancel
             </button>
@@ -239,7 +239,7 @@
               :disabled="
                 !form.name || !form.categoryId || !form.limitAmount || saving
               "
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+              class="flex-1 btn-primary"
             >
               {{
                 saving
@@ -391,7 +391,7 @@
       <div class="p-4 border-t">
         <button
           @click="showTransactionsModal = false"
-          class="w-full border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+          class="w-full btn-secondary"
         >
           Close
         </button>

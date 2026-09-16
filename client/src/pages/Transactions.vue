@@ -7,16 +7,10 @@
         <p class="text-sm text-gray-400">Track your income and expenses</p>
       </div>
       <div class="flex flex-wrap gap-3">
-        <button
-          @click="showImportModal = true"
-          class="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition"
-        >
+        <button @click="showImportModal = true" class="btn-secondary">
           📂 Import Statement
         </button>
-        <button
-          @click="openModal()"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-        >
+        <button @click="openModal()" class="btn-primary">
           + Add Transaction
         </button>
       </div>
@@ -563,14 +557,14 @@
           <div class="flex gap-3 mt-6">
             <button
               @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+              class="flex-1 btn-secondary"
             >
               Cancel
             </button>
             <button
               @click="saveTransaction"
               :disabled="saving"
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+              class="flex-1 btn-primary"
             >
               {{
                 saving

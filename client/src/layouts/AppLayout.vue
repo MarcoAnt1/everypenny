@@ -15,16 +15,45 @@
         railCollapsed ? 'lg:w-20' : 'lg:w-64',
       ]"
     >
-      <!-- Logo -->
-      <div class="p-6 border-b flex items-center" :class="railCollapsed ? 'lg:justify-center' : ''">
-        <h1 v-if="!railCollapsed" class="text-2xl font-bold text-indigo-600 whitespace-nowrap">
-          💰 Every Penny
-        </h1>
-        <span v-else class="text-2xl" title="Every Penny">💰</span>
+      <!-- Brand + collapse toggle (aligned to the header height) -->
+      <div
+        class="h-16 border-b flex items-center shrink-0"
+        :class="railCollapsed ? 'lg:justify-center px-2' : 'px-4 justify-between'"
+      >
+        <button
+          type="button"
+          class="flex items-center gap-2 min-w-0 rounded-lg transition-colors hover:opacity-80"
+          :title="railCollapsed ? 'Expand menu' : 'Every Penny'"
+          @click="onBrandClick"
+        >
+          <span class="text-2xl shrink-0">💰</span>
+          <span
+            v-if="!railCollapsed"
+            class="text-xl font-bold text-indigo-600 whitespace-nowrap"
+          >
+            Every Penny
+          </span>
+        </button>
+        <button
+          v-if="!railCollapsed"
+          type="button"
+          class="hidden lg:inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shrink-0"
+          title="Collapse menu"
+          aria-label="Collapse menu"
+          @click="toggleCollapse"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
       </div>
-      <p v-if="!railCollapsed" class="px-6 text-xs text-gray-400 -mt-4 mb-2">
-        Personal Finance Manager
-      </p>
 
       <!-- Navigation -->
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -72,16 +101,15 @@
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden">
-      <!-- Header -->
+      <!-- Header (slim top bar, aligned to the sidebar brand row) -->
       <header
-        class="bg-white shadow-sm px-4 sm:px-8 py-4 flex items-center justify-between gap-3"
+        class="bg-white border-b h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 shrink-0"
       >
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex items-center gap-2 min-w-0">
           <button
-            @click="toggleSidebar"
-            class="text-gray-500 hover:text-indigo-600 hover:bg-gray-100 p-2 rounded-lg transition shrink-0"
-            :title="railCollapsed ? 'Expand menu' : 'Collapse menu'"
-            aria-label="Toggle sidebar"
+            @click="mobileOpen = !mobileOpen"
+            class="lg:hidden text-gray-500 hover:text-indigo-600 hover:bg-gray-100 p-2 rounded-lg transition-colors shrink-0"
+            aria-label="Open menu"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -94,7 +122,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h2 class="text-lg sm:text-xl font-semibold text-gray-700 truncate">{{ currentPage }}</h2>
+          <span class="lg:hidden text-lg font-bold text-indigo-600">Every Penny</span>
         </div>
         <span class="text-sm text-gray-400 hidden sm:inline">{{ today }}</span>
       </header>
@@ -109,12 +137,11 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
 const router = useRouter();
-const route = useRoute();
 
 const SIDEBAR_KEY = "everypenny.sidebarCollapsed";
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -156,16 +183,23 @@ onBeforeUnmount(() => {
   mql?.removeEventListener("change", onMediaChange);
 });
 
-const toggleSidebar = () => {
+// Desktop only: collapse/expand the icon rail (persisted).
+const toggleCollapse = () => {
+  collapsed.value = !collapsed.value;
+  try {
+    localStorage.setItem(SIDEBAR_KEY, String(collapsed.value));
+  } catch {
+    // ignore persistence failures
+  }
+};
+
+// Clicking the brand collapses the rail on desktop; on mobile it just closes
+// the drawer (the rail concept doesn't apply there).
+const onBrandClick = () => {
   if (isDesktop.value) {
-    collapsed.value = !collapsed.value;
-    try {
-      localStorage.setItem(SIDEBAR_KEY, String(collapsed.value));
-    } catch {
-      // ignore persistence failures
-    }
+    toggleCollapse();
   } else {
-    mobileOpen.value = !mobileOpen.value;
+    mobileOpen.value = false;
   }
 };
 
@@ -185,11 +219,6 @@ const menuItems = [
     { label: 'Connections', path: '/connections', icon: '🤝'},
     // { label: 'Settings', path: '/settings', icon: '⚙️' },
 ];
-
-const currentPage = computed(() => {
-  const item = menuItems.find((item) => item.path === route.path);
-  return item ? item.label : "EveryPenny";
-});
 
 const today = computed(() => {
   return new Date().toLocaleDateString("en-US", {

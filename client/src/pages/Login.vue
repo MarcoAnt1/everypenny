@@ -103,7 +103,7 @@
         <button
           type="submit"
           :disabled="loading"
-          class="w-full mt-6 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
+          class="w-full mt-6 btn-primary py-2.5"
         >
           {{
             loading

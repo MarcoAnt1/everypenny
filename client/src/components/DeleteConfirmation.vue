@@ -11,16 +11,10 @@
                 <strong>{{ itemDescription ?? `this ${item.toLowerCase()}` }}</strong>.
             </p>
             <div class="flex gap-3">
-                <button
-                    @click="emit('close')"
-                    class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
-                >
-                    Cancel                        
+                <button @click="emit('close')" class="flex-1 btn-secondary">
+                    Cancel
                 </button>
-                <button
-                    @click="emit('deleted')"
-                    class="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition text-sm"
-                >
+                <button @click="emit('deleted')" class="flex-1 btn-danger">
                     Delete
                 </button>
             </div>

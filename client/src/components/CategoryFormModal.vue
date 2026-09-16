@@ -73,14 +73,14 @@
         <div class="flex gap-3 mt-6">
           <button
             @click="emit('close')"
-            class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+            class="flex-1 btn-secondary"
           >
             Cancel
           </button>
           <button
             @click="save"
             :disabled="!form.name || saving"
-            class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+            class="flex-1 btn-primary"
           >
             {{
               saving ? "Saving..." : category ? "Save Changes" : "Add Category"

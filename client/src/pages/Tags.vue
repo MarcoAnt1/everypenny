@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Tags</h2>
         <p class="text-sm text-gray-400">
@@ -10,7 +10,7 @@
       </div>
       <button
         @click="openModal()"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+        class="btn-primary"
       >
         + Add Tag
       </button>
@@ -152,14 +152,14 @@
           <div class="flex gap-3 mt-6">
             <button
               @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+              class="flex-1 btn-secondary"
             >
               Cancel
             </button>
             <button
               @click="saveTag"
               :disabled="!form.name.trim() || saving"
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+              class="flex-1 btn-primary"
             >
               {{
                 saving ? "Saving..." : editingTag ? "Save Changes" : "Add Tag"

@@ -335,7 +335,7 @@
                 <button
                     v-if="step > 0 && step < 2"
                     @click="step--"
-                    class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                    class="btn-secondary"
                 >
                     ← Back
                 </button>
@@ -345,7 +345,7 @@
                     <button
                         v-if="step < 2"
                         @click="emit('close')"
-                        class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                        class="btn-secondary"
                     >
                         Cancel
                     </button>
@@ -355,7 +355,7 @@
                         v-if="step === 0"
                         @click="parseFile"
                         :disabled="!form.accountId || !form.bank || !form.statementType || !form.file || loading"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        class="btn-primary"
                     >
                         Parse Statement →
                     </button>
@@ -365,7 +365,7 @@
                         v-if="step === 1 && !loading"
                         @click="confirmImport"
                         :disabled="selectedRows.length === 0 || saving"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        class="btn-primary"
                     >
                         {{ saving ? 'Importing...' : `Import ${selectedRows.length} Transactions` }}
                     </button>
@@ -374,7 +374,7 @@
                     <button
                         v-if="step === 2"
                         @click="emit('close')"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm"
+                        class="btn-primary"
                     >
                         Done ✓
                     </button>

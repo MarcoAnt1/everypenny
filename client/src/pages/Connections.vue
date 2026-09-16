@@ -79,7 +79,7 @@
 
           <button
             @click="inviteConnection"
-            class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50 cursor-pointer"
+            class="w-full btn-primary"
             :disabled="inviting"
           >
             {{ inviting ? "Sending..." : "Send invite" }}

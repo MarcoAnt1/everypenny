@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Categories</h2>
         <p class="text-sm text-gray-400">Organize your transactions</p>
       </div>
       <button
         @click="openModal()"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+        class="btn-primary"
       >
         + Add Category
       </button>

@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Goals</h2>
         <p class="text-sm text-gray-400">Track your savings goals</p>
       </div>
       <button
         @click="openModal()"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+        class="btn-primary"
       >
         + Add Goal
       </button>
@@ -227,14 +227,14 @@
           <div class="flex gap-3 mt-6">
             <button
               @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+              class="flex-1 btn-secondary"
             >
               Cancel
             </button>
             <button
               @click="saveGoal"
               :disabled="!form.name || !form.targetAmount || saving"
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+              class="flex-1 btn-primary"
             >
               {{
                 saving ? "Saving..." : editingGoal ? "Save Changes" : "Add Goal"
@@ -278,14 +278,14 @@
         <div class="flex gap-3 mt-6">
           <button
             @click="showAddFundsModal = false"
-            class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+            class="flex-1 btn-secondary"
           >
             Cancel
           </button>
           <button
             @click="submitAddFunds"
             :disabled="!fundAmount || saving"
-            class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+            class="flex-1 btn-primary"
           >
             {{ saving ? "Saving..." : "Add Funds" }}
           </button>
