@@ -72,7 +72,7 @@ router.get(
 // POST create a new account
 router.post("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { name, type, institution, balance, creditLimit, currency } = req.body;
+    const { name, type, institution, balance, creditLimit, currency, color } = req.body;
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "Account name is required" });
     }
@@ -90,6 +90,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
         institution,
         balance,
         currency,
+        color: color ?? null,
         creditLimit: type === AccountType.credit_card ? creditLimit : null
       },
     });
@@ -185,10 +186,10 @@ router.put(
           .json({ error: "Only account owner can update this account" });
       }
 
-      const { name, institution, currency, creditLimit } = req.body;
+      const { name, institution, currency, creditLimit, color } = req.body;
       const account = await prisma.account.update({
         where: { id: accountId },
-        data: { name, institution, currency, creditLimit },
+        data: { name, institution, currency, creditLimit, color },
       });
       res.json(account);
     } catch (err: any) {

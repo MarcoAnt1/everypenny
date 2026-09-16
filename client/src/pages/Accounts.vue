@@ -27,13 +27,26 @@
       <p class="text-sm">Add your first account to get started</p>
     </div>
 
-    <!-- Accounts Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="account in accounts"
-        :key="account.id"
-        class="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4"
+    <!-- Accounts (grouped by owner) -->
+    <div v-else class="space-y-8">
+      <section
+        v-for="group in accountGroups"
+        :key="group.label"
+        class="space-y-4"
       >
+        <h3
+          v-if="accountGroups.length > 1"
+          class="text-sm font-semibold text-gray-500 uppercase tracking-wide"
+        >
+          {{ group.label }}
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            v-for="account in group.accounts"
+            :key="account.id"
+            class="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4 border-l-4"
+            :style="{ borderLeftColor: account.color || DEFAULT_ACCOUNT_COLOR }"
+          >
         <!-- Account Header -->
         <div class="flex items-start justify-between">
           <div>
@@ -145,7 +158,9 @@
             Shared by {{ account.owner?.name }} · view only
           </p>
         </div>
-      </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Total Balance Bar -->
@@ -213,6 +228,26 @@
             <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
               Account type can't be changed after creation.
             </p>
+          </div>
+
+          <!-- Color -->
+          <div>
+            <label class="text-sm text-gray-600 font-medium">Color</label>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <button
+                v-for="c in colorPresets"
+                :key="c"
+                type="button"
+                @click="form.color = c"
+                class="w-8 h-8 rounded-full border-2 transition"
+                :class="
+                  form.color === c
+                    ? 'border-gray-800 scale-110'
+                    : 'border-transparent'
+                "
+                :style="{ backgroundColor: c }"
+              />
+            </div>
           </div>
 
           <!-- Credit Limit (only for credit cards) -->
@@ -340,6 +375,20 @@ const accountTypeOptions = [
   { value: "investment", label: "Investment" },
   { value: "cash", label: "Cash" },
 ];
+
+// Accent colour for account cards. Falls back to indigo for accounts created
+// before colours existed.
+const DEFAULT_ACCOUNT_COLOR = "#6366f1";
+const colorPresets = [
+  DEFAULT_ACCOUNT_COLOR,
+  "#ef4444",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#ec4899",
+  "#8b5cf6",
+  "#6b7280",
+];
 const currencyOptions = [
   { value: "USD", label: "USD - US Dollar" },
   { value: "CAD", label: "CAD - Canadian Dollar" },
@@ -373,6 +422,7 @@ const defaultForm = {
   balance: 0,
   currency: "CAD",
   creditLimit: 0,
+  color: DEFAULT_ACCOUNT_COLOR,
 };
 
 const form = ref({ ...defaultForm });
@@ -400,6 +450,32 @@ const totalBalance = computed(() => {
   return accounts.value.reduce((sum, acc) => sum + Number(acc.balance), 0);
 });
 
+// Group accounts: mine first, then one group per other owner (sorted by name).
+const accountGroups = computed(() => {
+  const mine: any[] = [];
+  const others = new Map<string, { label: string; accounts: any[] }>();
+
+  for (const acc of accounts.value) {
+    if (isMine(acc)) {
+      mine.push(acc);
+    } else {
+      const ownerId = acc.ownerId ?? acc.owner?.id ?? "shared";
+      const name = acc.owner?.name ?? "Shared";
+      if (!others.has(ownerId)) {
+        others.set(ownerId, { label: `${name}'s Accounts`, accounts: [] });
+      }
+      others.get(ownerId)!.accounts.push(acc);
+    }
+  }
+
+  const groups: { label: string; accounts: any[] }[] = [];
+  if (mine.length) groups.push({ label: "My Accounts", accounts: mine });
+  groups.push(
+    ...[...others.values()].sort((a, b) => a.label.localeCompare(b.label)),
+  );
+  return groups;
+});
+
 // Modal
 const openModal = (account?: any) => {
   editingAccount.value = account || null;
@@ -411,6 +487,7 @@ const openModal = (account?: any) => {
         balance: account.balance,
         currency: account.currency || "CAD",
         creditLimit: account.creditLimit,
+        color: account.color || DEFAULT_ACCOUNT_COLOR,
       }
     : { ...defaultForm };
   showModal.value = true;
