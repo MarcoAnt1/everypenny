@@ -156,7 +156,7 @@
     <!-- Add/Edit Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
       @mousedown.self="closeModal"
     >
       <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
@@ -266,7 +266,7 @@
   <!-- Budget Transactions Modal -->
   <div
     v-if="showTransactionsModal"
-    class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
     @mousedown.self="showTransactionsModal = false"
   >
     <div

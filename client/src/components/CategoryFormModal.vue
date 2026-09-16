@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]"
+    class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[9999]"
     @mousedown.self="emit('close')"
   >
     <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">

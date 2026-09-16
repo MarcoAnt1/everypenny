@@ -1,35 +1,45 @@
 <template>
   <div class="flex h-screen bg-gray-100">
+    <!-- Mobile backdrop -->
+    <div
+      v-if="mobileOpen"
+      class="fixed inset-0 bg-black/40 z-30 lg:hidden"
+      @click="mobileOpen = false"
+    />
+
     <!-- Sidebar -->
     <aside
-      class="bg-white shadow-md flex flex-col transition-all duration-200 ease-in-out"
-      :class="collapsed ? 'w-20' : 'w-64'"
+      class="bg-white shadow-md flex flex-col transition-all duration-200 ease-in-out fixed inset-y-0 left-0 z-40 w-64 lg:static lg:z-auto lg:translate-x-0"
+      :class="[
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        railCollapsed ? 'lg:w-20' : 'lg:w-64',
+      ]"
     >
       <!-- Logo -->
-      <div class="p-6 border-b flex items-center" :class="collapsed ? 'justify-center' : ''">
-        <h1 v-if="!collapsed" class="text-2xl font-bold text-indigo-600 whitespace-nowrap">
+      <div class="p-6 border-b flex items-center" :class="railCollapsed ? 'lg:justify-center' : ''">
+        <h1 v-if="!railCollapsed" class="text-2xl font-bold text-indigo-600 whitespace-nowrap">
           💰 Every Penny
         </h1>
         <span v-else class="text-2xl" title="Every Penny">💰</span>
-        <p v-if="!collapsed" class="sr-only">Personal Finance Manager</p>
       </div>
-      <p v-if="!collapsed" class="px-6 text-xs text-gray-400 -mt-4 mb-2">
+      <p v-if="!railCollapsed" class="px-6 text-xs text-gray-400 -mt-4 mb-2">
         Personal Finance Manager
       </p>
 
       <!-- Navigation -->
-      <nav class="flex-1 p-4 space-y-1">
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
         <RouterLink
           v-for="item in menuItems"
           :key="item.path"
           :to="item.path"
           class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-          :class="collapsed ? 'justify-center' : ''"
+          :class="railCollapsed ? 'lg:justify-center' : ''"
           active-class="bg-indigo-50 text-indigo-600 font-semibold"
-          :title="collapsed ? item.label : ''"
+          :title="railCollapsed ? item.label : ''"
+          @click="mobileOpen = false"
         >
           <span class="text-xl">{{ item.icon }}</span>
-          <span v-if="!collapsed">{{ item.label }}</span>
+          <span v-if="!railCollapsed">{{ item.label }}</span>
         </RouterLink>
       </nav>
 
@@ -37,15 +47,15 @@
       <div class="p-4 border-t">
         <div
           class="flex items-center gap-3 mb-3"
-          :class="collapsed ? 'justify-center' : ''"
+          :class="railCollapsed ? 'lg:justify-center' : ''"
         >
           <div
             class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0"
-            :title="collapsed ? authStore.user?.name : ''"
+            :title="railCollapsed ? authStore.user?.name : ''"
           >
             {{ authStore.user?.name?.charAt(0).toUpperCase() }}
           </div>
-          <div v-if="!collapsed" class="flex-1 min-w-0">
+          <div v-if="!railCollapsed" class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-700 truncate">{{ authStore.user?.name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ authStore.user?.email }}</p>
           </div>
@@ -53,9 +63,9 @@
         <button
           @click="logout"
           class="w-full text-sm text-red-500 hover:bg-red-50 py-1.5 rounded-lg transition"
-          :title="collapsed ? 'Sign Out' : ''"
+          :title="railCollapsed ? 'Sign Out' : ''"
         >
-          {{ collapsed ? "⎋" : "Sign Out" }}
+          {{ railCollapsed ? "⎋" : "Sign Out" }}
         </button>
       </div>
     </aside>
@@ -64,13 +74,13 @@
     <main class="flex-1 flex flex-col overflow-hidden">
       <!-- Header -->
       <header
-        class="bg-white shadow-sm px-8 py-4 flex items-center justify-between"
+        class="bg-white shadow-sm px-4 sm:px-8 py-4 flex items-center justify-between gap-3"
       >
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 min-w-0">
           <button
             @click="toggleSidebar"
-            class="text-gray-500 hover:text-indigo-600 hover:bg-gray-100 p-2 rounded-lg transition"
-            :title="collapsed ? 'Expand menu' : 'Collapse menu'"
+            class="text-gray-500 hover:text-indigo-600 hover:bg-gray-100 p-2 rounded-lg transition shrink-0"
+            :title="railCollapsed ? 'Expand menu' : 'Collapse menu'"
             aria-label="Toggle sidebar"
           >
             <svg
@@ -84,13 +94,13 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h2 class="text-xl font-semibold text-gray-700">{{ currentPage }}</h2>
+          <h2 class="text-lg sm:text-xl font-semibold text-gray-700 truncate">{{ currentPage }}</h2>
         </div>
-        <span class="text-sm text-gray-400">{{ today }}</span>
+        <span class="text-sm text-gray-400 hidden sm:inline">{{ today }}</span>
       </header>
 
       <!-- Content Area -->
-      <div class="flex-1 overflow-y-auto p-8">
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <slot />
       </div>
     </main>
@@ -98,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
@@ -107,8 +117,14 @@ const router = useRouter();
 const route = useRoute();
 
 const SIDEBAR_KEY = "everypenny.sidebarCollapsed";
+const DESKTOP_QUERY = "(min-width: 1024px)";
 
 const collapsed = ref(loadCollapsed());
+const mobileOpen = ref(false);
+const isDesktop = ref(matchesDesktop());
+
+// Rail collapse only applies on desktop; on mobile the drawer always shows full labels.
+const railCollapsed = computed(() => collapsed.value && isDesktop.value);
 
 function loadCollapsed(): boolean {
   try {
@@ -118,12 +134,38 @@ function loadCollapsed(): boolean {
   }
 }
 
+function matchesDesktop(): boolean {
+  return typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches;
+}
+
+let mql: MediaQueryList | null = null;
+const onMediaChange = (e: MediaQueryListEvent) => {
+  isDesktop.value = e.matches;
+  // Leaving mobile closes any open drawer so it can't linger behind the desktop layout.
+  if (e.matches) mobileOpen.value = false;
+};
+
+onMounted(() => {
+  if (typeof window !== "undefined") {
+    mql = window.matchMedia(DESKTOP_QUERY);
+    mql.addEventListener("change", onMediaChange);
+  }
+});
+
+onBeforeUnmount(() => {
+  mql?.removeEventListener("change", onMediaChange);
+});
+
 const toggleSidebar = () => {
-  collapsed.value = !collapsed.value;
-  try {
-    localStorage.setItem(SIDEBAR_KEY, String(collapsed.value));
-  } catch {
-    // ignore persistence failures
+  if (isDesktop.value) {
+    collapsed.value = !collapsed.value;
+    try {
+      localStorage.setItem(SIDEBAR_KEY, String(collapsed.value));
+    } catch {
+      // ignore persistence failures
+    }
+  } else {
+    mobileOpen.value = !mobileOpen.value;
   }
 };
 

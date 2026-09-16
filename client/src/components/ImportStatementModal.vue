@@ -1,9 +1,9 @@
 <template>
     <div
-        class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
         @mousedown.self="$emit('close')"
     >
-        <div class="bg-white rounded-xl shadow-xl w-fit min-w-[600px] max-w-[90vw] max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-xl shadow-xl w-full sm:w-fit sm:min-w-[600px] max-w-full sm:max-w-[90vw] max-h-[90vh] flex flex-col">
             
             <!-- Header -->
             <div class="p-6 border-b flex items-center justify-between">
@@ -36,7 +36,7 @@
                                 {{ step > i ? '✓' : i + 1 }}
                             </div>
                             <span
-                                class="text-sm"
+                                class="text-sm hidden sm:inline"
                                 :class="step === i ? 'text-indigo-600 font-medium' : 'text-gray-400'"
                             >
                                 {{  label }}

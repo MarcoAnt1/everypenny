@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Transactions</h2>
         <p class="text-sm text-gray-400">Track your income and expenses</p>
       </div>
-      <div class="flex gap-3">
+      <div class="flex flex-wrap gap-3">
         <button
           @click="showImportModal = true"
           class="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition"
@@ -204,7 +204,8 @@
 
     <!-- Transactions Table -->
     <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
-      <table class="w-full text-sm">
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[720px]">
         <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
           <tr>
             <th class="px-6 py-3 text-left">Date</th>
@@ -317,12 +318,13 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Add/Edit Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
       @mousedown.self="closeModal"
     >
       <div
