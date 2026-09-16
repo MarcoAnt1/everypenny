@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Dashboard</h2>
-        <p class="text-sm text-gray-400">Your money at a glance · {{ periodLabel }}</p>
+        <p class="text-sm text-gray-500">Your money at a glance · {{ periodLabel }}</p>
       </div>
       <div class="flex flex-wrap gap-3">
         <PeriodSelector @change="onPeriodChange" />
@@ -24,11 +24,11 @@
       <div
         v-for="card in summaryCards"
         :key="card.label"
-        class="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4"
+        class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center gap-4"
       >
         <div class="text-4xl">{{ card.icon }}</div>
         <div>
-          <p class="text-sm text-gray-400">{{ card.label }}</p>
+          <p class="text-sm text-gray-500">{{ card.label }}</p>
           <p class="text-2xl font-bold" :class="card.color">
             {{ card.value }}
           </p>
@@ -38,24 +38,24 @@
 
     <!-- Insights -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white rounded-xl shadow-sm p-4">
-        <p class="text-xs text-gray-400">Avg spend / day</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500">Avg spend / day</p>
         <p class="text-lg font-bold text-gray-700">
           {{ formatCurrency(avgDailySpend) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4">
-        <p class="text-xs text-gray-400">Biggest expense</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500">Biggest expense</p>
         <p class="text-lg font-bold text-red-500">
           {{ formatCurrency(biggestExpense) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4">
-        <p class="text-xs text-gray-400">Transactions</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500">Transactions</p>
         <p class="text-lg font-bold text-gray-700">{{ txCount }}</p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4">
-        <p class="text-xs text-gray-400">Savings rate</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-500">Savings rate</p>
         <p
           class="text-lg font-bold"
           :class="savingsRate >= 0 ? 'text-green-500' : 'text-red-500'"
@@ -68,17 +68,17 @@
     <!-- Analytics: Spending by Category + Income vs Expenses -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Spending by Category -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-700">Spending by Category</h3>
-          <span class="text-sm text-gray-400">{{ formatCurrency(expenses) }} total</span>
+          <span class="text-sm text-gray-500">{{ formatCurrency(expenses) }} total</span>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-400 py-8">Loading...</div>
+        <div v-if="loading" class="text-center text-gray-500 py-8">Loading...</div>
 
         <div
           v-else-if="topCategories.length === 0"
-          class="text-center text-gray-400 py-8"
+          class="text-center text-gray-500 py-8"
         >
           No spending in this period.
         </div>
@@ -89,7 +89,7 @@
               <span class="font-medium text-gray-700">
                 {{ cat.icon }} {{ cat.name }}
               </span>
-              <span class="text-gray-400">
+              <span class="text-gray-500">
                 {{ formatCurrency(cat.amount) }} · {{ cat.pct }}%
               </span>
             </div>
@@ -104,10 +104,10 @@
       </div>
 
       <!-- Income vs Expenses (last 6 months) -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-700">Income vs Expenses</h3>
-          <div class="flex items-center gap-3 text-xs text-gray-400">
+          <div class="flex items-center gap-3 text-xs text-gray-500">
             <span class="flex items-center gap-1">
               <span class="w-2.5 h-2.5 rounded-full bg-green-400 inline-block" /> Income
             </span>
@@ -117,7 +117,7 @@
           </div>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-400 py-8">Loading...</div>
+        <div v-if="loading" class="text-center text-gray-500 py-8">Loading...</div>
 
         <div v-else>
           <div class="flex items-end justify-between gap-2">
@@ -138,7 +138,7 @@
                   :title="`Expenses: ${formatCurrency(m.expense)}`"
                 />
               </div>
-              <span class="text-xs text-gray-400">{{ m.label }}</span>
+              <span class="text-xs text-gray-500">{{ m.label }}</span>
             </div>
           </div>
           <p class="text-xs text-gray-300 mt-3 text-center">
@@ -151,20 +151,20 @@
     <!-- Balances by type + Biggest expenses -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Balances by account type -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-700">Balances by Type</h3>
-          <span class="text-sm text-gray-400"
+          <span class="text-sm text-gray-500"
             >{{ formatCurrency(totalBalance) }} net</span
           >
         </div>
 
-        <div v-if="loading" class="text-center text-gray-400 py-8">
+        <div v-if="loading" class="text-center text-gray-500 py-8">
           Loading...
         </div>
         <div
           v-else-if="balancesByType.length === 0"
-          class="text-center text-gray-400 py-8"
+          class="text-center text-gray-500 py-8"
         >
           No accounts yet.
         </div>
@@ -193,18 +193,18 @@
       </div>
 
       <!-- Biggest expenses -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-700">Biggest Expenses</h3>
-          <span class="text-sm text-gray-400">{{ periodLabel }}</span>
+          <span class="text-sm text-gray-500">{{ periodLabel }}</span>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-400 py-8">
+        <div v-if="loading" class="text-center text-gray-500 py-8">
           Loading...
         </div>
         <div
           v-else-if="biggestExpenses.length === 0"
-          class="text-center text-gray-400 py-8"
+          class="text-center text-gray-500 py-8"
         >
           No expenses in this period.
         </div>
@@ -219,7 +219,7 @@
               <p class="text-sm font-medium text-gray-700">
                 {{ tx.description }}
               </p>
-              <p class="text-xs text-gray-400">
+              <p class="text-xs text-gray-500">
                 {{ tx.category?.name ?? "Uncategorized" }} ·
                 {{ formatDate(tx.date) }}
               </p>
@@ -235,7 +235,7 @@
     <!-- Recent Transactions + Budgets-->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Recent Transactions -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-700">
             Recent Transactions
@@ -248,13 +248,13 @@
           </RouterLink>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-400 py-8">
+        <div v-if="loading" class="text-center text-gray-500 py-8">
           Loading...
         </div>
 
         <div
           v-else-if="recentTransactions.length === 0"
-          class="text-center text-gray-400 py-8"
+          class="text-center text-gray-500 py-8"
         >
           No transactions yet.
         </div>
@@ -269,7 +269,7 @@
               <p class="text-sm font-medium text-gray-700">
                 {{ tx.description }}
               </p>
-              <p class="text-xs text-gray-400">
+              <p class="text-xs text-gray-500">
                 {{ tx.category?.name ?? "Uncategorized" }} ·
                 {{ formatDate(tx.date) }}
               </p>
@@ -286,7 +286,7 @@
       </div>
 
       <!-- Budget Overview -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-700">Budget Overview</h3>
           <RouterLink
@@ -297,13 +297,13 @@
           </RouterLink>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-400 py-8">
+        <div v-if="loading" class="text-center text-gray-500 py-8">
           Loading...
         </div>
 
         <div
           v-else-if="budgets.length === 0"
-          class="text-center text-gray-400 py-8"
+          class="text-center text-gray-500 py-8"
         >
           No budgets set yet.
         </div>
@@ -312,7 +312,7 @@
           <li v-for="budget in budgets" :key="budget.id">
             <div class="flex justify-between text-sm mb-1">
               <span class="font-medium text-gray-700">{{ budget.name }}</span>
-              <span class="text-gray-400">
+              <span class="text-gray-500">
                 {{ formatCurrency(budget.spent) }} /
                 {{ formatCurrency(budget.limitAmount) }}
               </span>
@@ -330,7 +330,7 @@
                 :style="{ width: `${Math.min(budget.percentage, 100)}%` }"
               />
             </div>
-            <p class="text-xs text-gray-400 mt-1">
+            <p class="text-xs text-gray-500 mt-1">
               {{ budget.percentage }}% used
             </p>
           </li>
@@ -339,7 +339,7 @@
     </div>
 
     <!-- Goals -->
-    <div class="bg-white rounded-xl shadow-sm p-6">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-700">Goals</h3>
         <RouterLink to="/goals" class="text-sm text-indigo-500 hover:underline">
@@ -347,13 +347,13 @@
         </RouterLink>
       </div>
 
-      <div v-if="loading" class="text-center text-gray-400 py-8">
+      <div v-if="loading" class="text-center text-gray-500 py-8">
         Loading...
       </div>
 
       <div
         v-else-if="goals.length === 0"
-        class="text-center text-gray-400 py-8"
+        class="text-center text-gray-500 py-8"
       >
         No goals set yet.
       </div>
@@ -379,7 +379,7 @@
               :style="{ width: `${Math.min(goal.percentage, 100)}%` }"
             />
           </div>
-          <div class="flex justify-between text-xs text-gray-400">
+          <div class="flex justify-between text-xs text-gray-500">
             <span>{{ formatCurrency(goal.currentAmount) }} </span>
             <span>{{ formatCurrency(goal.targetAmount) }} </span>
           </div>

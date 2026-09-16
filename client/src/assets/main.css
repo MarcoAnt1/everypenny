@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@layer base {
+  /* Align figures across cards, tables and stats (finance app: lots of numbers). */
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 @layer components {
   /* Shared button system — reused across pages so every action button
      matches in size, radius, weight and focus treatment. */

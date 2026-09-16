@@ -37,7 +37,7 @@
         <button
           v-if="!railCollapsed"
           type="button"
-          class="hidden lg:inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shrink-0"
+          class="hidden lg:inline-flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shrink-0"
           title="Collapse menu"
           aria-label="Collapse menu"
           @click="toggleCollapse"
@@ -86,7 +86,7 @@
           </div>
           <div v-if="!railCollapsed" class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-700 truncate">{{ authStore.user?.name }}</p>
-            <p class="text-xs text-gray-400 truncate">{{ authStore.user?.email }}</p>
+            <p class="text-xs text-gray-500 truncate">{{ authStore.user?.email }}</p>
           </div>
         </div>
         <button
@@ -124,7 +124,7 @@
           </button>
           <span class="lg:hidden text-lg font-bold text-indigo-600">Every Penny</span>
         </div>
-        <span class="text-sm text-gray-400 hidden sm:inline">{{ today }}</span>
+        <span class="text-sm text-gray-500 hidden sm:inline">{{ today }}</span>
       </header>
 
       <!-- Content Area -->

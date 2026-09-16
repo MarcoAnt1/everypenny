@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Tags</h2>
-        <p class="text-sm text-gray-400">
+        <p class="text-sm text-gray-500">
           Label your transactions for easy filtering
         </p>
       </div>
@@ -18,16 +18,16 @@
 
     <!-- Summary Strip -->
     <div class="grid grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total Tags</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total Tags</p>
         <p class="text-xl font-bold text-indigo-600">{{ tags.length }}</p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Most Used</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Most Used</p>
         <p class="text-xl font-bold text-gray-700">{{ mostUsedTag }}</p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total Tagged Transactions</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total Tagged Transactions</p>
         <p class="text-xl font-bold text-gray-700">
           {{ totalTaggedTransactions }}
         </p>
@@ -35,10 +35,10 @@
     </div>
 
     <!--Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" />
 
     <!-- Empty -->
-    <div v-else-if="tags.length === 0" class="text-center text-gray-400 py-16">
+    <div v-else-if="tags.length === 0" class="text-center text-gray-500 py-16">
       <p class="text-4xl mb-4">🔖</p>
       <p class="text-lg font-medium">No tags yet</p>
       <p class="text-sm">Create tags to label and filter your transactions</p>
@@ -49,7 +49,7 @@
       <div
         v-for="tag in tags"
         :key="tag.id"
-        class="bg-white rounded-xl shadow-sm p-5 flex items-center justify-between"
+        class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center justify-between"
       >
         <div class="flex items-center gap-3">
           <div
@@ -60,7 +60,7 @@
           </div>
           <div>
             <p class="font-medium text-gray-800">{{ tag.name }}</p>
-            <p class="text-xs text-gray-400">
+            <p class="text-xs text-gray-500">
               {{ tag._count?.transactions || 0 }} transaction{{
                 (tag._count?.transactions || 0) !== 1 ? "s" : ""
               }}
@@ -139,7 +139,7 @@
 
           <!-- Preview -->
           <div v-if="form.name" class="flex items-center gap-2">
-            <p class="text-xs text-gray-400">Preview:</p>
+            <p class="text-xs text-gray-500">Preview:</p>
             <span
               class="text-xs px-3 py-1 rounded-full font-medium text-white"
               :style="{ backgroundColor: form.color || DEFAULT_TAG_COLOR }"
@@ -184,6 +184,7 @@
 import { ref, computed, onMounted } from "vue";
 import { getTags, createTag, updateTag, deleteTag } from "../api/tags";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
 import { useToastStore } from "../stores/toast";
 
 const toast = useToastStore();

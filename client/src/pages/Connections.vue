@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Connections & Sharing</h2>
-        <p class="text-sm text-gray-400">
+        <p class="text-sm text-gray-500">
           Invite people, share accounts, and control what each connection can
           see.
         </p>
@@ -31,7 +31,7 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
         <h3 class="text-lg font-semibold text-gray-800">
           Invite a connection
         </h3>
@@ -86,7 +86,7 @@
           </button>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h3 class="text-lg font-semibold text-gray-800">Share an account</h3>
 
           <div class="space-y-3">
@@ -125,11 +125,11 @@
 
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <!-- Invites -->
-        <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h3 class="text-lg font-semibold text-gray-800">Sent invites</h3>
           <div
             v-if="sentConnections.length === 0"
-            class="text-sm text-gray-400"
+            class="text-sm text-gray-500"
           >
             No sent invites yet.
           </div>
@@ -144,7 +144,7 @@
                   <p class="font-medium text-gray-700">
                     {{ connection.inviteeEmail }}
                   </p>
-                  <p class="text-xs text-gray-400">{{ connection.status }}</p>
+                  <p class="text-xs text-gray-500">{{ connection.status }}</p>
                 </div>
                 <button
                   @click="deleteConnection(connection.id)"
@@ -159,13 +159,13 @@
         </div>
 
         <!-- Requests -->
-        <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h3 class="text-lg font-semibold text-gray-800">
             Incoming requests
           </h3>
           <div
             v-if="receivedConnections.length === 0"
-            class="text-sm text-gray-400"
+            class="text-sm text-gray-500"
           >
             No incoming requests.
           </div>
@@ -180,7 +180,7 @@
                   <p class="font-medium text-gray-700">
                     {{ connection.requester?.name || connection.inviteeEmail }}
                   </p>
-                  <p class="text-xs text-gray-400">{{ connection.status }}</p>
+                  <p class="text-xs text-gray-500">{{ connection.status }}</p>
                 </div>
                 <button
                   v-if="connection.status === 'PENDING'"
@@ -204,11 +204,11 @@
     </div>
 
     <!-- Connections Accepted -->
-    <div class="bg-white rounded-xl shadow-sm p-6 space-y-4">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
       <h3 class="text-lg font-semibold text-gray-800">Accepted connections</h3>
       <div
         v-if="acceptedConnections.length === 0"
-        class="text-sm text-gray-400"
+        class="text-sm text-gray-500"
       >
         No accepted connections yet.
       </div>
@@ -235,7 +235,7 @@
             </span>
           </div>
 
-          <p v-if="!connection.canEditSharing" class="text-xs text-gray-400 mt-3">
+          <p v-if="!connection.canEditSharing" class="text-xs text-gray-500 mt-3">
             Only the person who sent the invite can change what's shared.
           </p>
 

@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Accounts</h2>
-        <p class="text-sm text-gray-400">Manage your bank accounts</p>
+        <p class="text-sm text-gray-500">Manage your bank accounts</p>
       </div>
       <button
         @click="openModal()"
@@ -15,12 +15,12 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" />
 
     <!-- Empty -->
     <div
       v-else-if="accounts.length === 0"
-      class="text-center text-gray-400 py-16"
+      class="text-center text-gray-500 py-16"
     >
       <p class="text-4xl mb-4">🏦</p>
       <p class="text-lg font-medium">No accounts found</p>
@@ -44,14 +44,14 @@
           <div
             v-for="account in group.accounts"
             :key="account.id"
-            class="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4 border-l-4"
+            class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4 border-l-4"
             :style="{ borderLeftColor: account.color || DEFAULT_ACCOUNT_COLOR }"
           >
         <!-- Account Header -->
         <div class="flex items-start justify-between">
           <div>
             <p class="font-semibold text-gray-800">{{ account.name }}</p>
-            <p class="text-xs text-gray-400 capitalize">{{ account.type }}</p>
+            <p class="text-xs text-gray-500">{{ formatType(account.type) }}</p>
           </div>
           <div class="flex flex-col items-end gap-1">
             <span class="text-2xl">{{ accountIcon(account.type) }}</span>
@@ -72,7 +72,7 @@
 
         <!-- Balance -->
         <div>
-          <p class="text-xs text-gray-400">
+          <p class="text-xs text-gray-500">
             {{
               account.type === "credit_card"
                 ? Number(account.balance) < 0
@@ -108,7 +108,7 @@
           v-if="account.type === 'credit_card' && account.creditLimit"
           class="space-y-1"
         >
-          <div class="flex justify-between text-xs text-gray-400">
+          <div class="flex justify-between text-xs text-gray-500">
             <span>Available Credit</span>
             <span class="font-medium text-green-500">
               {{ formatCurrency(account.availableCredit) }}
@@ -127,14 +127,14 @@
               :style="{ width: `${Math.min(account.utilization, 100)}%` }"
             />
           </div>
-          <div class="flex justify-between text-xs text-gray-400">
+          <div class="flex justify-between text-xs text-gray-500">
             <span>{{ account.utilization }}% used</span>
             <span>Limit: {{ formatCurrency(account.creditLimit) }}</span>
           </div>
         </div>
 
         <!-- Institution -->
-        <p v-if="account.institution" class="text-xs text-gray-400">
+        <p v-if="account.institution" class="text-xs text-gray-500">
           🏛️ {{ account.institution }}
         </p>
 
@@ -154,7 +154,7 @@
               Delete
             </button>
           </template>
-          <p v-else class="flex-1 text-center text-xs text-gray-400 py-1">
+          <p v-else class="flex-1 text-center text-xs text-gray-500 py-1">
             Shared by {{ account.owner?.name }} · view only
           </p>
         </div>
@@ -164,16 +164,16 @@
     </div>
 
     <!-- Total Balance Bar -->
-    <div v-if="accounts.length > 0" class="bg-white rounded-xl shadow-sm p-6">
+    <div v-if="accounts.length > 0" class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-gray-400">Total Net Worth</p>
+          <p class="text-sm text-gray-500">Total Net Worth</p>
           <p class="text-3xl font-bold text-indigo-600">
             {{ formatCurrency(totalBalance) }}
           </p>
         </div>
         <div class="text-right">
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-500">
             {{ accounts.length }} account{{ accounts.length > 1 ? "s" : "" }}
           </p>
         </div>
@@ -225,7 +225,7 @@
               placeholder="Select type"
               class="w-full mt-1"
             />
-            <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
+            <p v-if="editingAccount" class="text-xs text-gray-500 mt-1">
               Account type can't be changed after creation.
             </p>
           </div>
@@ -296,7 +296,7 @@
               placeholder="0.00"
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
-            <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
+            <p v-if="editingAccount" class="text-xs text-gray-500 mt-1">
               Balance updates automatically from transactions.
             </p>
           </div>
@@ -360,9 +360,10 @@ import {
   getAccounts,
   updateAccount,
 } from "../api/accounts";
-import { formatCurrency } from "../utils/format";
+import { formatCurrency, formatType } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import Dropdown from "../components/Dropdown.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
 import { useAuthStore } from "../stores/auth";
 import { useToastStore } from "../stores/toast";
 

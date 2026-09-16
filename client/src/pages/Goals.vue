@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Goals</h2>
-        <p class="text-sm text-gray-400">Track your savings goals</p>
+        <p class="text-sm text-gray-500">Track your savings goals</p>
       </div>
       <button
         @click="openModal()"
@@ -16,20 +16,20 @@
 
     <!-- Summary Strip -->
     <div class="grid grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Active Goals</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Active Goals</p>
         <p class="text-xl font-bold text-indigo-600">
           {{ activeGoals.length }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total Saved</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total Saved</p>
         <p class="text-xl font-bold text-green-500">
           {{ formatCurrency(totalSaved) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total Needed</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total Needed</p>
         <p class="text-xl font-bold text-yellow-500">
           {{ formatCurrency(totalNeeded) }}
         </p>
@@ -37,10 +37,10 @@
     </div>
 
     <!--Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" />
 
     <!-- Empty -->
-    <div v-else-if="goals.length === 0" class="text-center text-gray-400 py-16">
+    <div v-else-if="goals.length === 0" class="text-center text-gray-500 py-16">
       <p class="text-4xl mb-4">💸</p>
       <p class="text-lg font-medium">No goals yet</p>
       <p class="text-sm">Create your first saving goal to get started</p>
@@ -51,13 +51,13 @@
       <div
         v-for="goal in goals"
         :key="goal.id"
-        class="bg-white rounded-xl shadow-sm p-6 space-y-4 flex flex-col"
+        class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4 flex flex-col"
       >
         <!-- Goal Header -->
         <div class="flex items-start justify-between">
           <div>
             <p class="font-semibold text-gray-800">🎯 {{ goal.name }}</p>
-            <p v-if="goal.description" class="text-xs text-gray-400 mt-1">
+            <p v-if="goal.description" class="text-xs text-gray-500 mt-1">
               {{ goal.description }}
             </p>
           </div>
@@ -77,7 +77,7 @@
 
         <!-- Progress Bar -->
         <div>
-          <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <div class="flex justify-between text-xs text-gray-500 mb-1">
             <span>{{ formatCurrency(goal.currentAmount) }}</span>
             <span>{{ formatCurrency(goal.targetAmount) }}</span>
           </div>
@@ -94,14 +94,14 @@
             <span class="text-indigo-500 font-medium"
               >{{ goal.percentage }}% saved</span
             >
-            <span class="text-gray-400"
+            <span class="text-gray-500"
               >{{ formatCurrency(goal.remainingAmount) }} to go</span
             >
           </div>
         </div>
 
         <!-- Target Date -->
-        <p v-if="goal.targetDate" class="text-xs text-gray-400">
+        <p v-if="goal.targetDate" class="text-xs text-gray-500">
           📅 Target: {{ formatDate(goal.targetDate) }}
         </p>
 
@@ -253,7 +253,7 @@
     >
       <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
         <h3 class="text-lg font-semibold text-gray-800 mb-2">Add Funds</h3>
-        <p class="text-sm text-gray-400 mb-6">
+        <p class="text-sm text-gray-500 mb-6">
           Adding funds to <strong>{{ fundingGoal?.name }}</strong>
         </p>
 
@@ -315,6 +315,7 @@ import {
 import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import Dropdown from "../components/Dropdown.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
 import { useToastStore } from "../stores/toast";
 
 const toast = useToastStore();

@@ -4,7 +4,7 @@
       <!-- Logo -->
       <div class="text-center mb-8">
         <h3 class="text-3xl font-bold text-indigo-600">💰 EveryPenny</h3>
-        <p class="text-gray-400 mt-1 text-sm">Take control of your finances</p>
+        <p class="text-gray-500 mt-1 text-sm">Take control of your finances</p>
       </div>
 
       <!-- Tabs -->
@@ -94,7 +94,7 @@
             placeholder="********"
             class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
-          <p v-if="mode === 'register'" class="text-xs text-gray-400 mt-1">
+          <p v-if="mode === 'register'" class="text-xs text-gray-500 mt-1">
             Minimum 8 characters
           </p>
         </div>

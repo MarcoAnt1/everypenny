@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Budgets</h2>
-        <p class="text-sm text-gray-400">
+        <p class="text-sm text-gray-500">
           Spending for
           <span class="font-medium text-gray-600">{{ periodLabel }}</span>
         </p>
@@ -22,20 +22,20 @@
 
     <!-- Summary Strip -->
     <div class="grid grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total Budgeted</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total Budgeted</p>
         <p class="text-xl font-bold text-indigo-600">
           {{ formatCurrency(totalBudgeted) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total Spent</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total Spent</p>
         <p class="text-xl font-bold text-indigo-600">
           {{ formatCurrency(totalSpent) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Remaining</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Remaining</p>
         <p
           class="text-xl font-bold"
           :class="totalRemaining >= 0 ? 'text-green-500' : 'text-red-500'"
@@ -46,12 +46,12 @@
     </div>
 
     <!--Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" />
 
     <!-- Empty -->
     <div
       v-else-if="budgets.length === 0"
-      class="text-center text-gray-400 py-16"
+      class="text-center text-gray-500 py-16"
     >
       <p class="text-4xl mb-4">💸</p>
       <p class="text-lg font-medium">No budgets yet</p>
@@ -63,13 +63,13 @@
       <div
         v-for="budget in budgets"
         :key="budget.id"
-        class="bg-white rounded-xl shadow-sm p-6 space-y-4"
+        class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4"
       >
         <!-- Budget Header -->
         <div class="flex items-start justify-between">
           <div>
             <p class="font-semibold text-gray-800">{{ budget.name }}</p>
-            <p class="text-xs text-gray-400 capitalize">
+            <p class="text-xs text-gray-500 capitalize">
               {{ budget.category?.name || "-" }} · {{ budget.period }}
             </p>
           </div>
@@ -107,19 +107,19 @@
         <!-- Amounts -->
         <div class="grid grid-cols-3 text-center text-sm">
           <div>
-            <p class="text-xs text-gray-400">Spent</p>
+            <p class="text-xs text-gray-500">Spent</p>
             <p class="font-semibold text-red-500">
               {{ formatCurrency(budget.spent) }}
             </p>
           </div>
           <div>
-            <p class="text-xs text-gray-400">Limit</p>
+            <p class="text-xs text-gray-500">Limit</p>
             <p class="font-semibold text-gray-700">
               {{ formatCurrency(Number(budget.limitAmount)) }}
             </p>
           </div>
           <div>
-            <p class="text-xs text-gray-400">Remaining</p>
+            <p class="text-xs text-gray-500">Remaining</p>
             <p
               class="font-semibold"
               :class="budget.remaining >= 0 ? 'text-green-500' : 'text-red-500'"
@@ -277,14 +277,14 @@
           <h3 class="text-lg font-semibold text-gray-800">
             {{ selectedBudget?.name }}
           </h3>
-          <p class="text-sm text-gray-400 capitalize">
+          <p class="text-sm text-gray-500 capitalize">
             {{ selectedBudget?.category?.name }} ·
             {{ selectedBudget?.period }}
           </p>
         </div>
         <button
           @click="showTransactionsModal = false"
-          class="text-gray-400 hover:text-gray-600 text-xl"
+          class="text-gray-500 hover:text-gray-600 text-xl"
         >
           ✕
         </button>
@@ -293,19 +293,19 @@
       <!-- Summary Strip -->
       <div class="grid grid-cols-3 gap-4 p-6 border-b">
         <div class="text-center">
-          <p class="text-xs text-gray-400">Limit</p>
+          <p class="text-xs text-gray-500">Limit</p>
           <p class="text-lg font-bold text-gray-700">
             {{ formatCurrency(selectedBudget?.limitAmount) }}
           </p>
         </div>
         <div class="text-center">
-          <p class="text-xs text-gray-400">Spent</p>
+          <p class="text-xs text-gray-500">Spent</p>
           <p class="text-xl font-bold text-red-500">
             {{ formatCurrency(budgetTransactionsTotal) }}
           </p>
         </div>
         <div class="text-center">
-          <p class="text-xs text-gray-400">Remaining</p>
+          <p class="text-xs text-gray-500">Remaining</p>
           <p
             class="text-xl font-bold"
             :class="
@@ -326,14 +326,14 @@
       <!-- Transactions List -->
       <div class="flex-1 overflow-y-auto p-6">
         <!--Loading -->
-        <div v-if="loadingTransactions" class="text-center text-gray-400 py-8">
+        <div v-if="loadingTransactions" class="text-center text-gray-500 py-8">
           Loading...
         </div>
 
         <!-- Empty -->
         <div
           v-else-if="budgetTransactions.length === 0"
-          class="text-center text-gray-400 py-8"
+          class="text-center text-gray-500 py-8"
         >
           <p class="text-3xl mb-2">🎉</p>
           <p class="font-medium">No transactions yet</p>
@@ -344,7 +344,7 @@
 
         <!-- Transactions Table -->
         <table v-else class="w-full text-sm">
-          <thead class="text-xs text-gray-400 uppercase border-b">
+          <thead class="text-xs text-gray-500 uppercase border-b">
             <tr>
               <th class="pb-2 text-left">Date</th>
               <th class="pb-2 text-left">Description</th>
@@ -358,13 +358,13 @@
               :key="tx.id"
               class="hover:bg-gray-50"
             >
-              <td class="py-3 text-gray-400 text-xs whitespace-nowrap">
+              <td class="py-3 text-gray-500 text-xs whitespace-nowrap">
                 {{ formatDate(tx.date) }}
               </td>
               <td class="py-3 text-gray-700 px-3">
                 {{ tx.description }}
               </td>
-              <td class="py-4 text-gray-400 text-xs">
+              <td class="py-4 text-gray-500 text-xs">
                 {{ tx.account?.name || "—" }}
               </td>
               <td
@@ -413,6 +413,7 @@ import { getCategories } from "../api/categories";
 import { formatDate, formatCurrency } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import PeriodSelector from "../components/PeriodSelector.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
 import CategoryPicker from "../components/CategoryPicker.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
 import Dropdown from "../components/Dropdown.vue";

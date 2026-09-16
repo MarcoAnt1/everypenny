@@ -3,7 +3,7 @@
     <!-- Trigger button -->
     <button
       @click.stop="toggle"
-      class="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-600"
+      class="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-500 hover:text-gray-600"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

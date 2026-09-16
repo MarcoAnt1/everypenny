@@ -6,7 +6,7 @@
         <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm text-center">
             <p class="text-4xl mb-4">⚠️</p>
             <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete {{ item }}?</h3>
-            <p class="text-sm text-gray-400 mb-6">
+            <p class="text-sm text-gray-500 mb-6">
                 This will permanently delete
                 <strong>{{ itemDescription ?? `this ${item.toLowerCase()}` }}</strong>.
             </p>

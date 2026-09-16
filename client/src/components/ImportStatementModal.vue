@@ -9,9 +9,9 @@
             <div class="p-6 border-b flex items-center justify-between">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-800 mb-6">Import Statement</h3>
-                    <p class="text-sm text-gray-400">{{ stepLabel }}</p>
+                    <p class="text-sm text-gray-500">{{ stepLabel }}</p>
                 </div>
-                <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 text-xl">
+                <button @click="$emit('close')" class="text-gray-500 hover:text-gray-600 text-xl">
                     ✕
                 </button>
             </div>
@@ -31,13 +31,13 @@
                                     ? 'bg-indigo-600 text-white'
                                     : step === i
                                         ? 'bg-indigo-100 text-indigo-600 border-2 border-indigo-600'
-                                        : 'bg-gray-100 text-gray-400'"   
+                                        : 'bg-gray-100 text-gray-500'"   
                             >
                                 {{ step > i ? '✓' : i + 1 }}
                             </div>
                             <span
                                 class="text-sm hidden sm:inline"
-                                :class="step === i ? 'text-indigo-600 font-medium' : 'text-gray-400'"
+                                :class="step === i ? 'text-indigo-600 font-medium' : 'text-gray-500'"
                             >
                                 {{  label }}
                             </span>
@@ -119,13 +119,13 @@
                                         @change="onFileChange"
                                     >
                                 </label>
-                                <p class="text-xs text-gray-400 mt-2"> {{ acceptedFormats }}</p>
+                                <p class="text-xs text-gray-500 mt-2"> {{ acceptedFormats }}</p>
                             </div>
                             <div v-else class="flex items-center justify-center gap-3">
                                 <span class="text-2xl">📄</span>
                                 <div class="text-left">
                                     <p class="text-sm font-medium text-gray-700">{{ form.file.name }}</p>
-                                    <p class="text-xs text-gray-400">{{ formatFileSize(form.file.size) }}</p>
+                                    <p class="text-xs text-gray-500">{{ formatFileSize(form.file.size) }}</p>
                                 </div>
                                 <button
                                     @click="form.file = null"
@@ -140,7 +140,7 @@
 
                 <!-- Preview -->
                 <div v-if="step === 1">
-                    <div v-if="loading" class="text-center py-16 text-gray-400">
+                    <div v-if="loading" class="text-center py-16 text-gray-500">
                         <p class="text-3xl mb-3">⏳</p>
                         <p>Parsing your statement...</p>
                     </div>
@@ -166,15 +166,15 @@
                         <!-- Summary -->
                         <div class="grid grid-cols-3 gap-3 mb-6">
                             <div class="bg-gray-100 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Total</p>
+                                <p class="text-xs text-gray-500">Total</p>
                                 <p class="text-xl font-bold text-gray-700">{{ previewRows.length }}</p>
                             </div>
                             <div class="bg-green-100 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Income</p>
+                                <p class="text-xs text-gray-500">Income</p>
                                 <p class="text-xl font-bold text-green-600">{{ incomeCount }}</p>
                             </div>
                             <div class="bg-red-100 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Expenses</p>
+                                <p class="text-xs text-gray-500">Expenses</p>
                                 <p class="text-xl font-bold text-red-500">{{ expenseCount }}</p>
                             </div>
                         </div>
@@ -289,7 +289,7 @@
                                                         {{ tag.name }}
                                                     </label>
                                                     <div 
-                                                        v-if="tags.length === 0" class="text-xs text-gray-400 px-2 py-1"
+                                                        v-if="tags.length === 0" class="text-xs text-gray-500 px-2 py-1"
                                                     >
                                                         No tags yet
                                                     </div>
@@ -315,10 +315,10 @@
                 <div v-if="step === 2" class="text-center py-16">
                     <p class="text-5xl mb-4">🎉</p>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">Import Successful!</h3>
-                    <p class="text-gray-400">
+                    <p class="text-gray-500">
                         <strong class="text-indigo-600">{{ importedCount }}</strong> transactions imported successfully.
                     </p>
-                    <p v-if="skippedCount > 0" class="text-sm text-gray-400 mt-1">
+                    <p v-if="skippedCount > 0" class="text-sm text-gray-500 mt-1">
                         {{ skippedCount }} row{{ skippedCount === 1 ? '' : 's' }} were skipped.
                     </p>
                     <div

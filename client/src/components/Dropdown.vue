@@ -3,7 +3,7 @@
     <button
       type="button"
       :disabled="disabled"
-      class="w-full border rounded-lg px-3 py-2 text-sm text-left truncate focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+      class="w-full border rounded-lg px-3 py-2 text-sm text-left truncate focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
       @click="open = !open"
     >
       {{ selectedLabel }}
