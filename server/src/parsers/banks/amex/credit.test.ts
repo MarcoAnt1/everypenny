@@ -12,16 +12,16 @@ const matrix: any[][] = [
   ["Date", "Date Processed", "Description", "Amount", ""],
   ["17 May 2026", "17 May 2026", "MEMBERSHIP FEE INSTALLMENT", 12.99, ""],
   ["03 May 2026", "04 May 2026", "SQUARE ONE INSURANCE", -30.71, ""], // refund
-  ["20 Apr 2026", "20 Apr 2026", "PAYMENT RECEIVED - THANK YOU", -1689.42, ""], // skip
+  ["20 Apr 2026", "20 Apr 2026", "PAYMENT RECEIVED - THANK YOU", -1689.42, ""], // payment (money in)
   ["", "", "", "", ""], // trailing empty row
 ];
 
 describe("AmexCreditParser", () => {
   const rows = new AmexCreditParser().parseMatrix(matrix);
 
-  it("finds the header row and parses only real transactions", () => {
-    // fee + refund; the payment line and the empty row are dropped.
-    expect(rows).toHaveLength(2);
+  it("finds the header row and parses the transactions", () => {
+    // fee + refund + payment; only the empty row is dropped.
+    expect(rows).toHaveLength(3);
   });
 
   it("classifies a positive amount as an expense", () => {
@@ -37,8 +37,10 @@ describe("AmexCreditParser", () => {
     expect(refund?.amount).toBe(30.71); // stored positive
   });
 
-  it("skips credit-card payment lines", () => {
-    expect(rows.some((r) => /payment received/i.test(r.description))).toBe(false);
+  it("includes credit-card payment lines as income", () => {
+    const payment = rows.find((r) => /payment received/i.test(r.description));
+    expect(payment?.type).toBe(TxType.income); // negative amount = money in
+    expect(payment?.amount).toBe(1689.42);
   });
 
   it("throws when no header row is present", () => {

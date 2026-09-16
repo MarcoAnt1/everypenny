@@ -7,25 +7,17 @@ import {
   resolveYear,
 } from "../../base/statementPeriod";
 
-const SECTION_END = "Important information about your Card Account";
-
-// One record: txDate  postedDate  description[ city][ CAN]  amount
-// The lookahead anchors the amount as the LAST number before the next record,
-// the page footer, or end-of-section. This prevents a payment line (which has no
-// "CAN") from swallowing the following purchase and stealing its amount.
 const RECORD_RE =
-  /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})\s{2,}((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})\s{2,}(.+?)\s{2,}(-?[\d,]+\.\d{2})(?=\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s{2,}|\s+Neo Financial|\s*$)/g;
+  /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})\s{2,}((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})\s{2,}(.+?)\s{2,}(-?[\d,]+\.\d{2})\s{2,}(-?[\d,]+\.\d{2})/g;
 
 const PERIOD_RE = /([A-Za-z]+ \d+, \d{4})\s*-\s*([A-Za-z]+ \d+, \d{4})/;
 
-export class NeoCreditParser extends PdfParser {
+export class NeoCheckingParser extends PdfParser {
   protected async extractRows(filePath: string): Promise<ParsedTransaction[]> {
     const text = await this.extractText(filePath);
     return this.parseText(text);
   }
 
-  // Parse the extracted PDF text into transactions. Exposed (separate from the
-  // pdfjs extraction) so tests can run against sanitized text fixtures.
   public parseText(text: string): ParsedTransaction[] {
     const period = resolvePeriod(text, PERIOD_RE);
 
@@ -33,9 +25,7 @@ export class NeoCreditParser extends PdfParser {
     if (start === -1) {
       throw new Error("Could not find the transactions section in the Neo PDF");
     }
-
-    const end = text.indexOf(SECTION_END);
-    const section = end !== -1 ? text.slice(start, end) : text.slice(start);
+    const section = text.slice(start);
 
     const rows: ParsedTransaction[] = [];
     let rowIndex = 0;
@@ -55,19 +45,16 @@ export class NeoCreditParser extends PdfParser {
     const amount = parseFloat(match[4].replace(/,/g, ""));
     if (isNaN(amount) || amount === 0) return null;
 
-    const description = match[3]
-      .replace(/\s+(CAN|USD)\s*$/, "") // drop trailing currency marker
-      .replace(/\s{2,}/g, " ") // collapse runs of spaces
-      .trim();
-
+    const description = match[3].replace(/\s{2,}/g, " ").trim();
     const date = resolveYear(txDateRaw, period);
 
     return {
       rowIndex,
       date,
       description,
+      // Credit (positive) = money in = income; debit (negative) = expense.
       amount: Math.abs(amount),
-      type: amount < 0 ? TxType.expense : TxType.income,
+      type: amount >= 0 ? TxType.income : TxType.expense,
       valid: !!date,
     };
   }

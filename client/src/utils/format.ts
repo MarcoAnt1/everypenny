@@ -6,6 +6,12 @@ export const formatCurrency = (amount: number | string | null | undefined) => {
   }).format(Number.isFinite(n) ? n : 0);
 };
 
+// Turns enum-ish values like "credit_card" into a readable "Credit Card".
+export const formatType = (value?: string | null) =>
+  (value ?? "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
 export const formatDate = (dateString: string) => {
   if (!dateString) return "";
 

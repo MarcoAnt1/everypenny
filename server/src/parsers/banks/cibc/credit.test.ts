@@ -19,9 +19,11 @@ const CIBC_TEXT =
 describe("CibcCreditParser", () => {
   const rows = new CibcCreditParser().parseText(CIBC_TEXT);
 
-  it("parses only the charges section, ignoring the payments section", () => {
-    expect(rows).toHaveLength(2);
-    expect(rows.some((r) => /payment thank you/i.test(r.description))).toBe(false);
+  it("parses the payments section as income plus the charges", () => {
+    expect(rows).toHaveLength(3);
+    const payment = rows.find((r) => /payment thank you/i.test(r.description));
+    expect(payment?.type).toBe(TxType.income);
+    expect(payment?.amount).toBe(86);
   });
 
   it("classifies a positive amount as an expense (purchase)", () => {

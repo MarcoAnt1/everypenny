@@ -1,29 +1,23 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Transactions</h2>
-        <p class="text-sm text-gray-400">Track your income and expenses</p>
+        <p class="text-sm text-gray-500">Track your income and expenses</p>
       </div>
-      <div class="flex gap-3">
-        <button
-          @click="showImportModal = true"
-          class="border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition"
-        >
+      <div class="flex flex-wrap gap-3">
+        <button @click="showImportModal = true" class="btn-secondary">
           📂 Import Statement
         </button>
-        <button
-          @click="openModal()"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-        >
+        <button @click="openModal()" class="btn-primary">
           + Add Transaction
         </button>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-white rounded-xl shadow-sm p-4 space-y-4">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-4">
       <!-- Row 1 - Search + date presets + account + type + category -->
       <div class="flex flex-wrap gap-3">
         <!-- Search -->
@@ -99,7 +93,7 @@
 
       <!-- Row 3 - Tag pills -->
       <div v-if="tags.length > 0" class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs text-gray-400 mr-1">Tags:</span>
+        <span class="text-xs text-gray-500 mr-1">Tags:</span>
         <button
           v-for="tag in tags"
           :key="tag.id"
@@ -119,7 +113,7 @@
       <!-- Active filter summary -->
       <div
         v-if="hasActiveFilters"
-        class="flex items-center gap-2 text-xs text-gray-400"
+        class="flex items-center gap-2 text-xs text-gray-500"
       >
         <span>Showing:</span>
         <span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
@@ -156,30 +150,30 @@
 
     <!-- Summary Strip -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Income</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Income</p>
         <p class="text-xl font-bold text-green-500">
           {{ formatCurrency(totalIncome) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Expenses</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Expenses</p>
         <p class="text-xl font-bold text-red-500">
           {{ formatCurrency(totalExpenses) }}
         </p>
       </div>
       <div
-        class="bg-white rounded-xl shadow-sm p-4 text-center"
+        class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center"
         title="Net moved via transfers in this view (internal transfers cancel out)"
       >
-        <p class="text-xs text-gray-400">Transfers</p>
+        <p class="text-xs text-gray-500">Transfers</p>
         <p class="text-xl font-bold text-indigo-500">
           {{ totalTransfers >= 0 ? "+" : "-"
           }}{{ formatCurrency(Math.abs(totalTransfers)) }}
         </p>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Net</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Net</p>
         <p
           class="text-xl font-bold"
           :class="net >= 0 ? 'text-indigo-600' : 'text-red-500'"
@@ -190,12 +184,12 @@
     </div>
 
     <!--Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" variant="list" />
 
     <!-- Empty -->
     <div
       v-else-if="visibleTransactions.length === 0"
-      class="text-center text-gray-400 py-16"
+      class="text-center text-gray-500 py-16"
     >
       <p class="text-4xl mb-4">💸</p>
       <p class="text-lg font-medium">No transactions found</p>
@@ -203,8 +197,9 @@
     </div>
 
     <!-- Transactions Table -->
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
-      <table class="w-full text-sm">
+    <div v-else class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[720px]">
         <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
           <tr>
             <th class="px-6 py-3 text-left">Date</th>
@@ -223,14 +218,14 @@
             class="hover:bg-gray-50 transition"
           >
             <!-- Date -->
-            <td class="px-6 py-4 text-gray-400 whitespace-nowrap">
+            <td class="px-6 py-4 text-gray-500 whitespace-nowrap">
               {{ tx.date }}
             </td>
 
             <!-- Description -->
             <td class="px-6 py-4">
               <p class="font-medium text-gray-800">{{ tx.description }}</p>
-              <p v-if="tx.notes" class="text-xs text-gray-400">
+              <p v-if="tx.notes" class="text-xs text-gray-500">
                 {{ tx.notes }}
               </p>
             </td>
@@ -257,7 +252,7 @@
               <span v-else>{{ tx.account?.name || "-" }}</span>
               <p
                 v-if="people.length > 1 && tx.account?.owner"
-                class="text-xs text-gray-400"
+                class="text-xs text-gray-500"
               >
                 👤 {{ personLabel(tx.account.owner) }}
               </p>
@@ -317,12 +312,13 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Add/Edit Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
       @mousedown.self="closeModal"
     >
       <div
@@ -528,7 +524,7 @@
                 </label>
                 <div
                   v-if="tags.length === 0"
-                  class="text-xs text-gray-400 px-2 py-1"
+                  class="text-xs text-gray-500 px-2 py-1"
                 >
                   No tags yet
                 </div>
@@ -561,14 +557,14 @@
           <div class="flex gap-3 mt-6">
             <button
               @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+              class="flex-1 btn-secondary"
             >
               Cancel
             </button>
             <button
               @click="saveTransaction"
               :disabled="saving"
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+              class="flex-1 btn-primary"
             >
               {{
                 saving
@@ -613,6 +609,7 @@ import { getCategories } from "../api/categories";
 import { getTags } from "../api/tags";
 import { formatCurrency } from "../utils/format";
 import ImportStatementModal from "../components/ImportStatementModal.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import ActionMenu from "../components/ActionMenu.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
@@ -620,6 +617,9 @@ import CategoryPicker from "../components/CategoryPicker.vue";
 import MultiSelect from "../components/MultiSelect.vue";
 import Dropdown from "../components/Dropdown.vue";
 import { useAuthStore } from "../stores/auth";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const loading = ref(true);
 const saving = ref(false);
@@ -925,6 +925,7 @@ const loadTransactions = async () => {
     transactions.value = res.data;
   } catch (error) {
     console.error("Error loading transactions:", error);
+    toast.error("Failed to load transactions.");
   } finally {
     loading.value = false;
   }
@@ -1089,6 +1090,7 @@ const saveTransaction = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save transaction";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }

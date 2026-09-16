@@ -1,44 +1,57 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Accounts</h2>
-        <p class="text-sm text-gray-400">Manage your bank accounts</p>
+        <p class="text-sm text-gray-500">Manage your bank accounts</p>
       </div>
       <button
         @click="openModal()"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+        class="btn-primary"
       >
         + Add Account
       </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" />
 
     <!-- Empty -->
     <div
       v-else-if="accounts.length === 0"
-      class="text-center text-gray-400 py-16"
+      class="text-center text-gray-500 py-16"
     >
       <p class="text-4xl mb-4">🏦</p>
       <p class="text-lg font-medium">No accounts found</p>
       <p class="text-sm">Add your first account to get started</p>
     </div>
 
-    <!-- Accounts Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="account in accounts"
-        :key="account.id"
-        class="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4"
+    <!-- Accounts (grouped by owner) -->
+    <div v-else class="space-y-8">
+      <section
+        v-for="group in accountGroups"
+        :key="group.label"
+        class="space-y-4"
       >
+        <h3
+          v-if="accountGroups.length > 1"
+          class="text-sm font-semibold text-gray-500 uppercase tracking-wide"
+        >
+          {{ group.label }}
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            v-for="account in group.accounts"
+            :key="account.id"
+            class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4 border-l-4"
+            :style="{ borderLeftColor: account.color || DEFAULT_ACCOUNT_COLOR }"
+          >
         <!-- Account Header -->
         <div class="flex items-start justify-between">
           <div>
             <p class="font-semibold text-gray-800">{{ account.name }}</p>
-            <p class="text-xs text-gray-400 capitalize">{{ account.type }}</p>
+            <p class="text-xs text-gray-500">{{ formatType(account.type) }}</p>
           </div>
           <div class="flex flex-col items-end gap-1">
             <span class="text-2xl">{{ accountIcon(account.type) }}</span>
@@ -59,7 +72,7 @@
 
         <!-- Balance -->
         <div>
-          <p class="text-xs text-gray-400">
+          <p class="text-xs text-gray-500">
             {{
               account.type === "credit_card"
                 ? Number(account.balance) < 0
@@ -95,7 +108,7 @@
           v-if="account.type === 'credit_card' && account.creditLimit"
           class="space-y-1"
         >
-          <div class="flex justify-between text-xs text-gray-400">
+          <div class="flex justify-between text-xs text-gray-500">
             <span>Available Credit</span>
             <span class="font-medium text-green-500">
               {{ formatCurrency(account.availableCredit) }}
@@ -114,14 +127,14 @@
               :style="{ width: `${Math.min(account.utilization, 100)}%` }"
             />
           </div>
-          <div class="flex justify-between text-xs text-gray-400">
+          <div class="flex justify-between text-xs text-gray-500">
             <span>{{ account.utilization }}% used</span>
             <span>Limit: {{ formatCurrency(account.creditLimit) }}</span>
           </div>
         </div>
 
         <!-- Institution -->
-        <p v-if="account.institution" class="text-xs text-gray-400">
+        <p v-if="account.institution" class="text-xs text-gray-500">
           🏛️ {{ account.institution }}
         </p>
 
@@ -141,24 +154,26 @@
               Delete
             </button>
           </template>
-          <p v-else class="flex-1 text-center text-xs text-gray-400 py-1">
+          <p v-else class="flex-1 text-center text-xs text-gray-500 py-1">
             Shared by {{ account.owner?.name }} · view only
           </p>
         </div>
-      </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Total Balance Bar -->
-    <div v-if="accounts.length > 0" class="bg-white rounded-xl shadow-sm p-6">
+    <div v-if="accounts.length > 0" class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-gray-400">Total Net Worth</p>
+          <p class="text-sm text-gray-500">Total Net Worth</p>
           <p class="text-3xl font-bold text-indigo-600">
             {{ formatCurrency(totalBalance) }}
           </p>
         </div>
         <div class="text-right">
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-500">
             {{ accounts.length }} account{{ accounts.length > 1 ? "s" : "" }}
           </p>
         </div>
@@ -168,7 +183,7 @@
     <!-- Modal -->
     <div
       v-if="showModal"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
       @mousedown.self="closeModal"
     >
       <div class="bg-white rounded-xl p-8 w-full max-w-md">
@@ -210,9 +225,29 @@
               placeholder="Select type"
               class="w-full mt-1"
             />
-            <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
+            <p v-if="editingAccount" class="text-xs text-gray-500 mt-1">
               Account type can't be changed after creation.
             </p>
+          </div>
+
+          <!-- Color -->
+          <div>
+            <label class="text-sm text-gray-600 font-medium">Color</label>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <button
+                v-for="c in colorPresets"
+                :key="c"
+                type="button"
+                @click="form.color = c"
+                class="w-8 h-8 rounded-full border-2 transition"
+                :class="
+                  form.color === c
+                    ? 'border-gray-800 scale-110'
+                    : 'border-transparent'
+                "
+                :style="{ backgroundColor: c }"
+              />
+            </div>
           </div>
 
           <!-- Credit Limit (only for credit cards) -->
@@ -261,7 +296,7 @@
               placeholder="0.00"
               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
-            <p v-if="editingAccount" class="text-xs text-gray-400 mt-1">
+            <p v-if="editingAccount" class="text-xs text-gray-500 mt-1">
               Balance updates automatically from transactions.
             </p>
           </div>
@@ -285,14 +320,14 @@
           <div class="flex gap-3 mt-6">
             <button
               @click="closeModal"
-              class="flex-1 border text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+              class="flex-1 btn-secondary"
             >
               Cancel
             </button>
             <button
               @click="saveAccount"
               :disabled="saving"
-              class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+              class="flex-1 btn-primary"
             >
               {{
                 saving
@@ -325,10 +360,14 @@ import {
   getAccounts,
   updateAccount,
 } from "../api/accounts";
-import { formatCurrency } from "../utils/format";
+import { formatCurrency, formatType } from "../utils/format";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import Dropdown from "../components/Dropdown.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
 import { useAuthStore } from "../stores/auth";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const accountTypeOptions = [
   { value: "checking", label: "Checking" },
@@ -336,6 +375,20 @@ const accountTypeOptions = [
   { value: "credit_card", label: "Credit Card" },
   { value: "investment", label: "Investment" },
   { value: "cash", label: "Cash" },
+];
+
+// Accent colour for account cards. Falls back to indigo for accounts created
+// before colours existed.
+const DEFAULT_ACCOUNT_COLOR = "#6366f1";
+const colorPresets = [
+  DEFAULT_ACCOUNT_COLOR,
+  "#ef4444",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#ec4899",
+  "#8b5cf6",
+  "#6b7280",
 ];
 const currencyOptions = [
   { value: "USD", label: "USD - US Dollar" },
@@ -370,6 +423,7 @@ const defaultForm = {
   balance: 0,
   currency: "CAD",
   creditLimit: 0,
+  color: DEFAULT_ACCOUNT_COLOR,
 };
 
 const form = ref({ ...defaultForm });
@@ -386,6 +440,7 @@ const loadAccounts = async () => {
     accounts.value = res.data;
   } catch (error) {
     console.error("Error loading accounts:", error);
+    toast.error("Failed to load accounts.");
   } finally {
     loading.value = false;
   }
@@ -394,6 +449,32 @@ const loadAccounts = async () => {
 // Total Balance
 const totalBalance = computed(() => {
   return accounts.value.reduce((sum, acc) => sum + Number(acc.balance), 0);
+});
+
+// Group accounts: mine first, then one group per other owner (sorted by name).
+const accountGroups = computed(() => {
+  const mine: any[] = [];
+  const others = new Map<string, { label: string; accounts: any[] }>();
+
+  for (const acc of accounts.value) {
+    if (isMine(acc)) {
+      mine.push(acc);
+    } else {
+      const ownerId = acc.ownerId ?? acc.owner?.id ?? "shared";
+      const name = acc.owner?.name ?? "Shared";
+      if (!others.has(ownerId)) {
+        others.set(ownerId, { label: `${name}'s Accounts`, accounts: [] });
+      }
+      others.get(ownerId)!.accounts.push(acc);
+    }
+  }
+
+  const groups: { label: string; accounts: any[] }[] = [];
+  if (mine.length) groups.push({ label: "My Accounts", accounts: mine });
+  groups.push(
+    ...[...others.values()].sort((a, b) => a.label.localeCompare(b.label)),
+  );
+  return groups;
 });
 
 // Modal
@@ -407,6 +488,7 @@ const openModal = (account?: any) => {
         balance: account.balance,
         currency: account.currency || "CAD",
         creditLimit: account.creditLimit,
+        color: account.color || DEFAULT_ACCOUNT_COLOR,
       }
     : { ...defaultForm };
   showModal.value = true;
@@ -443,6 +525,7 @@ const saveAccount = async () => {
     closeModal();
   } catch (err: any) {
     error.value = err.response?.data?.error ?? "Failed to save account";
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }
@@ -461,6 +544,7 @@ const deleteAccountConfirmed = async () => {
     await loadAccounts();
   } catch (error) {
     console.error("Error deleting account:", error);
+    toast.error("Failed to delete the account.");
   } finally {
     showDeleteConfirm.value = false;
     deletingAccount.value = null;

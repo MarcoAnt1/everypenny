@@ -1,17 +1,17 @@
 <template>
     <div
-        class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
         @mousedown.self="$emit('close')"
     >
-        <div class="bg-white rounded-xl shadow-xl w-fit min-w-[600px] max-w-[90vw] max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-xl shadow-xl w-full sm:w-fit sm:min-w-[600px] max-w-full sm:max-w-[90vw] max-h-[90vh] flex flex-col">
             
             <!-- Header -->
             <div class="p-6 border-b flex items-center justify-between">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-800 mb-6">Import Statement</h3>
-                    <p class="text-sm text-gray-400">{{ stepLabel }}</p>
+                    <p class="text-sm text-gray-500">{{ stepLabel }}</p>
                 </div>
-                <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 text-xl">
+                <button @click="$emit('close')" class="text-gray-500 hover:text-gray-600 text-xl">
                     ✕
                 </button>
             </div>
@@ -31,13 +31,13 @@
                                     ? 'bg-indigo-600 text-white'
                                     : step === i
                                         ? 'bg-indigo-100 text-indigo-600 border-2 border-indigo-600'
-                                        : 'bg-gray-100 text-gray-400'"   
+                                        : 'bg-gray-100 text-gray-500'"   
                             >
                                 {{ step > i ? '✓' : i + 1 }}
                             </div>
                             <span
-                                class="text-sm"
-                                :class="step === i ? 'text-indigo-600 font-medium' : 'text-gray-400'"
+                                class="text-sm hidden sm:inline"
+                                :class="step === i ? 'text-indigo-600 font-medium' : 'text-gray-500'"
                             >
                                 {{  label }}
                             </span>
@@ -119,13 +119,13 @@
                                         @change="onFileChange"
                                     >
                                 </label>
-                                <p class="text-xs text-gray-400 mt-2"> {{ acceptedFormats }}</p>
+                                <p class="text-xs text-gray-500 mt-2"> {{ acceptedFormats }}</p>
                             </div>
                             <div v-else class="flex items-center justify-center gap-3">
                                 <span class="text-2xl">📄</span>
                                 <div class="text-left">
                                     <p class="text-sm font-medium text-gray-700">{{ form.file.name }}</p>
-                                    <p class="text-xs text-gray-400">{{ formatFileSize(form.file.size) }}</p>
+                                    <p class="text-xs text-gray-500">{{ formatFileSize(form.file.size) }}</p>
                                 </div>
                                 <button
                                     @click="form.file = null"
@@ -140,7 +140,7 @@
 
                 <!-- Preview -->
                 <div v-if="step === 1">
-                    <div v-if="loading" class="text-center py-16 text-gray-400">
+                    <div v-if="loading" class="text-center py-16 text-gray-500">
                         <p class="text-3xl mb-3">⏳</p>
                         <p>Parsing your statement...</p>
                     </div>
@@ -166,15 +166,15 @@
                         <!-- Summary -->
                         <div class="grid grid-cols-3 gap-3 mb-6">
                             <div class="bg-gray-100 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Total</p>
+                                <p class="text-xs text-gray-500">Total</p>
                                 <p class="text-xl font-bold text-gray-700">{{ previewRows.length }}</p>
                             </div>
                             <div class="bg-green-100 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Income</p>
+                                <p class="text-xs text-gray-500">Income</p>
                                 <p class="text-xl font-bold text-green-600">{{ incomeCount }}</p>
                             </div>
                             <div class="bg-red-100 rounded-lg p-3 text-center">
-                                <p class="text-xs text-gray-400">Expenses</p>
+                                <p class="text-xs text-gray-500">Expenses</p>
                                 <p class="text-xl font-bold text-red-500">{{ expenseCount }}</p>
                             </div>
                         </div>
@@ -239,41 +239,24 @@
 
                                         <!-- To Account (Only relevant for transfers)-->
                                         <td class="px-3 py-2">
-                                            <select
+                                            <Dropdown
                                                 v-if="row.type === 'transfer'"
                                                 v-model="row.toAccountId"
-                                                class="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                                            >
-                                                <option value="">- Save as expense -</option>
-                                                <option
-                                                    v-for="acc in props.accounts.filter(a => a.id !== form.accountId)"
-                                                    :key="acc.id"
-                                                    :value="acc.id"
-                                                >
-                                                    {{ acc.name }}
-                                                </option>
-                                            </select>
+                                                :options="rowToAccountOptions"
+                                                placeholder="- Save as expense -"
+                                                class="min-w-40"
+                                            />
                                             <span v-else class="text-gray-300">-</span>
                                         </td>
 
-                                        <!-- Category toggle -->
+                                        <!-- Category -->
                                         <td class="px-3 py-2">
-                                            <select
+                                            <CategoryPicker
                                                 v-model="row.categoryId"
-                                                class="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 max-w-32"
-                                            >
-                                                <option value="">— None —</option>
-                                                <template v-for="cat in categories" :key="cat.id">
-                                                    <option :value="cat.id">{{ cat.name }}</option>
-                                                    <option
-                                                        v-for="sub in cat.subcategories"
-                                                        :key="sub.id"
-                                                        :value="sub.id"
-                                                    >
-                                                        └ {{ sub.name }}
-                                                    </option>
-                                                </template>
-                                            </select>
+                                                :categories="categories"
+                                                placeholder="— None —"
+                                                class="min-w-44"
+                                            />
                                         </td>
 
                                         <!-- Tag toggle -->
@@ -306,7 +289,7 @@
                                                         {{ tag.name }}
                                                     </label>
                                                     <div 
-                                                        v-if="tags.length === 0" class="text-xs text-gray-400 px-2 py-1"
+                                                        v-if="tags.length === 0" class="text-xs text-gray-500 px-2 py-1"
                                                     >
                                                         No tags yet
                                                     </div>
@@ -332,10 +315,10 @@
                 <div v-if="step === 2" class="text-center py-16">
                     <p class="text-5xl mb-4">🎉</p>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">Import Successful!</h3>
-                    <p class="text-gray-400">
+                    <p class="text-gray-500">
                         <strong class="text-indigo-600">{{ importedCount }}</strong> transactions imported successfully.
                     </p>
-                    <p v-if="skippedCount > 0" class="text-sm text-gray-400 mt-1">
+                    <p v-if="skippedCount > 0" class="text-sm text-gray-500 mt-1">
                         {{ skippedCount }} row{{ skippedCount === 1 ? '' : 's' }} were skipped.
                     </p>
                     <div
@@ -352,7 +335,7 @@
                 <button
                     v-if="step > 0 && step < 2"
                     @click="step--"
-                    class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                    class="btn-secondary"
                 >
                     ← Back
                 </button>
@@ -362,7 +345,7 @@
                     <button
                         v-if="step < 2"
                         @click="emit('close')"
-                        class="border text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+                        class="btn-secondary"
                     >
                         Cancel
                     </button>
@@ -372,7 +355,7 @@
                         v-if="step === 0"
                         @click="parseFile"
                         :disabled="!form.accountId || !form.bank || !form.statementType || !form.file || loading"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        class="btn-primary"
                     >
                         Parse Statement →
                     </button>
@@ -382,7 +365,7 @@
                         v-if="step === 1 && !loading"
                         @click="confirmImport"
                         :disabled="selectedRows.length === 0 || saving"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                        class="btn-primary"
                     >
                         {{ saving ? 'Importing...' : `Import ${selectedRows.length} Transactions` }}
                     </button>
@@ -391,7 +374,7 @@
                     <button
                         v-if="step === 2"
                         @click="emit('close')"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm"
+                        class="btn-primary"
                     >
                         Done ✓
                     </button>
@@ -415,6 +398,10 @@ import { getCategories } from '../api/categories';
 import { getTags } from '../api/tags';
 import { formatCurrency, formatDate } from '../utils/format';
 import Dropdown from './Dropdown.vue';
+import CategoryPicker from './CategoryPicker.vue';
+import { useToastStore } from '../stores/toast';
+
+const toast = useToastStore();
 
 const props = defineProps<{ accounts: any[] }>();
 const emit = defineEmits(['close', 'imported']);
@@ -513,6 +500,13 @@ const onBankSelect = (value: string) => {
     onBankChange();
 };
 
+const rowToAccountOptions = computed(() => [
+    { value: '', label: '- Save as expense -' },
+    ...props.accounts
+        .filter((a) => a.id !== form.value.accountId)
+        .map((a) => ({ value: a.id, label: a.name })),
+]);
+
 const acceptedFormats = computed(() => {
     return '.pdf,.xls,.xlsx,.csv';
 });
@@ -577,6 +571,7 @@ const parseFile = async () => {
         error.value =
             err.response?.data?.error ??
             'Failed to parse statement. Check the bank, statement type, and file.';
+        toast.error(error.value);
         step.value = 0;
     } finally {
         loading.value = false;
@@ -617,9 +612,13 @@ const confirmImport = async () => {
         warning.value = res.data.warning || '';
         step.value = 2;
         emit('imported');
+        toast.success(
+            `${importedCount.value} transaction${importedCount.value === 1 ? '' : 's'} imported`,
+        );
     } catch (err: any) {
         error.value =
             err.response?.data?.error ?? 'Failed to import transactions.';
+        toast.error(error.value);
     } finally {
         saving.value = false;
     }

@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Categories</h2>
-        <p class="text-sm text-gray-400">Organize your transactions</p>
+        <p class="text-sm text-gray-500">Organize your transactions</p>
       </div>
       <button
         @click="openModal()"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+        class="btn-primary"
       >
         + Add Category
       </button>
@@ -16,26 +16,26 @@
 
     <!-- Summary Strip -->
     <div class="grid gap-4">
-      <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-        <p class="text-xs text-gray-400">Total</p>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
+        <p class="text-xs text-gray-500">Total</p>
         <p class="text-xl font-bold text-indigo-600">{{ categories.length }}</p>
       </div>
     </div>
 
     <!--Loading -->
-    <div v-if="loading" class="text-center text-gray-400 py-16">Loading...</div>
+    <LoadingSkeleton v-if="loading" variant="list" />
 
     <!-- Empty -->
     <div
       v-else-if="categories.length === 0"
-      class="text-center text-gray-400 py-16"
+      class="text-center text-gray-500 py-16"
     >
       <p class="text-4xl mb-4">💸</p>
       <p class="text-lg font-medium">No categories yet</p>
       <p class="text-sm">Create your first category to organize transactions</p>
     </div>
 
-    <div v-else class="grid bg-white rounded-xl shadow-sm p-6">
+    <div v-else class="grid bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <ul class="space-y-2">
         <li v-for="cat in categories" :key="cat.id">
           <!-- Parent Category -->
@@ -135,6 +135,10 @@ import { ref, computed, onMounted } from "vue";
 import { getCategories, deleteCategory } from "../api/categories";
 import DeleteConfirmation from "../components/DeleteConfirmation.vue";
 import CategoryFormModal from "../components/CategoryFormModal.vue";
+import LoadingSkeleton from "../components/LoadingSkeleton.vue";
+import { useToastStore } from "../stores/toast";
+
+const toast = useToastStore();
 
 const loading = ref(true);
 const categories = ref<any[]>([]);
@@ -153,6 +157,7 @@ const loadCategories = async () => {
     categories.value = res.data;
   } catch (error) {
     console.error("Error loading categories:", error);
+    toast.error("Failed to load categories.");
   } finally {
     loading.value = false;
   }
@@ -192,6 +197,7 @@ const deleteCategoryConfirmed = async () => {
     await loadCategories();
   } catch (error) {
     console.error("Error deleting category:", error);
+    toast.error("Failed to delete the category.");
   } finally {
     showDeleteConfirm.value = false;
     deletingCategory.value = null;

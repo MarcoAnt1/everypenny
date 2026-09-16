@@ -32,13 +32,18 @@ describe("NeoCreditParser", () => {
     expect(burger?.type).toBe(TxType.expense);
   });
 
-  it("skips credit-card payment lines", () => {
-    expect(rows.some((r) => /payment received/i.test(r.description))).toBe(false);
-    expect(rows).toHaveLength(2); // two purchases, payment excluded
+  it("includes credit-card payment lines as income", () => {
+    const payment = rows.find((r) => /payment received/i.test(r.description));
+    expect(payment?.type).toBe(TxType.income); // positive amount = money in
+    expect(payment?.amount).toBe(600);
+    expect(rows).toHaveLength(3); // two purchases + the payment
   });
 
   it("treats negative amounts as purchases (expenses)", () => {
-    expect(rows.every((r) => r.type === TxType.expense)).toBe(true);
+    const purchases = rows.filter(
+      (r) => !/payment received/i.test(r.description),
+    );
+    expect(purchases.every((r) => r.type === TxType.expense)).toBe(true);
   });
 
   it("strips the trailing CAN currency marker from descriptions", () => {
