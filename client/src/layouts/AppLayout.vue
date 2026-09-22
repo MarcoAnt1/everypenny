@@ -15,7 +15,6 @@
         railCollapsed ? 'lg:w-20' : 'lg:w-64',
       ]"
     >
-      <!-- Brand + collapse toggle (aligned to the header height) -->
       <div
         class="h-16 border-b flex items-center shrink-0"
         :class="railCollapsed ? 'lg:justify-center px-2' : 'px-4 justify-between'"
@@ -101,7 +100,6 @@
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden">
-      <!-- Header (slim top bar, aligned to the sidebar brand row) -->
       <header
         class="bg-white border-b h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 shrink-0"
       >
@@ -150,7 +148,6 @@ const collapsed = ref(loadCollapsed());
 const mobileOpen = ref(false);
 const isDesktop = ref(matchesDesktop());
 
-// Rail collapse only applies on desktop; on mobile the drawer always shows full labels.
 const railCollapsed = computed(() => collapsed.value && isDesktop.value);
 
 function loadCollapsed(): boolean {
