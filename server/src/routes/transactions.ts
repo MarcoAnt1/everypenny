@@ -12,6 +12,19 @@ import { signAmount, deltaOps, mergeDeltas, Delta } from "../services/balance";
 
 const router = Router();
 
+const buildTagCreate = (tagIds: unknown) =>
+  Array.isArray(tagIds) && tagIds.length
+    ? { create: [...new Set(tagIds as string[])].map((tagId) => ({ tagId })) }
+    : undefined;
+
+const buildTagReplace = (tagIds: unknown) =>
+  Array.isArray(tagIds)
+    ? {
+        deleteMany: {},
+        create: [...new Set(tagIds as string[])].map((tagId) => ({ tagId })),
+      }
+    : undefined;
+
 // GET all transactions
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
@@ -177,9 +190,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       category: true,
       tags: { include: { tag: true } },
     };
-    const tagCreate = tagIds?.length
-      ? { create: tagIds.map((tagId: string) => ({ tagId })) }
-      : undefined;
+    const tagCreate = buildTagCreate(tagIds);
 
     if (type === TxType.transfer) {
       if (!toAccountId) {
@@ -350,9 +361,8 @@ router.put(
         category: true,
         tags: { include: { tag: true } },
       };
-      const tagCreate = tagIds?.length
-        ? { create: tagIds.map((tagId: string) => ({ tagId })) }
-        : undefined;
+      const tagCreate = buildTagCreate(tagIds);
+      const tagReplace = buildTagReplace(tagIds);
 
       if (existing.type !== TxType.transfer && type !== TxType.transfer) {
         const newSigned = signAmount(type, amount);
@@ -372,7 +382,7 @@ router.put(
               type,
               status,
               notes,
-              tags: tagCreate,
+              tags: tagReplace,
             },
             include: includeOpts,
           }),
