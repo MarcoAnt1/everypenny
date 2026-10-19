@@ -40,7 +40,7 @@
         >
           {{ group.label }}
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             v-for="account in group.accounts"
             :key="account.id"
