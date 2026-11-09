@@ -5,6 +5,8 @@ import { NeoCheckingParser } from "./banks/neo/checking";
 import { WealthsimpleCheckingParser } from "./banks/wealthsimple/checking";
 import { WealthsimpleCreditParser } from "./banks/wealthsimple/credit";
 import { CibcCreditParser } from "./banks/cibc/credit";
+import { RbcCreditParser } from "./banks/rbc/credit";
+import { RbcCheckingParser } from "./banks/rbc/checking";
 
 export enum Bank {
   AMEX = "amex",
@@ -31,6 +33,8 @@ const registry: Record<string, ParserFactory> = {
   [`${Bank.NEO}:${StatementType.CREDIT_CARD}`]: () => new NeoCreditParser(),
   [`${Bank.NEO}:${StatementType.CHECKING}`]: () => new NeoCheckingParser(),
   [`${Bank.CIBC}:${StatementType.CREDIT_CARD}`]: () => new CibcCreditParser(),
+  [`${Bank.RBC}:${StatementType.CREDIT_CARD}`]: () => new RbcCreditParser(),
+  [`${Bank.RBC}:${StatementType.CHECKING}`]: () => new RbcCheckingParser(),
   [`${Bank.WEALTHSIMPLE}:${StatementType.CHECKING}`]: () =>
     new WealthsimpleCheckingParser(),
   [`${Bank.WEALTHSIMPLE}:${StatementType.CREDIT_CARD}`]: () =>

@@ -9,11 +9,19 @@ export interface SupportedStatement {
 export const getSupported = () =>
   apiClient.get<SupportedStatement[]>("/api/import/supported");
 
-export const preview = (file: File, bank: string, statementType: string) => {
+// `accountId` lets the server flag rows already saved in that account and
+// suggest own-account transfers.
+export const preview = (
+  file: File,
+  bank: string,
+  statementType: string,
+  accountId?: string,
+) => {
   const form = new FormData();
   form.append("file", file);
   form.append("bank", bank);
   form.append("statementType", statementType);
+  if (accountId) form.append("accountId", accountId);
   return apiClient.post("/api/import/preview", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
