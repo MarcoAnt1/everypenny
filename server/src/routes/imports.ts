@@ -11,7 +11,10 @@ import {
 } from "../parsers/registry";
 import { AccountType, TxStatus, TxType } from "@prisma/client";
 import { AuthRequest } from "../middleware/auth";
-import { userCanEditTransactionInAccount } from "../services/authorization";
+import {
+  getUserAccounts,
+  userCanEditTransactionInAccount,
+} from "../services/authorization";
 import { Decimal } from "@prisma/client/runtime/library";
 import {
   deltaOps,
@@ -19,8 +22,70 @@ import {
   mergeDeltas,
   Delta,
 } from "../services/balance";
+import {
+  Direction,
+  ExistingTx,
+  TRANSFER_WINDOW_DAYS,
+  closestByDate,
+  isCounterpart,
+  matchImportRows,
+  signedAmount,
+} from "../services/importMatching";
 
 const router = Router();
+
+// Existing transactions in the given accounts around the given dates (padded by
+// the transfer window), shaped for the import matching rules.
+async function loadExisting(
+  accountIds: string[],
+  dates: (string | null | undefined)[],
+): Promise<ExistingTx[]> {
+  const times = dates
+    .filter((d): d is string => !!d)
+    .map((d) => new Date(d).getTime())
+    .filter((t) => !isNaN(t));
+  if (accountIds.length === 0 || times.length === 0) return [];
+
+  const pad = (TRANSFER_WINDOW_DAYS + 1) * 86_400_000;
+  const rows = await prisma.transaction.findMany({
+    where: {
+      accountId: { in: accountIds },
+      date: {
+        gte: new Date(Math.min(...times) - pad),
+        lte: new Date(Math.max(...times) + pad),
+      },
+    },
+    select: {
+      id: true,
+      accountId: true,
+      date: true,
+      amount: true,
+      description: true,
+      type: true,
+      transferGroupId: true,
+      account: { select: { name: true } },
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    accountId: r.accountId,
+    accountName: r.account.name,
+    date: r.date,
+    amount: Number(r.amount),
+    description: r.description,
+    type: r.type,
+    transferGroupId: r.transferGroupId,
+  }));
+}
+
+// Money in or out of the imported account. Sent by the client (from the
+// parsed row) because a row re-typed as "transfer" no longer says which way.
+const rowDirection = (tx: any): Direction =>
+  tx.direction === "in" || tx.direction === "out"
+    ? tx.direction
+    : tx.type === TxType.income
+      ? "in"
+      : "out";
 
 // Multer config - save file temporarily to /uploads
 const uploadsDir = path.resolve(__dirname, "../../uploads");
@@ -96,7 +161,30 @@ router.post(
 
       const parser = getParser(bank, statementType);
       const result = await parser.parse(req.file.path);
-      res.json(result);
+
+      // Annotate rows with duplicate / own-transfer matches against what's
+      // already saved, when we know the target account.
+      const accountId = String(req.body.accountId || "");
+      const accounts = await getUserAccounts(req.userId!);
+      const rows = result.rows.map((r) => ({
+        ...r,
+        direction: (r.type === TxType.income ? "in" : "out") as Direction,
+      }));
+
+      if (accountId && accounts.some((a) => a.id === accountId)) {
+        const existing = await loadExisting(
+          accounts.map((a) => a.id),
+          rows.map((r) => r.date),
+        );
+        const matches = matchImportRows(rows, accountId, existing);
+        res.json({
+          ...result,
+          rows: rows.map((r, i) => ({ ...r, match: matches[i] })),
+        });
+        return;
+      }
+
+      res.json({ ...result, rows });
     } catch (error: any) {
       console.error("Import preview error:", error);
       res.status(500).json({
@@ -159,13 +247,26 @@ router.post("/confirm", async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // De-duplicated: a repeated tag id would violate (transactionId, tagId).
     const tagsCreate = (tagIds?: string[]) =>
       tagIds?.length
-        ? { create: tagIds.map((tagId) => ({ tagId })) }
+        ? { create: [...new Set(tagIds)].map((tagId) => ({ tagId })) }
         : undefined;
+
+    // Plain rows in the transfer destinations that may be the other side of a
+    // transfer being imported (e.g. the card's payment, imported earlier as
+    // income). Those get linked as the second leg instead of duplicated.
+    const counterpartPool = await loadExisting(
+      destIds,
+      valid
+        .filter((t: any) => t.type === TxType.transfer && t.toAccountId)
+        .map((t: any) => t.date),
+    );
+    const used = new Set<string>();
 
     const ops: any[] = [];
     const deltas: Delta[] = [];
+    let linked = 0;
 
     for (const tx of valid) {
       const base = {
@@ -176,10 +277,25 @@ router.post("/confirm", async (req: AuthRequest, res: Response) => {
         notes: "Imported from statement",
         tags: tagsCreate(tx.tagIds),
       };
+      const direction = rowDirection(tx);
 
       if (tx.type === TxType.transfer && tx.toAccountId) {
-        const amt = new Decimal(tx.amount);
+        const date = new Date(tx.date);
+        // Signed from this account's point of view: an incoming card payment
+        // is +X here and -X in the account it came from.
+        const signed = signedAmount(Number(tx.amount), direction);
+        const amt = new Decimal(signed);
         const transferGroupId = crypto.randomUUID();
+
+        const candidates = counterpartPool.filter(
+          (e) =>
+            e.accountId === tx.toAccountId &&
+            !used.has(e.id) &&
+            isCounterpart(e, date, signed),
+        );
+        const counterpart =
+          candidates.find((e) => e.id === tx.linkTransactionId) ??
+          closestByDate(date, candidates);
 
         ops.push(
           prisma.transaction.create({
@@ -188,28 +304,53 @@ router.post("/confirm", async (req: AuthRequest, res: Response) => {
               accountId,
               toAccountId: tx.toAccountId,
               transferGroupId,
-              amount: amt.negated(),
-              type: TxType.transfer,
-            },
-          }),
-          prisma.transaction.create({
-            data: {
-              ...base,
-              accountId: tx.toAccountId,
-              toAccountId: accountId,
-              transferGroupId,
               amount: amt,
               type: TxType.transfer,
             },
           }),
         );
-        deltas.push(
-          { accountId, delta: amt.negated() },
-          { accountId: tx.toAccountId, delta: amt },
-        );
+        deltas.push({ accountId, delta: amt });
+
+        if (counterpart) {
+          // Already recorded (and already in that account's balance): turn it
+          // into this transfer's second leg rather than adding another.
+          used.add(counterpart.id);
+          linked++;
+          ops.push(
+            prisma.transaction.update({
+              where: { id: counterpart.id },
+              data: {
+                type: TxType.transfer,
+                toAccountId: accountId,
+                transferGroupId,
+                externalParty: null,
+              },
+            }),
+          );
+        } else {
+          ops.push(
+            prisma.transaction.create({
+              data: {
+                ...base,
+                accountId: tx.toAccountId,
+                toAccountId: accountId,
+                transferGroupId,
+                amount: amt.negated(),
+                type: TxType.transfer,
+              },
+            }),
+          );
+          deltas.push({ accountId: tx.toAccountId, delta: amt.negated() });
+        }
       } else {
+        // A "transfer" without a destination is saved as a plain row in the
+        // statement's direction.
         const type =
-          tx.type === TxType.transfer ? TxType.expense : (tx.type as TxType);
+          tx.type === TxType.transfer
+            ? direction === "in"
+              ? TxType.income
+              : TxType.expense
+            : (tx.type as TxType);
         const signed = signAmount(type, tx.amount);
 
         ops.push(
@@ -235,12 +376,13 @@ router.post("/confirm", async (req: AuthRequest, res: Response) => {
       Object.values(StatementType).includes(statementType) &&
       !COMPATIBLE[statementType as StatementType]?.includes(account.type)
     ) {
-      warning = `A ${StatementType} statement was imported into a ${account.type} account. Double-check the results.`;
+      warning = `A ${statementType} statement was imported into a ${account.type} account. Double-check the results.`;
     }
 
     res.status(201).json({
       imported: valid.length,
       skipped,
+      linked,
       ...(warning ? { warning } : {}),
       message: `${valid.length} transactions imported successfully`,
     });

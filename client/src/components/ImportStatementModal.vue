@@ -163,6 +163,22 @@
                             ⚠️ {{ invalidCount }} row{{ invalidCount === 1 ? '' : 's' }} couldn't be read and {{ invalidCount === 1 ? 'is' : 'are' }} not shown below.
                         </div>
 
+                        <!-- Rows already saved in this account -->
+                        <div
+                            v-if="duplicateCount > 0"
+                            class="bg-amber-50 text-amber-700 text-sm px-4 py-3 rounded-lg mb-4"
+                        >
+                            {{ duplicateCount }} row{{ duplicateCount === 1 ? ' looks' : 's look' }} already imported into this account and {{ duplicateCount === 1 ? 'was' : 'were' }} unchecked. Re-check any that are genuinely new.
+                        </div>
+
+                        <!-- Own-account transfers matched to another account -->
+                        <div
+                            v-if="transferMatchCount > 0"
+                            class="bg-indigo-50 text-indigo-700 text-sm px-4 py-3 rounded-lg mb-4"
+                        >
+                            {{ transferMatchCount }} row{{ transferMatchCount === 1 ? ' matches' : 's match' }} a transaction in another of your accounts and {{ transferMatchCount === 1 ? 'was' : 'were' }} set as a transfer. On import {{ transferMatchCount === 1 ? 'it is' : 'they are' }} linked to the existing transaction instead of counted twice.
+                        </div>
+
                         <!-- Summary -->
                         <div class="grid grid-cols-3 gap-3 mb-6">
                             <div class="bg-gray-100 rounded-lg p-3 text-center">
@@ -220,6 +236,20 @@
                                                 type="text"
                                                 class="w-full min-w-40 border rounded px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                                             />
+                                            <p
+                                                v-if="row.match?.kind === 'duplicate'"
+                                                class="mt-1 text-[11px] text-amber-700"
+                                                :title="row.match.description"
+                                            >
+                                                ⚠️ Already imported · {{ formatDate(row.match.date) }} · {{ row.match.description }}
+                                            </p>
+                                            <p
+                                                v-else-if="row.match?.kind === 'transfer'"
+                                                class="mt-1 text-[11px] text-indigo-600"
+                                                :title="row.match.description"
+                                            >
+                                                🔗 Matches {{ row.match.accountName }} · {{ formatDate(row.match.date) }} · {{ row.match.description }}
+                                            </p>
                                         </td>
 
                                         <!-- Type toggle -->
@@ -300,9 +330,13 @@
                                         <!-- Amount -->
                                         <td 
                                             class="px-3 py-3 text-right font-semibold whitespace-nowrap"
-                                            :class="row.type === 'income' ? 'text-green-500' : 'text-red-500'"    
+                                            :class="row.type === 'income'
+                                                ? 'text-green-500'
+                                                : row.type === 'transfer'
+                                                    ? 'text-indigo-500'
+                                                    : 'text-red-500'"
                                         >
-                                            {{ row.type === 'income' ? '+' : '-' }}{{ formatCurrency(Math.abs(Number(row.amount))) }}
+                                            {{ (row.type === 'transfer' ? row.direction === 'in' : row.type === 'income') ? '+' : '-' }}{{ formatCurrency(Math.abs(Number(row.amount))) }}
                                         </td>
                                     </tr>
                                 </tbody>
@@ -320,6 +354,9 @@
                     </p>
                     <p v-if="skippedCount > 0" class="text-sm text-gray-500 mt-1">
                         {{ skippedCount }} row{{ skippedCount === 1 ? '' : 's' }} were skipped.
+                    </p>
+                    <p v-if="linkedCount > 0" class="text-sm text-gray-500 mt-1">
+                        🔗 {{ linkedCount }} transfer{{ linkedCount === 1 ? ' was' : 's were' }} linked to an existing transaction instead of duplicated.
                     </p>
                     <div
                         v-if="warning"
@@ -413,6 +450,7 @@ const error = ref('');
 
 const importedCount = ref(0);
 const skippedCount = ref(0);
+const linkedCount = ref(0);
 const invalidCount = ref(0);
 const warning = ref('');
 
@@ -521,6 +559,8 @@ const stepLabel = computed(() => {
 const selectedRows = computed(() => previewRows.value.filter(r => r.selected));
 const incomeCount = computed(() => previewRows.value.filter(r => r.type === 'income').length);
 const expenseCount = computed(() => previewRows.value.filter(r => r.type === 'expense').length);
+const duplicateCount = computed(() => previewRows.value.filter(r => r.match?.kind === 'duplicate').length);
+const transferMatchCount = computed(() => previewRows.value.filter(r => r.match?.kind === 'transfer').length);
 const allSelected = computed(
     () => previewRows.value.length > 0 && previewRows.value.every(r => r.selected),
 );
@@ -550,23 +590,35 @@ const parseFile = async () => {
             form.value.file,
             form.value.bank,
             form.value.statementType,
+            form.value.accountId,
         );
 
         invalidCount.value = res.data.invalid ?? 0;
         previewRows.value = res.data.rows
             .filter((r: any) => r.valid)
-            .map((r: any) => ({
-                rowIndex: r.rowIndex,
-                date: r.date,
-                description: r.description,
-                amount: r.amount,
-                type: r.type,
-                valid: r.valid,
-                selected: true,
-                categoryId: r.categoryId || '',
-                toAccountId: r.toAccountId || '',
-                tagIds: [] as string[]
-            }));
+            .map((r: any) => {
+                const match = r.match ?? null;
+                const isTransfer = match?.kind === 'transfer';
+                return {
+                    rowIndex: r.rowIndex,
+                    date: r.date,
+                    description: r.description,
+                    amount: r.amount,
+                    // Matched own-account transfers start as a transfer to the
+                    // account that already holds the other side.
+                    type: isTransfer ? 'transfer' : r.type,
+                    // Money in or out of this account, kept even if the row is
+                    // re-typed as a transfer.
+                    direction: r.direction ?? (r.type === 'income' ? 'in' : 'out'),
+                    valid: r.valid,
+                    // Already saved in this account: start unchecked.
+                    selected: match?.kind !== 'duplicate',
+                    match,
+                    categoryId: r.categoryId || '',
+                    toAccountId: isTransfer ? match.accountId : (r.toAccountId || ''),
+                    tagIds: [] as string[]
+                };
+            });
     } catch (err: any) {
         error.value =
             err.response?.data?.error ??
@@ -601,14 +653,23 @@ const confirmImport = async () => {
                 description: r.description,
                 amount: r.amount,
                 type: r.type,
+                direction: r.direction,
                 categoryId: r.categoryId || null,
                 toAccountId: r.toAccountId || null,
+                // Only if the row is still a transfer to the matched account.
+                linkTransactionId:
+                    r.match?.kind === 'transfer' &&
+                    r.type === 'transfer' &&
+                    r.toAccountId === r.match.accountId
+                        ? r.match.transactionId
+                        : null,
                 tagIds: r.tagIds || [],
                 valid: r.valid
             }))
         );
         importedCount.value = res.data.imported;
         skippedCount.value = res.data.skipped || 0;
+        linkedCount.value = res.data.linked || 0;
         warning.value = res.data.warning || '';
         step.value = 2;
         emit('imported');
